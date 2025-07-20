@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="author" content="kinky-thots"/>
+    <meta name="copyright" content="kinky-thots"/>
+    <meta name="robots" content="index,nofollow"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
+    <title>Kinky Thots - Amatuer XXX</title>
+        <link rel="stylesheet" href="/CSS/landing-1.css">
+</head>
+<body>
+    <!-- Navigation - Smooth scrolling and modern feel -->
+    <nav id="navbar">
+        <div class="nav-container">
+            <div class="logo"><a href="https://kinky-thots.com">Kinky-Thots</a><img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></div>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#skills">Skills</a></li>
+                <li><a href="#portfolio">Portfolio</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+    
+    <!-- Hero Section - First impression is everything -->
+<section class="hero" id="home">
+        <div class="slideshow-container">
+            <!-- Slides -->
+            <div class="slide active" style="background-image: url('https://i.ibb.co/RTQR3SXp/img-kinky-7.jpg')"></div>
+            <div class="slide" style="background-image: url('https://i.ibb.co/99DPdWft/sissy6.jpg')"></div>
+            <div class="slide" style="background-image: url('https://i.ibb.co/R4H2CH8Y/sissy7.jpg')"></div>
+            <div class="slide" style="background-image: url('https://i.ibb.co/PGxPyPdz/mirror.jpg')"></div>
+            <div class="slide" style="background-image: url('https://i.ibb.co/pBc7Ygkj/sissy9.jpg')"></div>
+            
+            <!-- Content overlay -->
+            <div class="hero-content">
+                <div class="hero-buttons">
+                    <a href="https://onlyfans.com/kinkythots" target="_blank" class="cta-button primary">Subscribe</a>
+                    <a href="https://sharesome.com/KinkyThots" target="_blank" class="cta-button secondary">Sneak Peak</a>
+                </div>
+            </div>
+            
+            <!-- Slide counter -->
+            <div class="slide-counter">
+                <span id="current-slide">1</span> / <span id="total-slides">5</span>
+            </div>
+            
+            <!-- Navigation dots -->
+            <div class="slideshow-nav">
+                <div class="nav-dot active" data-slide="0"></div>
+                <div class="nav-dot" data-slide="1"></div>
+                <div class="nav-dot" data-slide="2"></div>
+                <div class="nav-dot" data-slide="3"></div>
+                <div class="nav-dot" data-slide="4"></div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const dots = document.querySelectorAll('.nav-dot');
+        const currentSlideElement = document.getElementById('current-slide');
+        const totalSlidesElement = document.getElementById('total-slides');
+        
+        totalSlidesElement.textContent = slides.length;
+        
+        function showSlide(index) {
+            // Remove active class from all slides and dots
+            slides.forEach(slide => slide.classList.remove('active'));
+            dots.forEach(dot => dot.classList.remove('active'));
+            
+            // Add active class to current slide and dot
+            slides[index].classList.add('active');
+            dots[index].classList.add('active');
+            
+            // Update counter
+            currentSlideElement.textContent = index + 1;
+            currentSlide = index;
+        }
+        
+        function nextSlide() {
+            const next = (currentSlide + 1) % slides.length;
+            showSlide(next);
+        }
+        
+        // Auto-advance slideshow
+        setInterval(nextSlide, 4000);
+        
+        // Click navigation
+        dots.forEach((dot, index) => {
+            dot.addEventListener('click', () => {
+                showSlide(index);
+            });
+        });
+        
+        // Touch/swipe support
+        let startX = 0;
+        let endX = 0;
+        
+        document.addEventListener('touchstart', e => {
+            startX = e.changedTouches[0].screenX;
+        });
+        
+        document.addEventListener('touchend', e => {
+            endX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+        
+        function handleSwipe() {
+            const threshold = 50;
+            const diff = startX - endX;
+            
+            if (Math.abs(diff) > threshold) {
+                if (diff > 0) {
+                    // Swipe left - next slide
+                    nextSlide();
+                } else {
+                    // Swipe right - previous slide
+                    const prev = currentSlide === 0 ? slides.length - 1 : currentSlide - 1;
+                    showSlide(prev);
+                }
+            }
+        }
+    </script>
+
+    <!-- About Section - Building trust and connection -->
+    <section class="about" id="about">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text">
+                    <h2>About Her</h2>
+                    <p>The alluring side of the brand, she had a traditional up-bringing.  Told not to drive and that a woman's place is making home, she rebelled against that establishment, leading her to a life of fun & sin.</p>
+                    <p>Come see how god built someone for one purpose 😉</p>
+                    <br>
+                </div>
+                <div class="profile-image">
+                    <svg width="100%" height="675" viewBox="0 0 351.25 675">
+    <defs> 
+        <linearGradient id="profileGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="5%" style="stop-color:#f805a7;stop-opacity:1" />
+            <stop offset="95%" style="stop-color:#0bd0f3;stop-opacity:1" />
+        </linearGradient>
+        <clipPath id="rectClip">
+            <rect x="60.125" y="62.5" width="231" height="499"/>
+        </clipPath>
+    </defs>
+    <rect width="351.25" height="675" fill="url(#profileGrad)" rx="25"/>
+    <!-- Profile image -->
+    <image x="60.125" y="62.5" width="231" height="499" href="https://i.ibb.co/pBFhd5BH/pawg-jpg.jpg" clip-path="url(#rectClip)"/>
+    <!-- Image border -->
+    <rect x="60.125" y="62.5" width="231" height="499" fill="none" stroke="white" stroke-width="3.75" opacity="0.8"/>
+    <!-- Interactive button with link -->
+    <a href="https://www.facebook.com/kinkythots/" target="_blank">
+        <rect x="125.625" y="607.5" width="125" height="50" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="2.5" rx="25" style="cursor:pointer"/>
+        <rect x="125.625" y="607.5" width="125" height="50" fill="rgba(255,255,255,0.05)" rx="25" style="cursor:pointer">
+            <animate attributeName="fill" values="rgba(255,255,255,0.05);rgba(255,255,255,0.2);rgba(255,255,255,0.05)" dur="2s" repeatCount="indefinite"/>
+        </rect>
+        <text x="188.125" y="638.75" text-anchor="middle" fill="white" font-size="17.5" font-weight="bold" font-family="Arial, sans-serif" style="cursor:pointer;pointer-events:none">FOLLOW</text>
+    </a>
+    <text x="188.125" y="595" text-anchor="middle" fill="white" font-size="20" font-family="Arial, sans-serif">Sissy Long Legs</text>
+</svg>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Skills Section - Showcasing expertise -->
+    <section class="skills" id="skills">
+        <div class="container">
+            <div class="section-header">
+                <h2>Place Holder</h2>
+                <p>Place Holder</p>
+            </div>
+            <div class="skills-grid">
+                <div class="skill-card">
+                    <div class="hover-image"></div>
+                    <div class="skill-content">
+                        <div class="skill-icon"><img src="https://i.ibb.co/pjzNBPf0/camera.png" width="75px"></div>
+                        <h3>Photography</h3>
+                        <p>Professional photography for that will envelope your emotions that developes into a High School Crush!</p>
+                    </div>
+                </div>
+                <div class="skill-card">
+                    <div class="hover-image"></div>
+                      <div class="skill-content">
+                        <div class="skill-icon"><img src="https://i.ibb.co/yn1L7TpR/video.png" width="75px"></div>
+                          <h3>Videography</h3>
+                            <p>From concept to final edit, enjoy video content that captures attention and drives your libido into overdrive.</p>
+                    </div>
+                </div>
+                <div class="skill-card">
+                    <div class="hover-image"></div>
+                    <div class="skill-content">
+                        <div class="skill-icon"><img src="https://i.ibb.co/qLHz4Fcj/webcam.png" width="75px"></div>
+                        <h3>Webcam</h3>
+                        <p>Looking for live sexual situations? Because we enjoy voyurism! Why don't you come follow us on Chaturbate or WebcamModels.com 💦</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Portfolio Section - Proving capability -->
+  
+<section class="portfolio" id="portfolio">
+    <div class="container">
+        <div class="section-header">
+            <h2>Free Samples</h2>
+            <p>A selection of our latest NSFW content</p>
+        </div>
+        <div class="portfolio-grid">
+            <div class="portfolio-item">
+                <div class="image-container">
+                    <img src="https://i.ibb.co/C5bsWjjv/Sexy-Up.gif" alt="Fucked from Behind"/>
+                    <div class="hover-text">
+                        <h4>Hottest Models</h4>
+                        <p>Nothing but the Sexiest models</p>
+                    </div>
+                </div>
+            </div>
+            <div class="portfolio-item portrait">
+                <div class="image-container">
+                    <img src="https://i.ibb.co/1GdwBfJG/gif-kinky-1.gif" alt="Phat Ass White Girl" />
+                    <div class="hover-text">
+                        <h4>Perfect PAWG</h4>
+                        <p>The Original Phat Ass White Girl</p>
+                    </div>
+                </div>
+            </div>
+            <div class="portfolio-item">
+                <div class="image-container">
+                    <img src="https://i.ibb.co/GvTNJszP/IMG-9801.gif" alt="Outdoors in Water" />
+                    <div class="hover-text">
+                        <h4>Location, Location, Location!</h4>
+                        <p>Content recorded in many locations, who likes voyerism?</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Section - Clear call to action -->
+    <section class="contact" id="contact">
+        <div class="container">
+            <div class="section-header">
+                <h2>Ready for NSFW Content?</h2>
+                <p>Come subscribe to our content!</p>
+            </div>
+            <div class="contact-buttons">
+                <a href="https://onlyfans.com/kinkythots" target="_blank" class="cta-button primary">Full Portfolio</a>
+                <a href="https://sharesome.com/KinkyThots" target="_blank" class="cta-button secondary">Free View</a>
+            </div>
+            <div class="social-links">
+                <a href="mailto:info@kinky-thots.com" class="social-link"><img src="https://i.ibb.co/fVZdJCpS/email.png" width="50px"></a>
+                <a href="https://facebook.com/kinkythots" class="social-link"><img src="https://i.ibb.co/WNG2YQhW/10462343.png" width="100px"></a>
+                <a href="https://x.com/kinkythotsmodel" class="social-link"><img src="https://i.ibb.co/j9Rqb5Lc/X-Logo.png" width="50px"></a>
+                <a href="https://kinky-thots.bdsmlr.com" class="social-link"><img src="https://i.ibb.co/gL33B4Tx/bdsmlr.png" width="50px"></a>
+                <a href="https://chaturbate.com/b/kinkythots" class="social-link"><img src="https://i.ibb.co/G3kRn5mT/chaturbate.png" width="50px"></a>
+            </div>
+        </div>
+    </section>
+    
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-left">
+                <p>2025 Kinky-Thots <img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="25px">All rights reserved.</p>
+            </div>
+            <div class="footer-right">
+                <a href="https://kinky-thots.com/terms.html" class="footer-link">Terms & Conditions</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Navbar scroll effect - adds visual feedback
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Add intersection observer for animations - creates engaging scroll effects
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe all skill cards and portfolio items for scroll animations
+        document.querySelectorAll('.skill-card, .portfolio-item').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'all 0.6s ease';
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
