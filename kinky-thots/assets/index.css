@@ -168,7 +168,7 @@ nav.scrolled {
     box-shadow: 0 10px 20px #f805a7;
 }
 
-/* Secondary button - Alternative action with subtle styling */
+/* Secondary button  */
 .cta-button.secondary {
     background: rgba(255, 255, 255, 0.2);
     color: rgb(255, 255, 255);
@@ -182,7 +182,7 @@ nav.scrolled {
     transform: translateY(-3px);
 }
 
-/* Button container for proper spacing */
+/* Button container  */
 .hero-buttons {
     margin-top: 2rem;
     display: flex;
@@ -391,7 +391,7 @@ nav.scrolled {
 
         /* Individual card hover images */
         .skill-card:nth-child(1) .hover-image {
-            background-image: url('https://i.ibb.co/60gBWSxn/img-kinky-10.jpg');
+            background-image: url('https://i.ibb.co/pBc7Ygkj/sissy9.jpg');
         }
 
         .skill-card:nth-child(2) .hover-image {

@@ -1,4 +1,4 @@
-/* index.css - styles for index.html */
+/* sissylonglegs.css */
 * {
     margin: 0;
     padding: 0;
@@ -105,7 +105,7 @@ nav.scrolled {
     left: 0;
     right: 0;
     bottom: 0;
-    background: #242424;
+    background: #525252;
     z-index: 1;
 }
 
@@ -143,7 +143,7 @@ nav.scrolled {
     opacity: 0.9;
 }
 
-/* Button styling - Creating visual hierarchy and clear user paths */
+/* Button styling  */
 .cta-button {
     display: inline-block;
     padding: 15px 40px;
@@ -589,6 +589,21 @@ nav.scrolled {
 }
 
 /* Animations */
+.dissolve {
+    animation: dissolveIn 2s ease-out;
+}
+
+@keyframes dissolveIn {
+    from {
+        opacity: 0;
+        filter: blur(8px);
+    }
+    to {
+        opacity: 1;
+        filter: blur(0);
+    }
+}
+
 .floating {
     animation: floating 1s ease-in-out infinite;
 }
