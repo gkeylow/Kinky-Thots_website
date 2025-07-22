@@ -155,7 +155,7 @@ nav.scrolled {
     font-size: 1rem;
 }
 
-/* Primary button - Main action we want users to take */
+/* Primary button */
 .cta-button.primary {
     background: linear-gradient(45deg, #0bd0f3, #f805a7);
     color: #ffffff;
@@ -259,8 +259,7 @@ nav.scrolled {
 }
 
 /* Skills Section - Visual and engaging */
-        /* Skills Section - Visual and engaging */
-         * {
+* {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -392,7 +391,7 @@ nav.scrolled {
 
         /* Individual card hover images */
         .skill-card:nth-child(1) .hover-image {
-            background-image: url('https://i.ibb.co/pv7Wzx0V/gif-kinky-portrait-8.gif');
+            background-image: url('https://i.ibb.co/60gBWSxn/img-kinky-10.jpg');
         }
 
         .skill-card:nth-child(2) .hover-image {
