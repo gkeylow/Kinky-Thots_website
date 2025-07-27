@@ -12,9 +12,9 @@ const PORT = 3001;
 // MariaDB pool
 const pool = mariadb.createPool({
   host: 'localhost',
-  user: 'gkeylow',
-  password: 'REDACTED_DB_PASSWORD',
-  database: 'gallery_db',
+  user: 'xxxxxxx',
+  password: 'xxxxxx',
+  database: 'xxxxxx',
   connectionLimit: 5
 });
 
