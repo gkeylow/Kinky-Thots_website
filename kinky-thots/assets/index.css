@@ -339,6 +339,17 @@ nav.scrolled {
             font-size: 1.5rem;
             margin-bottom: 1rem;
             transition: all 0.3s ease;
+            position: relative;
+        }
+
+        /* Example: Add a gold star before the first skill heading */
+        .skills-grid .skill-card:first-child h3::before {
+            content: "★ ";
+            color: gold;
+            font-size: 1.2em;
+            position: relative;
+            left: -4px;
+            top: 0;
         }
 
         .skill-card p {
@@ -391,11 +402,11 @@ nav.scrolled {
 
         /* Individual card hover images */
         .skill-card:nth-child(1) .hover-image {
-            background-image: url('https://i.ibb.co/pBc7Ygkj/sissy9.jpg');
+            background-image: url('https://i.ibb.co/Rk9H3Kdv/IMG-2258.jpg');
         }
 
         .skill-card:nth-child(2) .hover-image {
-            background-image: url('https://i.ibb.co/v4yLB0zT/IMG-4879.gif');
+            background-image: url('https://i.ibb.co/QFLt3Yn1/IMG-2081.jpg');
         }
 
         .skill-card:nth-child(3) .hover-image {
