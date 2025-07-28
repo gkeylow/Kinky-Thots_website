@@ -63,7 +63,6 @@ nav.scrolled {
 .nav-links a:hover {
     color: #ffffff;
 }
-
 .nav-links a::after {
     content: '';
     position: absolute;
