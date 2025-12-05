@@ -1,0 +1,5 @@
+{
+    "codium.codeCompletion.enable": false,
+    "coderabbit.agentType": "Claude Code",
+    "git.ignoreLimitWarning": true
+}

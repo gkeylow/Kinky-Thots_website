@@ -8,7 +8,7 @@
 body {
     font-family: 'Arial', sans-serif;
     line-height: 1.6;
-    color: #161515;
+    color: #232323;
     background: linear-gradient(145deg, #0bd0f3 0%, #f805a7 100%);
     min-height: 100vh;
 }
@@ -105,7 +105,7 @@ nav.scrolled {
     left: 0;
     right: 0;
     bottom: 0;
-    background: #525252;
+    background: #232323;
     z-index: 1;
 }
 
