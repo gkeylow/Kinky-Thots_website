@@ -1,4 +1,3 @@
-
 const express = require('express');
 const fileUpload = require('express-fileupload');
 const cors = require('cors');
@@ -9,7 +8,7 @@ const fs = require('fs');
 const app = express();
 const PORT = 3001;
 
-// MariaDB pool
+// MariaDB connection pool
 const pool = mariadb.createPool({
   host: 'localhost',
   user: 'gkeylow',
@@ -18,115 +17,153 @@ const pool = mariadb.createPool({
   connectionLimit: 5
 });
 
-app.use(cors());
-app.use(express.json());
-app.use(fileUpload({
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max file size
-  abortOnLimit: true
+// Middleware
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  credentials: true
 }));
 
-// Serve static files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use('/assets', express.static(path.join(__dirname, 'assets')));
-app.use('/', express.static(path.join(__dirname, 'public')));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Create uploads directory if not exists
-if (!fs.existsSync(path.join(__dirname, 'uploads'))){
-    fs.mkdirSync(path.join(__dirname, 'uploads'));
+app.use(fileUpload({
+  limits: { fileSize: 500 * 1024 * 1024 }, // 500MB for videos
+  abortOnLimit: true,
+  createParentPath: true
+}));
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Upload endpoint (POST /upload)
-app.post('/upload', async (req, res) => {
+// Serve static files
+app.use('/uploads', express.static(uploadsDir));
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uploadsDir: uploadsDir
+  });
+});
+
+// Get all images
+app.get('/api/gallery', async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const rows = await conn.query(
+      'SELECT id, filename, upload_time FROM images ORDER BY upload_time DESC'
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({ error: 'Database error', details: err.message });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Upload image
+app.post('/api/upload', async (req, res) => {
+  let conn;
   try {
     if (!req.files || !req.files.image) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
-    
+
     const image = req.files.image;
     
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    // Validate file type - images and videos
+    const allowedTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+      'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska',
+      'video/webm', 'video/mpeg', 'video/x-flv'
+    ];
     if (!allowedTypes.includes(image.mimetype)) {
-      return res.status(400).json({ error: 'Invalid file type. Only images allowed.' });
+      return res.status(400).json({ error: 'Invalid file type. Only images and videos allowed.' });
     }
-    
-    const filename = Date.now() + '_' + image.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const uploadPath = path.join(__dirname, 'uploads', filename);
-    
-    image.mv(uploadPath, async (err) => {
-      if (err) {
-        console.error('Upload error:', err);
-        return res.status(500).json({ error: 'Upload failed' });
-      }
-      
-      // Save metadata to DB
-      try {
-        const conn = await pool.getConnection();
-        await conn.query('INSERT INTO images (filename, upload_time) VALUES (?, NOW())', [filename]);
-        conn.release();
-        res.json({ success: true, filename });
-      } catch (dbErr) {
-        console.error('Database error:', dbErr);
-        res.status(500).json({ error: 'Database error' });
-      }
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const safeName = image.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const filename = `${timestamp}_${safeName}`;
+    const uploadPath = path.join(uploadsDir, filename);
+
+    // Move file
+    await image.mv(uploadPath);
+
+    // Save to database
+    conn = await pool.getConnection();
+    const result = await conn.query(
+      'INSERT INTO images (filename, upload_time) VALUES (?, NOW())',
+      [filename]
+    );
+
+    res.json({ 
+      success: true, 
+      filename: filename,
+      id: Number(result.insertId)
     });
+
   } catch (error) {
-    console.error('Server error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Upload failed', details: error.message });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
-// Gallery endpoint (GET /gallery)
-app.get('/gallery', async (req, res) => {
+// Delete image
+app.delete('/api/delete/:id', async (req, res) => {
+  let conn;
   try {
-    const conn = await pool.getConnection();
-    const rows = await conn.query('SELECT id, filename, upload_time FROM images ORDER BY upload_time DESC');
-    conn.release();
-    res.json(rows);
-  } catch (err) {
-    console.error('Database error:', err);
-    res.status(500).json({ error: 'Database error' });
-  }
-});
-
-// Delete endpoint (DELETE /delete/:id) - No admin required
-app.delete('/delete/:id', async (req, res) => {
-  try {
-    const imageId = req.params.id;
-    const conn = await pool.getConnection();
+    const imageId = parseInt(req.params.id);
     
-    // Get filename before deleting
-    const result = await conn.query('SELECT filename FROM images WHERE id = ?', [imageId]);
-    if (result.length === 0) {
-      conn.release();
+    conn = await pool.getConnection();
+    
+    // Get filename
+    const rows = await conn.query('SELECT filename FROM images WHERE id = ?', [imageId]);
+    
+    if (rows.length === 0) {
       return res.status(404).json({ error: 'Image not found' });
     }
-    
-    const filename = result[0].filename;
+
+    const filename = rows[0].filename;
     
     // Delete from database
     await conn.query('DELETE FROM images WHERE id = ?', [imageId]);
-    conn.release();
     
-    // Delete physical file
-    const filePath = path.join(__dirname, 'uploads', filename);
+    // Delete file
+    const filePath = path.join(uploadsDir, filename);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
-    
+
     res.json({ success: true });
-  } catch (err) {
-    console.error('Delete error:', err);
-    res.status(500).json({ error: 'Delete failed' });
+
+  } catch (error) {
+    console.error('Delete error:', error);
+    res.status(500).json({ error: 'Delete failed', details: error.message });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
+// Start server
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Gallery server running on port ${PORT}`);
+    console.log(`📁 Uploads directory: ${uploadsDir}`);
+    console.log(`🔗 API endpoints:`);
+    console.log(`   GET  /api/gallery - List all images`);
+    console.log(`   POST /api/upload  - Upload image`);
+    console.log(`   DELETE /api/delete/:id - Delete image`);
+  });
+}
 
-app.listen(PORT, () => {
-  console.log(`🚀 Gallery server running on port ${PORT}`);
-  console.log(`📁 Serving uploads from: ${path.join(__dirname, 'uploads')}`);
-});
+module.exports = app;

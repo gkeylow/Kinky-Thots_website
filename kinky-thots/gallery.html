@@ -6,11 +6,12 @@
     <meta name="copyright" content="kinky-thots"/>
     <meta name="robots" content="index,nofollow"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: https://res.cloudinary.com data:; style-src 'self' 'unsafe-inline' https:; script-src 'self' https://imgbb.com https://upload-widget.cloudinary.com https://widget.cloudinary.com 'unsafe-inline'; font-src 'self' https:; connect-src 'self' http://kinky-thots.com http://localhost:3001 https: https://api.cloudinary.com https://res.cloudinary.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data:; media-src 'self' http: https: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' https://imgbb.com https://upload-widget.cloudinary.com https://widget.cloudinary.com 'unsafe-inline'; font-src 'self' https:; connect-src 'self' http://kinky-thots.com http://kinky-thots.com:3001 http://localhost:3001 https: https://api.cloudinary.com https://res.cloudinary.com;">
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
     <title>Kinky Thots - Amatuer XXX Gallery</title>
     <link rel="stylesheet" href="/assets/gallery.css">
-  </head>
+
+</head>
 <body>
     <nav id="navbar">
         <div class="nav-container">
@@ -38,7 +39,7 @@
             <form id="upload-form">
                 <div class="upload-area">
                     <span class="upload-text">Drag & drop or click to select an image</span>
-                    <input type="file" id="image-input" name="image" accept="image/*" style="display:none;">
+                    <input type="file" id="image-input" name="image" accept="image/*,video/*" style="display:none;">
                     <img id="image-preview" style="display:none; max-width:120px; max-height:120px; margin-top:10px; border-radius:8px;" />
                 </div>
                 <button type="submit" class="upload-btn">Upload Image</button>
@@ -62,7 +63,7 @@
         </div>
     </div>
 
-    <script src="/assets/gallery.js"></script>
+    <script src="/assets/gallery.js?v=4"></script>
 </body>
 <footer class="site-footer">
     <div class="container">
