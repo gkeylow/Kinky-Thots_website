@@ -1,0 +1,6 @@
+# Exclude large media files from git
+*.mp4
+*.MP4
+*.MOV
+*.mov
+Haley.mp4

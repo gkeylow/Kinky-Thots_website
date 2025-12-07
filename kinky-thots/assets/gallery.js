@@ -4,11 +4,11 @@
 
   // Configuration
   const CONFIG = {
-    apiBase: window.location.origin,
+    apiBase: window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'http://kinky-thots.com:3001',
     endpoints: {
       gallery: '/api/gallery',
       upload: '/api/upload',
-      delete: '/api/delete'
+      delete: '/api/gallery'
     },
     uploadsPath: '/uploads/'
   };
@@ -294,10 +294,28 @@
       return;
     }
 
+    console.log('Deleting image ID:', imageId);
+    showStatus('Deleting...', 'loading');
+
     try {
       const url = CONFIG.apiBase + CONFIG.endpoints.delete + '/' + imageId;
-      const response = await fetch(url, { method: 'DELETE' });
+      console.log('Delete URL:', url);
+      
+      const response = await fetch(url, { 
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Delete response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const result = await response.json();
+      console.log('Delete result:', result);
 
       if (result.success) {
         showStatus('Image deleted successfully', 'success');
@@ -315,11 +333,12 @@
   function setupLightbox() {
     const overlay = document.getElementById('lightbox-overlay');
     const overlayImg = document.getElementById('lightbox-img');
+    const overlayVideo = document.getElementById('lightbox-video');
     const closeBtn = document.getElementById('lightbox-close');
     const prevBtn = document.getElementById('lightbox-prev');
     const nextBtn = document.getElementById('lightbox-next');
 
-    if (!overlay || !overlayImg) {
+    if (!overlay || !overlayImg || !overlayVideo) {
       console.warn('Lightbox elements not found');
       return;
     }
@@ -327,8 +346,26 @@
     window.openLightbox = function(idx) {
       if (!galleryData[idx]) return;
       
-      const imgUrl = CONFIG.apiBase + CONFIG.uploadsPath + encodeURIComponent(galleryData[idx].filename);
-      overlayImg.src = imgUrl;
+      const fileUrl = CONFIG.apiBase + CONFIG.uploadsPath + encodeURIComponent(galleryData[idx].filename);
+      const isVideo = /\.(mp4|mov|avi|mkv|webm|mpeg|flv)$/i.test(galleryData[idx].filename);
+      
+      // Hide both elements first
+      overlayImg.style.display = 'none';
+      overlayVideo.style.display = 'none';
+      overlayImg.src = '';
+      overlayVideo.src = '';
+      
+      if (isVideo) {
+        // Show video
+        overlayVideo.src = fileUrl;
+        overlayVideo.style.display = 'block';
+        overlayVideo.load();
+      } else {
+        // Show image
+        overlayImg.src = fileUrl;
+        overlayImg.style.display = 'block';
+      }
+      
       overlay.style.display = 'flex';
       currentLightboxIndex = idx;
       document.body.style.overflow = 'hidden';
@@ -337,6 +374,10 @@
     function closeLightbox() {
       overlay.style.display = 'none';
       overlayImg.src = '';
+      overlayImg.style.display = 'none';
+      overlayVideo.src = '';
+      overlayVideo.style.display = 'none';
+      overlayVideo.pause();
       document.body.style.overflow = '';
     }
 
@@ -353,7 +394,11 @@
     }
 
     if (closeBtn) closeBtn.onclick = closeLightbox;
-    overlay.onclick = (e) => { if (e.target === overlay) closeLightbox(); };
+    overlay.onclick = (e) => { 
+      if (e.target === overlay || e.target.id === 'lightbox-content') {
+        closeLightbox(); 
+      }
+    };
     if (prevBtn) prevBtn.onclick = showPrev;
     if (nextBtn) nextBtn.onclick = showNext;
 
