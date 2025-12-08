@@ -8,6 +8,14 @@
 # Enable mod_rewrite
 RewriteEngine On
 
+# Block direct access to gallery (redirect to home)
+# This prevents access via /gallery without .html extension
+RewriteCond %{REQUEST_URI} ^/gallery/?$ [NC]
+RewriteRule ^(.*)$ /index.html [R=302,L]
+
+# Allow gallery.html to load (password protection is in the HTML file)
+# But block if accessed without proper referrer (optional extra security)
+
 # Force HTTPS (if needed)
 # RewriteCond %{HTTPS} off
 # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
