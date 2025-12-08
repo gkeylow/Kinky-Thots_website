@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="author" content="kinky-thots"/>
     <meta name="copyright" content="kinky-thots"/>
-    <meta name="robots" content="index,nofollow"/>
+    <meta name="robots" content="noindex,nofollow"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data: blob:; media-src 'self' http: https: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; font-src 'self' https:; connect-src 'self' https: http: http://localhost:3001;">
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
@@ -14,6 +14,44 @@
 
 </head>
 <body>
+<!-- Admin Password Protection -->
+<script>
+(function() {
+    const ADMIN_PASSWORD = 'kinky2025admin'; // Change this to your secure password
+    const sessionKey = 'gallery_admin_auth';
+    
+    // Check if already authenticated in this session
+    if (sessionStorage.getItem(sessionKey) !== 'true') {
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        while (attempts < maxAttempts) {
+            const password = prompt('Admin Access Required\nEnter password to access gallery:');
+            
+            if (password === null) {
+                // User clicked cancel
+                window.location.href = '/index.html';
+                return;
+            }
+            
+            if (password === ADMIN_PASSWORD) {
+                sessionStorage.setItem(sessionKey, 'true');
+                break;
+            }
+            
+            attempts++;
+            if (attempts < maxAttempts) {
+                alert(`Incorrect password. ${maxAttempts - attempts} attempt(s) remaining.`);
+            } else {
+                alert('Access denied. Redirecting to home page.');
+                window.location.href = '/index.html';
+                return;
+            }
+        }
+    }
+})();
+</script>
+
 <nav id="navbar">
     <div class="nav-container">
         <div class="logo">
@@ -45,7 +83,6 @@
                 <button class="dropdown-toggle">Subscriptions</button>
                 <ul class="dropdown-menu">
                     <li><a href="/subscriptions.html">Pricing & Plans</a></li>
-                    <li><a href="/gallery.html">Photo Gallery</a></li>
                     <li><a href="/porn.php">Video Gallery</a></li>
                     <li><a href="https://onlyfans.com/kinkythots" target="_blank">OnlyFans</a></li>
                     <li><a href="https://sharesome.com/KinkyThots" target="_blank">Sharesome (Free)</a></li>
