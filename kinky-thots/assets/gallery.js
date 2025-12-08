@@ -103,14 +103,17 @@
           ></video>
         `;
       } else {
+        // Use CDN URL if available, otherwise origin
+        const imgSrc = img.cdn_url || fileUrl;
+        
         mediaElement = `
           <img 
-            src="${fileUrl}" 
+            src="${imgSrc}"
             alt="Gallery Image" 
             loading="lazy"
             data-idx="${idx}"
             onclick="window.openLightbox(${idx})"
-            onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23ddd%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3EImage not found%3C/text%3E%3C/svg%3E'"
+            onerror="this.src='${img.origin_url || fileUrl}'"
           />
         `;
       }
