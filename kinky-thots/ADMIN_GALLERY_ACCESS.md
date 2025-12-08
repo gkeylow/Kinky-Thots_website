@@ -6,7 +6,8 @@ The photo gallery (`/gallery.html`) is now password-protected and hidden from pu
 ## Access Details
 
 ### URL
-- **Direct URL**: `https://kinky-thots.com/gallery.html`
+- **Direct URL**: `https://kinky-thots.com/gallery.html` (must include .html extension)
+- **Blocked URLs**: `/gallery` (redirects to home page)
 - **Not linked** from any public navigation menus
 
 ### Password
