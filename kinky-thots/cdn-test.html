@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDN Performance Test - Kinky-Thots</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+        
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .test-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin: 10px 10px 10px 0;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .result-row {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        
+        .direct {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .cdn {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .winner {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            font-weight: bold;
+        }
+        
+        .metric {
+            display: inline-block;
+            margin-right: 20px;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-weight: bold;
+        }
+        
+        .metric-value {
+            color: #333;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .instructions {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .instructions h3 {
+            color: #1976D2;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+        }
+        
+        .instructions li {
+            margin: 8px 0;
+            color: #555;
+        }
+        
+        .devtools-tip {
+            background: #fff3e0;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #ff9800;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 CDN Performance Test</h1>
+        <p class="subtitle">Compare loading speeds: Direct Server vs CDN</p>
+        
+        <div class="instructions">
+            <h3>📋 How to Use This Test</h3>
+            <ol>
+                <li>Open Browser DevTools (Press <strong>F12</strong>)</li>
+                <li>Go to the <strong>Network</strong> tab</li>
+                <li>Click "Run All Tests" button below</li>
+                <li>Watch the Network tab to see loading times</li>
+                <li>Compare the results displayed below</li>
+            </ol>
+        </div>
+        
+        <div class="devtools-tip">
+            <strong>💡 Pro Tip:</strong> In DevTools Network tab, look at the "Time" column and hover over it to see detailed timing breakdown (DNS, Connect, TTFB, Download).
+        </div>
+        
+        <div class="test-section">
+            <h2>Image Loading Test</h2>
+            <button onclick="testImages()">Test Images</button>
+            <button onclick="clearResults('imageResults')">Clear Results</button>
+            <div id="imageResults" class="results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Video Loading Test</h2>
+            <button onclick="testVideos()">Test Videos</button>
+            <button onclick="clearResults('videoResults')">Clear Results</button>
+            <div id="videoResults" class="results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Run All Tests</h2>
+            <button onclick="runAllTests()" id="runAllBtn">Run All Tests</button>
+            <p style="margin-top: 10px; color: #666;">
+                <strong>Note:</strong> Tests will run sequentially. Check the Network tab in DevTools for detailed timing information.
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        function clearResults(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+        
+        async function testImages() {
+            const resultsDiv = document.getElementById('imageResults');
+            resultsDiv.innerHTML = '<div>Testing... <span class="loading"></span></div>';
+            
+            // Test image from direct server
+            const directStart = performance.now();
+            const directImg = new Image();
+            
+            await new Promise((resolve) => {
+                directImg.onload = () => {
+                    const directTime = performance.now() - directStart;
+                    
+                    // Test image from CDN
+                    const cdnStart = performance.now();
+                    const cdnImg = new Image();
+                    
+                    cdnImg.onload = () => {
+                        const cdnTime = performance.now() - cdnStart;
+                        
+                        const winner = cdnTime < directTime ? 'cdn' : 'direct';
+                        const improvement = ((directTime - cdnTime) / directTime * 100).toFixed(1);
+                        
+                        resultsDiv.innerHTML = `
+                            <div class="result-row direct">
+                                <span class="metric-label">Direct Server:</span>
+                                <span class="metric-value">${directTime.toFixed(2)}ms</span>
+                            </div>
+                            <div class="result-row cdn">
+                                <span class="metric-label">CDN:</span>
+                                <span class="metric-value">${cdnTime.toFixed(2)}ms</span>
+                            </div>
+                            <div class="result-row winner">
+                                <span class="metric-label">Winner:</span>
+                                <span class="metric-value">${winner.toUpperCase()} (${Math.abs(improvement)}% ${improvement > 0 ? 'faster' : 'slower'})</span>
+                            </div>
+                        `;
+                        resolve();
+                    };
+                    
+                    cdnImg.onerror = () => {
+                        resultsDiv.innerHTML += '<div class="result-row">⚠️ CDN image failed to load - check configuration</div>';
+                        resolve();
+                    };
+                    
+                    cdnImg.src = 'https://cdn.kinky-thots.com/uploads/1765150122666_SissyLongLegs_BJ_1.gif?' + Date.now();
+                };
+                
+                directImg.onerror = () => {
+                    resultsDiv.innerHTML = '<div class="result-row">❌ Direct server image failed to load</div>';
+                    resolve();
+                };
+                
+                directImg.src = 'https://kinky-thots.com/uploads/1765150122666_SissyLongLegs_BJ_1.gif?' + Date.now();
+            });
+        }
+        
+        async function testVideos() {
+            const resultsDiv = document.getElementById('videoResults');
+            resultsDiv.innerHTML = '<div>Testing video loading... <span class="loading"></span></div>';
+            
+            // Test video from direct server
+            const directStart = performance.now();
+            
+            try {
+                const directResponse = await fetch('https://kinky-thots.com/porn/Haley/Haley_Blowjob_1.mp4', {
+                    method: 'HEAD'
+                });
+                const directTime = performance.now() - directStart;
+                
+                // Test video from CDN
+                const cdnStart = performance.now();
+                const cdnResponse = await fetch('https://cdn-video.kinky-thots.com/porn/Haley/Haley_Blowjob_1.mp4', {
+                    method: 'HEAD'
+                });
+                const cdnTime = performance.now() - cdnStart;
+                
+                const winner = cdnTime < directTime ? 'cdn' : 'direct';
+                const improvement = ((directTime - cdnTime) / directTime * 100).toFixed(1);
+                
+                resultsDiv.innerHTML = `
+                    <div class="result-row direct">
+                        <span class="metric-label">Direct Server (HEAD request):</span>
+                        <span class="metric-value">${directTime.toFixed(2)}ms</span>
+                    </div>
+                    <div class="result-row cdn">
+                        <span class="metric-label">CDN (HEAD request):</span>
+                        <span class="metric-value">${cdnTime.toFixed(2)}ms</span>
+                    </div>
+                    <div class="result-row winner">
+                        <span class="metric-label">Winner:</span>
+                        <span class="metric-value">${winner.toUpperCase()} (${Math.abs(improvement)}% ${improvement > 0 ? 'faster' : 'slower'})</span>
+                    </div>
+                    <div style="margin-top: 10px; color: #666; font-size: 0.85rem;">
+                        💡 Check Network tab for full download timing
+                    </div>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="result-row">❌ Error testing videos: ${error.message}</div>`;
+            }
+        }
+        
+        async function runAllTests() {
+            const btn = document.getElementById('runAllBtn');
+            btn.disabled = true;
+            btn.textContent = 'Running Tests...';
+            
+            await testImages();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testVideos();
+            
+            btn.disabled = false;
+            btn.textContent = 'Run All Tests';
+        }
+        
+        // Log performance data to console
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                console.log('=== Page Performance ===');
+                const perfData = window.performance.timing;
+                const pageLoadTime = perfData.loadEventEnd - perfData.navigationStart;
+                console.log('Total Load Time: ' + pageLoadTime + 'ms');
+                
+                const resources = performance.getEntriesByType('resource');
+                console.log('\n=== Resource Timing ===');
+                resources.forEach(function(resource) {
+                    if (resource.name.includes('cdn.kinky-thots.com') || 
+                        resource.name.includes('cdn-video.kinky-thots.com')) {
+                        console.log('CDN Resource: ' + resource.name);
+                        console.log('  Duration: ' + resource.duration.toFixed(2) + 'ms');
+                        console.log('  Transfer Size: ' + resource.transferSize + ' bytes');
+                    }
+                });
+            }, 0);
+        });
+    </script>
+</body>
+</html>
