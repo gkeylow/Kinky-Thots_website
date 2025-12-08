@@ -5,6 +5,10 @@ $webPath = '/porn';
 $thumbDir = '/var/www/kinky-thots/porn/thumbnails';
 $thumbWebPath = '/porn/thumbnails';
 
+// CDN Configuration
+$cdnEnabled = true;
+$cdnBaseUrl = 'https://c5988z6295.r-cdn.com';  // PushrCDN push zone for videos
+
 // Cache file for video metadata (speeds up page loads)
 $cacheFile = '/var/www/kinky-thots/porn/video-metadata-cache.json';
 $cacheMaxAge = 3600; // 1 hour
@@ -152,10 +156,20 @@ foreach ($videos as $videoPath) {
     
     $aspectClass = getAspectRatioClass($dimensions['width'], $dimensions['height']);
     
+    // Use CDN URL if enabled, otherwise use origin
+    // Try root path first (files uploaded via FTP are likely at root)
+    $filename = basename($videoPath);
+    $videoUrl = $cdnEnabled 
+        ? $cdnBaseUrl . '/' . rawurlencode($filename)
+        : $webPath . '/' . encodeVideoPath($relativePath);
+    
     $videoData[] = [
         'path' => $videoPath,
         'relativePath' => $relativePath,
-        'encodedPath' => $webPath . '/' . encodeVideoPath($relativePath),
+        'filename' => $filename,
+        'encodedPath' => $videoUrl,
+        'originPath' => $webPath . '/' . encodeVideoPath($relativePath),
+        'cdnPathWithSubdir' => $cdnBaseUrl . '/' . encodeVideoPath($relativePath),
         'mimeType' => getMimeType($videoPath),
         'thumbnail' => getThumbnailPath($videoPath, $thumbDir, $thumbWebPath, $mediaDir),
         'width' => $dimensions['width'],
@@ -207,7 +221,7 @@ foreach ($videoData as $v) {
 
         body {
             font-family: 'Arial', sans-serif;
-            background: #000;
+Now            background: #181818;
             color: #f5f5f5;
             min-height: 100vh;
         }
@@ -509,22 +523,53 @@ foreach ($videoData as $v) {
             margin-right: 6px;
         }
     </style>
+    <link rel="stylesheet" href="/assets/dropdown-nav.css">
 </head>
 <body>
-    <nav id="navbar">
-        <div class="nav-container">
-            <div class="logo"><a href="https://kinky-thots.com">Kinky-Thots</a><img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></div>
-            <ul class="nav-links">
-                <li><a href="/index.html">Home</a></li>
-                <li><a href="/index.html#about">About</a></li>
-                <li><a href="/index.html#portfolio">Skills</a></li>
-                <li><a href="/porn.php">Videos</a></li>
-                <li><a href="/sissylonglegs.php">Sissy</a></li>
-                <li><a href="/index.html#contact">Contact</a></li>
-            </ul>
-            <button class="nav-toggle">☰</button>
+<nav id="navbar">
+    <div class="nav-container">
+        <div class="logo">
+            <a href="/index.html">Kinky-Thots<img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></a>
         </div>
-    </nav>
+        
+        <ul class="nav-links">
+            <li><a href="/index.html">Home</a></li>
+            
+            <li class="dropdown">
+                <button class="dropdown-toggle">About</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/index.html#about">About Us</a></li>
+                    <li><a href="/index.html#skills">Our Skills</a></li>
+                    <li><a href="/index.html#portfolio">Portfolio</a></li>
+                    <li><a href="/index.html#contact">Contact</a></li>
+                </ul>
+            </li>
+            
+            <li class="dropdown">
+                <button class="dropdown-toggle">Models</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/sissylonglegs.php">Sissy Long Legs</a></li>
+                    <li><a href="/bustersherry.html">Buster Sherry</a></li>
+                </ul>
+            </li>
+            
+            <li class="dropdown">
+                <button class="dropdown-toggle">Subscriptions</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/gallery.html">Photo Gallery</a></li>
+                    <li><a href="/porn.php">Video Gallery</a></li>
+                    <li><a href="https://onlyfans.com/kinkythots" target="_blank">OnlyFans</a></li>
+                    <li><a href="https://sharesome.com/KinkyThots" target="_blank">Sharesome (Free)</a></li>
+                </ul>
+            </li>
+            
+            <li><a href="#" class="login-btn disabled" title="Coming Soon">Login</a></li>
+        </ul>
+        
+        <button class="nav-toggle">☰</button>
+    </div>
+</nav>
+<script src="/assets/dropdown-nav.js"></script>
 
     <div class="container">
         <div class="header">

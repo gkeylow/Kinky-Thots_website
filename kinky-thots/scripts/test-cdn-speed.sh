@@ -35,12 +35,11 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 # Test direct server video (first 10MB only for speed)
 echo -e "${YELLOW}Direct Server (kinky-thots.com):${NC}"
 curl -o /dev/null -s -w "  ⏱  Total Time: %{time_total}s\n  🚀 TTFB: %{time_starttransfer}s\n  📦 Size: %{size_download} bytes\n  ⚡ Speed: %{speed_download} bytes/sec\n\n" \
-  -r 0-10485760 https://kinky-thots.com/porn/Haley/Haley_Blowjob_1.mp4 2>/dev/null || echo "  ❌ Failed to load from direct server"
+  -r 0-10485760 https://kinky-thots.com/porn/kinky-thots-shorts/Carter%20Cruise%20%28Full%29.mp4 2>/dev/null || echo "  ❌ Failed to load from direct server"
 
 # Test CDN video
 echo -e "${YELLOW}CDN (cdn-video.kinky-thots.com):${NC}"
 curl -o /dev/null -s -w "  ⏱  Total Time: %{time_total}s\n  🚀 TTFB: %{time_starttransfer}s\n  📦 Size: %{size_download} bytes\n  ⚡ Speed: %{speed_download} bytes/sec\n\n" \
-  -r 0-10485760 https://cdn-video.kinky-thots.com/porn/Haley/Haley_Blowjob_1.mp4 2>/dev/null || echo "  ⚠️  CDN not configured or content not available"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
