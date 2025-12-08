@@ -163,6 +163,12 @@ app.use('/uploads', express.static(PATHS.images));
 
 // Get all gallery items (images and videos)
 app.get('/api/gallery', async (req, res) => {
+  // Set CORS headers explicitly
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Content-Type', 'application/json');
+  
   let conn;
   try {
     conn = await pool.getConnection();
