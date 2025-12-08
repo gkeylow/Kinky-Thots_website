@@ -6,7 +6,8 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "express-fileupload": "^1.5.2",
-    "mariadb": "^3.4.4"
+    "mariadb": "^3.4.4",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "jest": "^29.7.0",
@@ -14,8 +15,13 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testMatch": ["**/__tests__/**/*.js"],
-    "moduleFileExtensions": ["js", "json"],
+    "testMatch": [
+      "**/__tests__/**/*.js"
+    ],
+    "moduleFileExtensions": [
+      "js",
+      "json"
+    ],
     "verbose": true
   }
 }

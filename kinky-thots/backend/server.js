@@ -5,6 +5,9 @@ const mariadb = require('mariadb');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
+const { promisify } = require('util');
+const execAsync = promisify(exec);
+const { generateResponsiveImages, getResponsiveImageUrls } = require('./image-optimizer');
 
 const app = express();
 const PORT = 3001;
@@ -30,11 +33,17 @@ const PUSHR_CONFIG = {
   enabled: true,
   apiKey: 'REDACTED_PUSHR_API_KEY',
   apiUrl: 'https://www.pushrcdn.com/api/v3/prefetch',
+  secretToken: 'e872d33deed25bcbcd1ddcb596dfc1872f9a6a07',
   baseUrl: 'https://kinky-thots.com',
+  cdnUrls: {
+    images: 'https://c5988z6294.r-cdn.com',  // Push zone with uploaded content
+    videos: 'https://c5988z6295.r-cdn.com'   // Push zone for videos
+  },
   zones: {
-    images: '6292',
+    images: '6294',  // Using push zone
     videos: '6293'
-  }
+  },
+  useSecureTokens: true
 };
 
 // Ensure directories exist
@@ -167,12 +176,24 @@ app.get('/api/gallery', async (req, res) => {
       const fileType = row.file_type || getFileType(row.filename);
       const webPath = row.file_path || getWebPath(fileType);
       
+      // Use CDN URL for images if available
+      let fullUrl;
+      if (fileType === 'image' && PUSHR_CONFIG.cdnUrls.images) {
+        // Files are at root of CDN
+        fullUrl = `${PUSHR_CONFIG.cdnUrls.images}/${encodeURIComponent(row.filename)}`;
+      } else {
+        // Fallback to origin
+        fullUrl = `${webPath}/${encodeURIComponent(row.filename)}`;
+      }
+      
       items.push({
         id: Number(row.id),
         filename: String(row.filename),
         file_type: fileType,
         web_path: webPath,
-        full_url: `${webPath}/${encodeURIComponent(row.filename)}`,
+        full_url: fullUrl,
+        cdn_url: fileType === 'image' ? `${PUSHR_CONFIG.cdnUrls.images}/${encodeURIComponent(row.filename)}` : null,
+        origin_url: `${webPath}/${encodeURIComponent(row.filename)}`,
         upload_time: row.upload_time ? row.upload_time.toISOString() : null
       });
     }
@@ -226,6 +247,14 @@ app.post('/api/upload', async (req, res) => {
     
     // Set proper permissions
     fs.chmodSync(uploadPath, 0o644);
+
+    // Generate responsive images for image uploads (in background)
+    if (fileType === 'image') {
+      const optimizedDir = path.join(storagePath, 'optimized');
+      generateResponsiveImages(uploadPath, optimizedDir)
+        .then(() => console.log(`Generated responsive images for: ${filename}`))
+        .catch(err => console.error(`Failed to generate responsive images: ${err.message}`));
+    }
 
     // Insert into database with file type and path
     conn = await pool.getConnection();

@@ -10,24 +10,54 @@
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
     <title>Kinky Thots - Amatuer XXX Gallery</title>
     <link rel="stylesheet" href="/assets/gallery.css">
+    <link rel="stylesheet" href="/assets/dropdown-nav.css">
 
 </head>
 <body>
-    <nav id="navbar">
-        <div class="nav-container">
-            <div class="logo"><a href="https://kinky-thots.com">Kinky-Thots</a><img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></div>
-            <ul class="nav-links">
-                <li><a href="/index.html">Home</a></li>
-                <li><a href="/index.html#about">About</a></li>
-                <li><a href="/index.html#portfolio">Skills</a></li>
-                <li><a href="/porn.php">Videos</a></li>
-                <li><a href="/sissylonglegs.php">Sissy</a></li>
-                <li><a href="/index.html#contact">Contact</a></li>
-            </ul>
-            <button class="nav-toggle">☰</button>
+<nav id="navbar">
+    <div class="nav-container">
+        <div class="logo">
+            <a href="/index.html">Kinky-Thots<img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></a>
         </div>
-    </nav>
-    <script src="/assets/navigation.js"></script>
+        
+        <ul class="nav-links">
+            <li><a href="/index.html">Home</a></li>
+            
+            <li class="dropdown">
+                <button class="dropdown-toggle">About</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/index.html#about">About Us</a></li>
+                    <li><a href="/index.html#skills">Our Skills</a></li>
+                    <li><a href="/index.html#portfolio">Portfolio</a></li>
+                    <li><a href="/index.html#contact">Contact</a></li>
+                </ul>
+            </li>
+            
+            <li class="dropdown">
+                <button class="dropdown-toggle">Models</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/sissylonglegs.php">Sissy Long Legs</a></li>
+                    <li><a href="/bustersherry.html">Buster Sherry</a></li>
+                </ul>
+            </li>
+            
+            <li class="dropdown">
+                <button class="dropdown-toggle">Subscriptions</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/gallery.html">Photo Gallery</a></li>
+                    <li><a href="/porn.php">Video Gallery</a></li>
+                    <li><a href="https://onlyfans.com/kinkythots" target="_blank">OnlyFans</a></li>
+                    <li><a href="https://sharesome.com/KinkyThots" target="_blank">Sharesome (Free)</a></li>
+                </ul>
+            </li>
+            
+            <li><a href="#" class="login-btn disabled" title="Coming Soon">Login</a></li>
+        </ul>
+        
+        <button class="nav-toggle">☰</button>
+    </div>
+</nav>
+<script src="/assets/dropdown-nav.js"></script>
 
     <div class="container" id="mainContainer">
         <div class="header">
