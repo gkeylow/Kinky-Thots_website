@@ -260,7 +260,6 @@ $portfolioImages = array_slice($images, 5, 3);
                 <button class="dropdown-toggle">Subscriptions</button>
                 <ul class="dropdown-menu">
                     <li><a href="/subscriptions.html">Pricing & Plans</a></li>
-                    <li><a href="/gallery.html">Photo Gallery</a></li>
                     <li><a href="/porn.php">Video Gallery</a></li>
                     <li><a href="https://onlyfans.com/kinkythots" target="_blank">OnlyFans</a></li>
                     <li><a href="https://sharesome.com/KinkyThots" target="_blank">Sharesome (Free)</a></li>
