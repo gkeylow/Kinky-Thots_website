@@ -2,23 +2,13 @@
 
 ## Overview
 
-The Kinky-Thots website uses PushrCDN with custom CNAME domains for content delivery.
+The Kinky-Thots website uses PushrCDN for content delivery.
 
-## CDN Hostnames
+## Current Configuration
 
-### Images CDN
-- **Hostname**: `cdn.kinky-thots.com`
-- **Purpose**: Serves all image content (photos, thumbnails, icons)
-- **Zones**: 
-  - `images` (Zone ID: 6292)
-  - `my-images` (Zone ID: 6294)
+**Status**: Using default PushrCDN endpoints (no custom CNAME)
 
-### Videos CDN
-- **Hostname**: `cdn-video.kinky-thots.com`
-- **Purpose**: Serves all video content
-- **Zones**:
-  - `videos` (Zone ID: 6293)
-  - `my-videos` (Zone ID: 6295)
+All zones currently use the base URL: `https://kinky-thots.com`
 
 ## Configuration File
 
@@ -31,19 +21,19 @@ Location: `/var/www/kinky-thots/config/pushr-cdn.json`
   "zones": {
     "videos": {
       "zone_id": "6293",
-      "base_url": "https://cdn-video.kinky-thots.com"
+      "base_url": "https://kinky-thots.com"
     },
     "my-videos": {
       "zone_id": "6295",
-      "base_url": "https://cdn-video.kinky-thots.com"
+      "base_url": "https://kinky-thots.com"
     },
     "images": {
       "zone_id": "6292",
-      "base_url": "https://cdn.kinky-thots.com"
+      "base_url": "https://kinky-thots.com"
     },
     "my-images": {
       "zone_id": "6294",
-      "base_url": "https://cdn.kinky-thots.com"
+      "base_url": "https://kinky-thots.com"
     }
   },
   "default_zone": "videos",
@@ -51,14 +41,27 @@ Location: `/var/www/kinky-thots/config/pushr-cdn.json`
 }
 ```
 
-## DNS Configuration
+## Available Zones
 
-Ensure the following CNAME records are configured in your DNS:
+### Videos
+- **Zone ID**: 6293
+- **Purpose**: Video content
+- **Base URL**: https://kinky-thots.com
 
-```
-cdn.kinky-thots.com       CNAME   [PushrCDN endpoint for images]
-cdn-video.kinky-thots.com CNAME   [PushrCDN endpoint for videos]
-```
+### My Videos
+- **Zone ID**: 6295
+- **Purpose**: Personal video content
+- **Base URL**: https://kinky-thots.com
+
+### Images
+- **Zone ID**: 6292
+- **Purpose**: Image content
+- **Base URL**: https://kinky-thots.com
+
+### My Images
+- **Zone ID**: 6294
+- **Purpose**: Personal image content
+- **Base URL**: https://kinky-thots.com
 
 ## Using the CDN
 
@@ -68,7 +71,7 @@ The `pushr-prefetch.php` script can be used to push content to the CDN edge cach
 
 ```bash
 # Prefetch a single URL
-php backend/pushr-prefetch.php prefetch https://cdn-video.kinky-thots.com/porn/video.mp4
+php backend/pushr-prefetch.php prefetch https://kinky-thots.com/porn/video.mp4
 
 # Prefetch all videos
 php backend/pushr-prefetch.php prefetch-videos
@@ -83,9 +86,40 @@ php backend/pushr-prefetch.php list-zones
 php backend/pushr-prefetch.php status
 ```
 
-### In Your Code
+## Setting Up Custom CNAME (Optional)
 
-When referencing CDN content in your HTML/PHP/JS:
+If you want to use custom CDN hostnames in the future:
+
+### 1. Configure DNS CNAME Records
+
+Example:
+```
+cdn.kinky-thots.com       CNAME   [PushrCDN endpoint for images]
+cdn-video.kinky-thots.com CNAME   [PushrCDN endpoint for videos]
+```
+
+### 2. Update Configuration
+
+Edit `/var/www/kinky-thots/config/pushr-cdn.json`:
+
+```json
+{
+  "zones": {
+    "videos": {
+      "zone_id": "6293",
+      "base_url": "https://cdn-video.kinky-thots.com"
+    },
+    "images": {
+      "zone_id": "6292",
+      "base_url": "https://cdn.kinky-thots.com"
+    }
+  }
+}
+```
+
+### 3. Update Your Code
+
+Change resource URLs to use CDN hostnames:
 
 **For Images:**
 ```html
@@ -108,16 +142,9 @@ When referencing CDN content in your HTML/PHP/JS:
 
 - Check prefetch logs: `/var/www/kinky-thots/logs/pushr-prefetch.log`
 - Monitor CDN usage through PushrCDN dashboard
-- Use browser DevTools to verify content is loading from CDN domains
+- Use browser DevTools to verify content delivery
 
 ## Troubleshooting
-
-### Content Not Loading from CDN
-
-1. Verify DNS CNAME records are properly configured
-2. Check that content has been prefetched to CDN
-3. Ensure zone IDs match your PushrCDN account
-4. Verify API key is correct
 
 ### Prefetch Failures
 
@@ -125,6 +152,13 @@ When referencing CDN content in your HTML/PHP/JS:
 2. Verify zone IDs are correct
 3. Review logs at `/var/www/kinky-thots/logs/pushr-prefetch.log`
 4. Ensure URLs are properly formatted
+
+### Content Not Loading
+
+1. Verify zone configuration
+2. Check that content has been prefetched to CDN
+3. Ensure zone IDs match your PushrCDN account
+4. Verify API key is correct
 
 ## Security Notes
 
@@ -135,4 +169,4 @@ When referencing CDN content in your HTML/PHP/JS:
 ---
 
 **Last Updated**: December 2024
-**Configuration Updated**: December 7, 2024
+**Configuration Reverted**: December 7, 2024
