@@ -176,7 +176,7 @@ foreach ($videoData as $v) {
             <li><a href="#" class="login-btn disabled" title="Coming Soon">Login</a></li>
         </ul>
         
-        <button class="nav-toggle">☰</button>
+        <button class="nav-toggle" aria-label="Toggle navigation menu">☰</button>
     </div>
 </nav>
 <script src="/assets/dropdown-nav.js"></script>
@@ -262,11 +262,6 @@ foreach ($videoData as $v) {
     </footer>
 
     <script>
-        // Mobile navigation toggle
-        document.querySelector('.nav-toggle').addEventListener('click', function() {
-            document.querySelector('.nav-links').classList.toggle('active');
-        });
-
         // Navbar scroll effect
         let lastScroll = 0;
         const navbar = document.getElementById('navbar');

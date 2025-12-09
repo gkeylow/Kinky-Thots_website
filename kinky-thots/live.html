@@ -25,7 +25,7 @@
             <a href="/index.html">Kinky-Thots<img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></a>
         </div>
 
-        <ul class="nav-links" id="navLinks">
+        <ul class="nav-links">
             <li><a href="/index.html">Home</a></li>
 
             <li class="dropdown">
@@ -60,7 +60,7 @@
             <li><a href="#" class="login-btn disabled" title="Coming Soon">Login</a></li>
         </ul>
 
-        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation menu">&#9776;</button>
+        <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
     </div>
 </nav>
 <script src="/assets/dropdown-nav.js"></script>
@@ -469,27 +469,6 @@ class LivePlayer {
 
 document.addEventListener('DOMContentLoaded', () => {
     const player = new LivePlayer();
-    
-    // Mobile navigation toggle
-    const navToggle = document.getElementById('navToggle');
-    const navLinks = document.getElementById('navLinks');
-    
-    if (navToggle) {
-        navToggle.addEventListener('click', () => {
-            navLinks.classList.toggle('active');
-            navToggle.setAttribute('aria-expanded', 
-                navLinks.classList.contains('active') ? 'true' : 'false'
-            );
-        });
-        
-        // Close menu when a link is clicked
-        navLinks.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => {
-                navLinks.classList.remove('active');
-                navToggle.setAttribute('aria-expanded', 'false');
-            });
-        });
-    }
 
     // Expose for debugging/admin
     window.ktLive = { player, CONFIG, MobileSupport };
