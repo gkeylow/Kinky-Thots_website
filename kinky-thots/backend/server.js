@@ -327,7 +327,6 @@ app.delete('/api/gallery/:id', async (req, res) => {
     if (conn) conn.release();
   }
 });
-
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
