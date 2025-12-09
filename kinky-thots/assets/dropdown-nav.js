@@ -3,7 +3,7 @@
 (function() {
     'use strict';
 
-    // Initialize on DOM ready
+    // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initMobileNav);
     } else {
@@ -14,26 +14,32 @@
         const navToggle = document.querySelector('.nav-toggle');
         const navLinks = document.querySelector('.nav-links');
         const dropdowns = document.querySelectorAll('.dropdown');
+        const navbar = document.querySelector('nav');
         
-        if (!navToggle || !navLinks) return;
+        if (!navToggle || !navLinks) {
+            console.warn('Navigation elements not found');
+            return;
+        }
 
-        // Mobile menu toggle with proper event handling
+        // Mobile menu toggle
         navToggle.addEventListener('click', function(e) {
+            e.preventDefault();
             e.stopPropagation();
+            
             const isActive = navLinks.classList.contains('active');
             navLinks.classList.toggle('active');
-            navToggle.setAttribute('aria-expanded', !isActive);
+            navToggle.setAttribute('aria-expanded', String(!isActive));
+            
+            console.log('Menu toggled:', navLinks.classList.contains('active'));
         });
 
         // Mobile dropdown toggle
         dropdowns.forEach(dropdown => {
             const toggle = dropdown.querySelector('.dropdown-toggle');
-            const menu = dropdown.querySelector('.dropdown-menu');
             
             if (!toggle) return;
             
             toggle.addEventListener('click', function(e) {
-                // On mobile, toggle dropdown
                 if (window.innerWidth <= 768) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -42,13 +48,13 @@
                     
                     // Close other dropdowns
                     dropdowns.forEach(other => {
-                        other.classList.remove('active');
+                        if (other !== dropdown) {
+                            other.classList.remove('active');
+                        }
                     });
                     
                     // Toggle current dropdown
-                    if (!isActive) {
-                        dropdown.classList.add('active');
-                    }
+                    dropdown.classList.toggle('active');
                 }
             });
         });
@@ -87,19 +93,20 @@
         });
 
         // Navbar scroll effect
-        const navbar = document.querySelector('nav');
         let lastScroll = 0;
         
-        window.addEventListener('scroll', function() {
-            const currentScroll = window.pageYOffset;
-            
-            if (currentScroll > 50) {
-                navbar.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.4)';
-            } else {
-                navbar.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
-            }
-            
-            lastScroll = currentScroll;
-        });
+        if (navbar) {
+            window.addEventListener('scroll', function() {
+                const currentScroll = window.pageYOffset;
+                
+                if (currentScroll > 50) {
+                    navbar.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.4)';
+                } else {
+                    navbar.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
+                }
+                
+                lastScroll = currentScroll;
+            });
+        }
     }
 })();
