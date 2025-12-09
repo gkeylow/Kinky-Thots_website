@@ -1,49 +1,89 @@
-// Dropdown Navigation JavaScript
+// Mobile Navigation Handler - Unified across all pages
 
 (function() {
     'use strict';
 
-    document.addEventListener('DOMContentLoaded', function() {
-        initDropdownNav();
-    });
+    // Initialize on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMobileNav);
+    } else {
+        initMobileNav();
+    }
 
-    function initDropdownNav() {
+    function initMobileNav() {
         const navToggle = document.querySelector('.nav-toggle');
         const navLinks = document.querySelector('.nav-links');
         const dropdowns = document.querySelectorAll('.dropdown');
+        
+        if (!navToggle || !navLinks) return;
 
-        // Mobile menu toggle
-        if (navToggle) {
-            navToggle.addEventListener('click', function() {
-                navLinks.classList.toggle('active');
-            });
-        }
+        // Mobile menu toggle with proper event handling
+        navToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isActive = navLinks.classList.contains('active');
+            navLinks.classList.toggle('active');
+            navToggle.setAttribute('aria-expanded', !isActive);
+        });
 
         // Mobile dropdown toggle
         dropdowns.forEach(dropdown => {
             const toggle = dropdown.querySelector('.dropdown-toggle');
+            const menu = dropdown.querySelector('.dropdown-menu');
+            
+            if (!toggle) return;
             
             toggle.addEventListener('click', function(e) {
                 // On mobile, toggle dropdown
                 if (window.innerWidth <= 768) {
                     e.preventDefault();
-                    dropdown.classList.toggle('active');
+                    e.stopPropagation();
+                    
+                    const isActive = dropdown.classList.contains('active');
                     
                     // Close other dropdowns
                     dropdowns.forEach(other => {
-                        if (other !== dropdown) {
-                            other.classList.remove('active');
-                        }
+                        other.classList.remove('active');
                     });
+                    
+                    // Toggle current dropdown
+                    if (!isActive) {
+                        dropdown.classList.add('active');
+                    }
                 }
+            });
+        });
+
+        // Close menu when clicking nav links
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', function() {
+                navLinks.classList.remove('active');
+                navToggle.setAttribute('aria-expanded', 'false');
+                dropdowns.forEach(d => d.classList.remove('active'));
             });
         });
 
         // Close mobile menu when clicking outside
         document.addEventListener('click', function(e) {
-            if (!e.target.closest('nav') && navLinks.classList.contains('active')) {
-                navLinks.classList.remove('active');
+            if (!e.target.closest('nav')) {
+                if (navLinks.classList.contains('active')) {
+                    navLinks.classList.remove('active');
+                    navToggle.setAttribute('aria-expanded', 'false');
+                }
+                dropdowns.forEach(d => d.classList.remove('active'));
             }
+        });
+
+        // Handle window resize - reset menu on desktop size
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                if (window.innerWidth > 768) {
+                    navLinks.classList.remove('active');
+                    navToggle.setAttribute('aria-expanded', 'false');
+                    dropdowns.forEach(d => d.classList.remove('active'));
+                }
+            }, 250);
         });
 
         // Navbar scroll effect

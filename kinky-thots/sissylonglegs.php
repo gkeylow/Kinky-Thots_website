@@ -77,7 +77,7 @@ $portfolioImages = array_slice($images, 5, 3);
             <li><a href="#" class="login-btn disabled" title="Coming Soon">Login</a></li>
         </ul>
         
-        <button class="nav-toggle">☰</button>
+        <button class="nav-toggle" aria-label="Toggle navigation menu">☰</button>
     </div>
 </nav>
 <script src="/assets/dropdown-nav.js"></script>
