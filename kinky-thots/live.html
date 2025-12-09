@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="author" content="kinky-thots"/>
+    <meta name="copyright" content="kinky-thots"/>
+    <meta name="robots" content="noindex,nofollow"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Live - Kinky Thots">
+    <meta name="theme-color" content="#000000">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data:; media-src 'self' http: https: blob: wss:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:; font-src 'self' https:; connect-src 'self' https: http: wss: ws:; frame-src https://live.r-cdn.com; worker-src blob:;">
+    <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
+    <title>Live Cam - Kinky Thots</title>
+    <link rel="stylesheet" href="/assets/live.css">
+    <link rel="stylesheet" href="/assets/dropdown-nav.css">
+</head>
+<body>
+<!-- Navigation -->
+<nav id="navbar">
+    <div class="nav-container">
+        <div class="logo">
+            <a href="/index.html">Kinky-Thots<img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></a>
+        </div>
+
+        <ul class="nav-links" id="navLinks">
+            <li><a href="/index.html">Home</a></li>
+
+            <li class="dropdown">
+                <button class="dropdown-toggle">About</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/index.html#about">About Us</a></li>
+                    <li><a href="/index.html#skills">Our Skills</a></li>
+                    <li><a href="/index.html#portfolio">Portfolio</a></li>
+                    <li><a href="/index.html#contact">Contact</a></li>
+                </ul>
+            </li>
+
+            <li class="dropdown">
+                <button class="dropdown-toggle">Models</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/sissylonglegs.php">Sissy Long Legs</a></li>
+                    <li><a href="/bustersherry.html">Buster Sherry</a></li>
+                </ul>
+            </li>
+
+            <li class="dropdown">
+                <button class="dropdown-toggle">Media</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/subscriptions.html">Pricing & Plans</a></li>
+                    <li><a href="/porn.php">Video Gallery</a></li>
+                    <li><a href="/gallery.html">Photo Gallery</a></li>
+                    <li><a href="/live.html" class="active">Live Cam</a></li>
+                    <li><a href="https://onlyfans.com/kinkythots" target="_blank">Full Content</a></li>
+                </ul>
+            </li>
+
+            <li><a href="#" class="login-btn disabled" title="Coming Soon">Login</a></li>
+        </ul>
+
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation menu">&#9776;</button>
+    </div>
+</nav>
+<script src="/assets/dropdown-nav.js"></script>
+
+<!-- Live Stream Section -->
+<main class="live-container">
+    <!-- Stream Status Banner -->
+    <div class="stream-status" id="streamStatus">
+        <span class="status-indicator offline"></span>
+        <span class="status-text">Stream Offline</span>
+    </div>
+
+    <div class="live-content">
+        <!-- Video Player Section -->
+        <section class="video-section">
+            <div class="video-wrapper">
+                <div class="video-player" id="videoPlayer">
+                    <!-- Offline placeholder -->
+                    <div class="offline-placeholder" id="offlinePlaceholder">
+                        <div class="offline-icon">📺</div>
+                        <h2>Stream Currently Offline</h2>
+                        <p>Check back soon for live content!</p>
+                        <div class="schedule-info">
+                            <p>Follow us to get notified when we go live</p>
+                        </div>
+                    </div>
+                    <!-- Live stream iframe embed -->
+                    <iframe id="liveStream" width="100%" height="100%" 
+                        src="https://live.r-cdn.com/5988/KinkyThots/play?source=https://hls59886318.r-cdn.com/trn_g0001/25899/playlist.m3u8" 
+                        frameborder="0" scrolling="no" 
+                        allow="accelerometer; gyroscope; picture-in-picture"
+                        allowfullscreen
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none;"></iframe>
+                    <!-- Fallback HLS.js player -->
+                    <video id="liveVideo" controls playsinline style="width: 100%; height: 100%; display: block; background: #000;">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+
+                <!-- Stream Info Bar -->
+                <div class="stream-info">
+                    <div class="stream-title">
+                        <h3 id="streamTitle">Kinky-Thots Live</h3>
+                        <span class="viewer-count" id="viewerCount">0 viewers</span>
+                    </div>
+                    <div class="stream-actions">
+                        <button class="action-btn" id="fullscreenBtn" title="Fullscreen" aria-label="Toggle fullscreen mode">
+                            <span>&#x26F6;</span>
+                        </button>
+                        <button class="action-btn" id="theaterBtn" title="Theater Mode" aria-label="Toggle theater mode">
+                            <span>&#x25A2;</span>
+                        </button>
+                        <button class="action-btn" id="settingsBtn" title="Settings" aria-label="Open settings menu">
+                            <span>⚙</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Mobile Settings Panel -->
+                <div class="settings-panel" id="settingsPanel" style="display: none;">
+                    <div class="settings-header">
+                        <h4>Stream Settings</h4>
+                        <button class="close-btn" id="closeSettings" aria-label="Close settings">×</button>
+                    </div>
+                    <div class="settings-content">
+                        <label class="setting-item">
+                            <input type="checkbox" id="autoBitrate" checked>
+                            <span>Auto Bitrate</span>
+                        </label>
+                        <label class="setting-item">
+                            <input type="checkbox" id="lowDataMode">
+                            <span>Low Data Mode</span>
+                        </label>
+                        <div class="volume-control">
+                            <label>Volume:</label>
+                            <input type="range" id="volumeControl" min="0" max="100" value="70">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</main>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-left">
+                <p>&copy; 2025 <a href="/index.html">Kinky-Thots</a> <img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="25px"> All rights reserved.</p>
+            </div>
+            <div class="footer-right">
+                <a href="/terms.html" class="footer-link">Terms & Conditions</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- HLS.js for RTMP/HLS playback -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+<script>
+// ============================================
+// LIVE STREAM CONFIGURATION
+// ============================================
+
+const CONFIG = {
+    // Stream settings - Update these with your RTMP server details
+    stream: {
+        // HLS URL (converted from RTMP by your streaming server)
+        hlsUrl: 'https://hls59886318.r-cdn.com/trn_g0001/25899/playlist.m3u8', // Direct HLS playlist
+        // Fallback direct URL if needed
+        fallbackUrl: 'https://live.r-cdn.com/5988/KinkyThots/play',
+        // Auto-retry connection
+        retryInterval: 10000, // 10 seconds
+        maxRetries: 5
+    }
+};
+
+// ============================================
+// MOBILE SUPPORT UTILITIES
+// ============================================
+
+const MobileSupport = {
+    isMobile: () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+    
+    isTablet: () => /iPad|Android(?!.*Mobile)|(Silk)|(Windows.*Touch)/i.test(navigator.userAgent),
+    
+    getDeviceType: () => {
+        const isMob = MobileSupport.isMobile();
+        const isTab = MobileSupport.isTablet();
+        if (isTab) return 'tablet';
+        if (isMob) return 'mobile';
+        return 'desktop';
+    },
+    
+    getOrientation: () => window.innerHeight > window.innerWidth ? 'portrait' : 'landscape',
+    
+    supportsWebWorkers: () => typeof(Worker) !== 'undefined',
+    
+    supportsLocalStorage: () => {
+        try { 
+            localStorage.setItem('test', 'test');
+            localStorage.removeItem('test');
+            return true;
+        } catch { return false; }
+    },
+    
+    getConnectionSpeed: async () => {
+        if ('connection' in navigator) {
+            const connection = navigator.connection;
+            return {
+                type: connection.effectiveType,
+                downlink: connection.downlink,
+                rtt: connection.rtt,
+                saveData: connection.saveData
+            };
+        }
+        return null;
+    }
+};
+
+// ============================================
+// VIDEO PLAYER
+// ============================================
+
+class LivePlayer {
+    constructor() {
+        this.video = document.getElementById('liveVideo');
+        this.placeholder = document.getElementById('offlinePlaceholder');
+        this.statusIndicator = document.querySelector('.status-indicator');
+        this.statusText = document.querySelector('.status-text');
+        this.hls = null;
+        this.isLive = false;
+        this.retryCount = 0;
+
+        this.init();
+    }
+
+    init() {
+        this.bindEvents();
+        this.setupMobileOptimizations();
+        this.setupOrientationDetection();
+
+        if (CONFIG.stream.hlsUrl) {
+            this.loadStream();
+        }
+    }
+    
+    setupMobileOptimizations() {
+        const deviceType = MobileSupport.getDeviceType();
+        document.documentElement.setAttribute('data-device', deviceType);
+        
+        // Adjust HLS quality based on device and connection
+        MobileSupport.getConnectionSpeed().then(conn => {
+            if (conn) {
+                console.log('Connection:', conn);
+                if (conn.saveData) {
+                    CONFIG.stream.lowDataMode = true;
+                    document.getElementById('lowDataMode').checked = true;
+                }
+            }
+        });
+        
+        // Prevent double-tap zoom delay on video
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 1) e.preventDefault();
+        }, { passive: false });
+    }
+    
+    setupOrientationDetection() {
+        const handleOrientationChange = () => {
+            const orientation = MobileSupport.getOrientation();
+            document.documentElement.setAttribute('data-orientation', orientation);
+            
+            // Adjust video player for landscape mode
+            if (orientation === 'landscape' && MobileSupport.isMobile()) {
+                document.querySelector('.live-container').style.marginTop = '50px';
+            } else {
+                document.querySelector('.live-container').style.marginTop = '';
+            }
+        };
+        
+        window.addEventListener('orientationchange', handleOrientationChange);
+        window.addEventListener('resize', handleOrientationChange);
+        handleOrientationChange();
+    }
+
+    bindEvents() {
+        document.getElementById('fullscreenBtn').addEventListener('click', () => {
+            this.toggleFullscreen();
+        });
+
+        document.getElementById('theaterBtn').addEventListener('click', () => {
+            document.querySelector('.live-content').classList.toggle('theater-mode');
+        });
+        
+        // Settings panel
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            const panel = document.getElementById('settingsPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        });
+        
+        document.getElementById('closeSettings').addEventListener('click', () => {
+            document.getElementById('settingsPanel').style.display = 'none';
+        });
+        
+        document.getElementById('lowDataMode').addEventListener('change', (e) => {
+            CONFIG.stream.lowDataMode = e.target.checked;
+            if (this.hls) {
+                this.adjustHLSQuality();
+            }
+        });
+        
+        document.getElementById('volumeControl').addEventListener('change', (e) => {
+            this.video.volume = e.target.value / 100;
+        });
+        
+        // Touch gesture support
+        this.setupTouchGestures();
+    }
+    
+    setupTouchGestures() {
+        let touchStartX = 0;
+        let touchStartY = 0;
+        
+        this.video.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+        
+        this.video.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
+            
+            // Swipe up/down for volume
+            if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 30) {
+                const volumeControl = document.getElementById('volumeControl');
+                let newVolume = this.video.volume * 100 + (diffY > 0 ? -10 : 10);
+                newVolume = Math.max(0, Math.min(100, newVolume));
+                this.video.volume = newVolume / 100;
+                volumeControl.value = newVolume;
+            }
+            
+            // Tap for play/pause
+            if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
+                if (this.video.paused) {
+                    this.video.play();
+                } else {
+                    this.video.pause();
+                }
+            }
+        });
+    }
+    
+    adjustHLSQuality() {
+        if (!this.hls) return;
+        
+        if (CONFIG.stream.lowDataMode) {
+            // Limit to lower quality levels
+            this.hls.currentLevel = this.hls.levels
+                .map((l, i) => ({ level: i, height: l.height }))
+                .filter(l => l.height <= 480)[0]?.level || 0;
+        } else {
+            this.hls.currentLevel = -1; // Auto
+        }
+    }
+
+    loadStream() {
+        if (Hls.isSupported()) {
+            const hlsConfig = {
+                enableWorker: MobileSupport.supportsWebWorkers(),
+                lowLatencyMode: true,
+                fetch: (url, ...rest) => {
+                    return fetch(url, {
+                        ...rest[0],
+                        mode: 'cors'
+                    }).catch(() => {
+                        return fetch(url, rest[0]);
+                    });
+                }
+            };
+            
+            // Mobile-specific HLS optimizations
+            if (MobileSupport.isMobile()) {
+                hlsConfig.maxBufferLength = 10;
+                hlsConfig.maxMaxBufferLength = 20;
+                hlsConfig.fragLoadingTimeOut = 30000;
+            }
+            
+            this.hls = new Hls(hlsConfig);
+
+            this.hls.loadSource(CONFIG.stream.hlsUrl);
+            this.hls.attachMedia(this.video);
+
+            this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                this.setLiveStatus(true);
+                // Attempt autoplay, but don't error if user hasn't interacted
+                this.video.play().catch(err => {
+                    console.log('Autoplay prevented by browser policy:', err);
+                });
+            });
+
+            this.hls.on(Hls.Events.ERROR, (event, data) => {
+                if (data.fatal) {
+                    this.handleStreamError();
+                }
+            });
+
+        } else if (this.video.canPlayType('application/vnd.apple.mpegurl')) {
+            // Native HLS support (Safari)
+            this.video.src = CONFIG.stream.hlsUrl;
+            this.video.addEventListener('loadedmetadata', () => {
+                this.setLiveStatus(true);
+                this.video.play();
+            });
+        }
+    }
+
+    setLiveStatus(isLive) {
+        this.isLive = isLive;
+
+        if (isLive) {
+            this.statusIndicator.classList.remove('offline');
+            this.statusIndicator.classList.add('live');
+            this.statusText.textContent = 'LIVE';
+            this.placeholder.style.display = 'none';
+            this.video.style.display = 'block';
+        } else {
+            this.statusIndicator.classList.remove('live');
+            this.statusIndicator.classList.add('offline');
+            this.statusText.textContent = 'Stream Offline';
+            this.placeholder.style.display = 'flex';
+            this.video.style.display = 'none';
+        }
+    }
+
+    handleStreamError() {
+        this.setLiveStatus(false);
+
+        if (this.retryCount < CONFIG.stream.maxRetries) {
+            this.retryCount++;
+            setTimeout(() => this.loadStream(), CONFIG.stream.retryInterval);
+        }
+    }
+
+    toggleFullscreen() {
+        const player = document.querySelector('.video-wrapper');
+
+        if (!document.fullscreenElement) {
+            player.requestFullscreen().catch(err => {
+                console.log('Fullscreen error:', err);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+}
+
+// ============================================
+// INITIALIZE
+// ============================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    const player = new LivePlayer();
+    
+    // Mobile navigation toggle
+    const navToggle = document.getElementById('navToggle');
+    const navLinks = document.getElementById('navLinks');
+    
+    if (navToggle) {
+        navToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+            navToggle.setAttribute('aria-expanded', 
+                navLinks.classList.contains('active') ? 'true' : 'false'
+            );
+        });
+        
+        // Close menu when a link is clicked
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('active');
+                navToggle.setAttribute('aria-expanded', 'false');
+            });
+        });
+    }
+
+    // Expose for debugging/admin
+    window.ktLive = { player, CONFIG, MobileSupport };
+});
+</script>
+
+</body>
+</html>

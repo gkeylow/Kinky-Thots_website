@@ -3,8 +3,8 @@
 
 LOCAL_DIR="/media/porn/kinky-thots-shorts"
 CDN_BASE="https://c5988z6295.r-cdn.com"
-OUTPUT_JSON="/var/www/kinky-thots/cdn-video-list.json"
-OUTPUT_TXT="/var/www/kinky-thots/cdn-video-list.txt"
+OUTPUT_JSON="/var/www/kinky-thots/data/cdn-video-list.json"
+OUTPUT_TXT="/var/www/kinky-thots/data/cdn-video-list.txt"
 
 echo "Scanning local videos in: $LOCAL_DIR"
 echo ""

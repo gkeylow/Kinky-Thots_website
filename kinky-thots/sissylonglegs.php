@@ -30,203 +30,11 @@ $portfolioImages = array_slice($images, 5, 3);
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data:; media-src 'self' http: https: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; font-src 'self' https:; connect-src 'self' https: http:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data:; media-src 'self' http: https: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:; font-src 'self' https:; connect-src 'self' https: http:;">
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
     <title>Kinky Thots - Sissy Long Legs</title>
     <link rel="stylesheet" href="/assets/sissylonglegs.css">
     <link rel="stylesheet" href="/assets/dropdown-nav.css">
-    <style>
-        html {
-            scroll-behavior: smooth;
-            scroll-padding-top: 80px;
-            margin: 0;
-            padding: 0;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        /* Hero Section Overrides */
-        .hero {
-            margin-top: 0 !important;
-            position: relative !important;
-            min-height: 100vh !important;
-            height: auto !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            padding: 200px 2rem 4rem 2rem !important;
-            overflow: hidden !important;
-        }
-        
-        .hero-slideshow {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-        }
-        
-        .hero-slide {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            transition: opacity 1.5s ease-in-out;
-        }
-        
-        .hero-slide.active {
-            opacity: 1;
-        }
-        
-        .hero-slide img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            filter: brightness(0.4);
-        }
-        
-        .hero-content {
-            position: relative !important;
-            z-index: 1 !important;
-            max-width: 900px !important;
-            margin: 0 auto !important;
-            text-align: center !important;
-            color: #fff !important;
-            padding-top: 40px !important;
-        }
-        
-        .hero-content h1 {
-            font-size: 3.5rem !important;
-            margin-bottom: 1rem !important;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8) !important;
-            padding-top: 20px !important;
-        }
-        
-        .hero-content p {
-            font-size: 1.1rem !important;
-            line-height: 1.8 !important;
-            margin-bottom: 1.5rem !important;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8) !important;
-        }
-        
-        .hero-tagline {
-            font-size: 1.3rem;
-            color: #0bd0f3;
-            font-weight: 500;
-            margin-bottom: 1.5rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
-        }
-        
-        /* About Sissy Section */
-        .about-sissy {
-        
-        .about-sissy .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
-            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
-            padding: 80px 0;
-            color: #f5f5f5;
-        }
-        
-        .about-sissy .section-header h2 {
-            background: linear-gradient(135deg, #f805a7, #0bd0f3);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-size: 2.5rem;
-            margin-bottom: 2rem;
-            text-align: center;
-        }
-        
-        .about-content {
-            max-width: 900px;
-            margin: 0 auto;
-            line-height: 1.8;
-            font-size: 1.1rem;
-            padding: 0 2rem;
-        }
-        }
-        
-        .about-content p {
-            margin-bottom: 1.5rem;
-            color: #e0e0e0;
-        }
-        
-        .about-content h3 {
-            color: #f805a7;
-            font-size: 1.8rem;
-            margin: 2rem 0 1rem 0;
-        }
-        
-        .cta-box {
-            background: rgba(248, 5, 167, 0.1);
-            border: 2px solid #f805a7;
-            border-radius: 12px;
-            padding: 2rem;
-            margin-top: 3rem;
-            text-align: center;
-        }
-        
-        .cta-box h3 {
-            color: #0bd0f3;
-            margin-bottom: 1rem;
-        }
-        
-        .cta-box p {
-            margin-bottom: 1.5rem;
-            font-size: 1.1rem;
-        }
-        
-        /* MOBILE RESPONSIVE */
-        @media (max-width: 768px) {
-            .about-content {
-                padding: 0 1rem !important;
-            }
-            
-            .about-content p {
-                font-size: 1rem !important;
-            }
-            
-            .about-sissy .section-header h2 {
-                font-size: 2rem !important;
-            }
-            
-            .hero {
-                padding: 250px 1rem 3rem 1rem !important;
-                align-items: flex-start !important;
-            }
-            
-            .hero-content {
-                padding-top: 80px !important;
-            }
-            
-            .hero-content h1 {
-                font-size: 2.2rem !important;
-                padding-top: 30px !important;
-            }
-            
-            .hero-content p {
-                font-size: 1rem !important;
-            }
-            
-            .hero-tagline {
-                font-size: 1rem !important;
-                letter-spacing: 1px !important;
-            }
-        }
-    </style>
-
 </head>
 <body>
 <nav id="navbar">
@@ -296,8 +104,6 @@ $portfolioImages = array_slice($images, 5, 3);
         </div>
     </div>
 </section>
-
-</style>
 
 <!-- About Sissy Section -->
 <section class="about-sissy" id="about-sissy">
@@ -422,5 +228,3 @@ window.addEventListener("load", function() {
 </script>
 </body>
 </html>
-
-<script>
