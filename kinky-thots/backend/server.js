@@ -8,9 +8,12 @@ const { exec } = require('child_process');
 const { promisify } = require('util');
 const execAsync = promisify(exec);
 const { generateResponsiveImages, getResponsiveImageUrls } = require('./image-optimizer');
+const http = require('http');
+const WebSocket = require('ws');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || '0.0.0.0';
 
 // File type detection
 const VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'mpeg', 'flv', 'm4v'];
@@ -31,17 +34,17 @@ const WEB_PATHS = {
 // PushrCDN Configuration
 const PUSHR_CONFIG = {
   enabled: true,
-  apiKey: 'REDACTED_PUSHR_API_KEY',
+  apiKey: process.env.PUSHR_API_KEY || 'REDACTED_PUSHR_API_KEY',
   apiUrl: 'https://www.pushrcdn.com/api/v3/prefetch',
-  secretToken: 'e872d33deed25bcbcd1ddcb596dfc1872f9a6a07',
-  baseUrl: 'https://kinky-thots.com',
+  secretToken: process.env.PUSHR_SECRET_TOKEN || 'e872d33deed25bcbcd1ddcb596dfc1872f9a6a07',
+  baseUrl: process.env.PUSHR_BASE_URL || 'https://kinky-thots.com',
   cdnUrls: {
-    images: 'https://c5988z6294.r-cdn.com',  // Push zone with uploaded content
-    videos: 'https://c5988z6295.r-cdn.com'   // Push zone for videos
+    images: process.env.PUSHR_CDN_IMAGES || 'https://c5988z6294.r-cdn.com',
+    videos: process.env.PUSHR_CDN_VIDEOS || 'https://c5988z6295.r-cdn.com'
   },
   zones: {
-    images: '6294',  // Using push zone
-    videos: '6293'
+    images: process.env.PUSHR_ZONE_IMAGES || '6294',
+    videos: process.env.PUSHR_ZONE_VIDEOS || '6293'
   },
   useSecureTokens: true
 };
@@ -134,11 +137,11 @@ async function prefetchToCDN(filename, fileType) {
 
 // MariaDB connection pool
 const pool = mariadb.createPool({
-  host: 'localhost',
-  user: 'gkeylow',
-  password: 'REDACTED_DB_PASSWORD',
-  database: 'gallery_db',
-  connectionLimit: 5
+  host: process.env.MARIADB_HOST || 'localhost',
+  user: process.env.MARIADB_USER || 'gkeylow',
+  password: process.env.MARIADB_PASSWORD || 'REDACTED_DB_PASSWORD',
+  database: process.env.MARIADB_DATABASE || 'gallery_db',
+  connectionLimit: parseInt(process.env.MARIADB_POOL_SIZE) || 5
 });
 
 // Middleware
@@ -339,9 +342,111 @@ app.get('/health', (req, res) => {
   });
 });
 
+// ============================================
+// WEBSOCKET CHAT SERVER
+// ============================================
+
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server, path: '/ws/chat' });
+
+// Chat state
+const chatClients = new Set();
+let viewerCount = 0;
+
+// Generate random color for usernames
+function getRandomColor() {
+  const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
+// Broadcast to all connected clients
+function broadcast(data, exclude = null) {
+  const message = JSON.stringify(data);
+  chatClients.forEach(client => {
+    if (client !== exclude && client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+}
+
+wss.on('connection', (ws) => {
+  chatClients.add(ws);
+  viewerCount++;
+
+  // Assign guest name and color
+  ws.username = `Guest${Math.floor(Math.random() * 9999)}`;
+  ws.userColor = getRandomColor();
+
+  console.log(`Chat: ${ws.username} connected (${viewerCount} viewers)`);
+
+  // Send welcome message and viewer count
+  ws.send(JSON.stringify({
+    type: 'welcome',
+    username: ws.username,
+    color: ws.userColor,
+    viewerCount: viewerCount
+  }));
+
+  // Broadcast updated viewer count
+  broadcast({ type: 'viewers', count: viewerCount });
+
+  ws.on('message', (data) => {
+    try {
+      const msg = JSON.parse(data);
+
+      switch (msg.type) {
+        case 'chat':
+          // Broadcast chat message to all
+          broadcast({
+            type: 'chat',
+            username: ws.username,
+            color: ws.userColor,
+            message: msg.message.substring(0, 500), // Limit message length
+            timestamp: Date.now()
+          });
+          break;
+
+        case 'reaction':
+          // Broadcast emoji reaction
+          broadcast({
+            type: 'reaction',
+            emoji: msg.emoji,
+            username: ws.username
+          });
+          break;
+
+        case 'setName':
+          // Allow username change
+          const newName = msg.name.substring(0, 20).replace(/[^a-zA-Z0-9_-]/g, '');
+          if (newName.length >= 2) {
+            ws.username = newName;
+            ws.send(JSON.stringify({ type: 'nameChanged', username: newName }));
+          }
+          break;
+      }
+    } catch (err) {
+      console.error('Chat message error:', err.message);
+    }
+  });
+
+  ws.on('close', () => {
+    chatClients.delete(ws);
+    viewerCount--;
+    console.log(`Chat: ${ws.username} disconnected (${viewerCount} viewers)`);
+    broadcast({ type: 'viewers', count: viewerCount });
+  });
+
+  ws.on('error', (err) => {
+    console.error('WebSocket error:', err.message);
+    chatClients.delete(ws);
+  });
+});
+
 // Start server
-app.listen(PORT, () => {
-  console.log(`Gallery backend running on port ${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`Gallery backend running on ${HOST}:${PORT}`);
+  console.log(`WebSocket chat available at ws://${HOST}:${PORT}/ws/chat`);
   console.log(`Image uploads: ${PATHS.images}`);
   console.log(`Video uploads: ${PATHS.videos}`);
+  console.log(`Database host: ${process.env.MARIADB_HOST || 'localhost'}`);
 });
