@@ -9,8 +9,24 @@ Haley.mp4
 node_modules/
 backend/node_modules/
 
+# Build output
+assets/dist/
+.vite/
+*.tsbuildinfo
+
+# Cache
+.cache/
+.eslintcache
+
 # Exclude config files with API keys
 config/pushr-cdn.json
+config/sonic-s3-cdn.json
+.env
+.env.local
+.env.production
+
+# Keep .env.docker template (it has placeholder values)
+!.env.docker
 
 # Exclude logs
 logs/
@@ -34,3 +50,10 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Docker volumes (local data)
+db_data/
+
+# HLS streaming segments
+hls/*.ts
+hls/*.m3u8
