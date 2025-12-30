@@ -281,6 +281,14 @@ class SonicS3Client {
   }
 
   /**
+   * Get CDN base URL
+   * @returns {string} CDN base URL
+   */
+  getCdnBaseUrl() {
+    return this.cdnBaseUrl;
+  }
+
+  /**
    * Helper: Get MIME type from file extension
    */
   getMimeType(filePath) {

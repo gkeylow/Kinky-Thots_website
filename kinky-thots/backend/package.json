@@ -5,7 +5,8 @@
     "sonic:upload": "node sonic-cli.js upload",
     "sonic:list": "node sonic-cli.js list",
     "sonic:info": "node sonic-cli.js info",
-    "sonic:delete": "node sonic-cli.js delete"
+    "sonic:delete": "node sonic-cli.js delete",
+    "sonic:sync-manifest": "node sonic-cli.js sync-manifest"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.445.0",
