@@ -470,6 +470,57 @@
 }
 
 /* ===========================================
+   GALLERY SECTION (Mosaic Layout for Model Pages)
+   =========================================== */
+
+.gallery-section {
+    padding: 60px 0;
+    background: #1a1a1a;
+}
+
+.gallery-grid {
+    margin-top: 20px;
+}
+
+.mosaic-grid {
+    column-count: 3;
+    column-gap: 20px;
+}
+
+.gallery-item {
+    position: relative;
+    background: #181818;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+    margin-bottom: 20px;
+    width: 100%;
+    display: inline-block;
+    transition: all 0.3s;
+}
+
+.gallery-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(11, 208, 243, 0.2);
+}
+
+.gallery-item img,
+.gallery-item video {
+    width: 100%;
+    display: block;
+    border-radius: 12px;
+    object-fit: cover;
+    transition: transform 0.3s;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.gallery-item:hover img,
+.gallery-item:hover video {
+    transform: scale(1.04);
+}
+
+/* ===========================================
    ANIMATIONS
    =========================================== */
 
@@ -512,7 +563,16 @@
    MOBILE RESPONSIVE
    =========================================== */
 
+@media (max-width: 900px) {
+    .mosaic-grid {
+        column-count: 2;
+    }
+}
+
 @media (max-width: 768px) {
+    .mosaic-grid {
+        column-count: 2;
+    }
     .section-header h2 {
         font-size: 2rem;
     }
@@ -567,5 +627,11 @@
     .cta-button {
         padding: 12px 30px;
         font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .mosaic-grid {
+        column-count: 1;
     }
 }
