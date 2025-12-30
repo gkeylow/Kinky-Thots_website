@@ -1,24 +1,3 @@
-<?php
-// Get random images from kinky-thots-animated-gifs directory
-$imageDir = '/media/porn/kinky-thots-animated-gifs';
-$webPath = '/porn/kinky-thots-animated-gifs';
-$images = [];
-
-$extensions = ['gif', 'jpg', 'jpeg', 'png'];
-$files = scandir($imageDir);
-
-foreach ($files as $file) {
-    if ($file === '.' || $file === '..') continue;
-    $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-    if (in_array($ext, $extensions)) {
-        $images[] = $file;
-    }
-}
-
-shuffle($images);
-$heroImages = array_slice($images, 0, 5);
-$portfolioImages = array_slice($images, 5, 3);
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -60,7 +39,7 @@ $portfolioImages = array_slice($images, 5, 3);
             <li class="dropdown">
                 <button class="dropdown-toggle">Models</button>
                 <ul class="dropdown-menu">
-                    <li><a href="/sissylonglegs.php">Sissy Long Legs</a></li>
+                    <li><a href="/sissylonglegs.html">Sissy Long Legs</a></li>
                     <li><a href="/bustersherry.html">Buster Sherry</a></li>
                 </ul>
             </li>
@@ -86,15 +65,6 @@ $portfolioImages = array_slice($images, 5, 3);
 
 <!-- Hero Section -->
 <section class="hero" id="home">
-    <!-- Dynamic Background Slideshow -->
-    <div class="hero-slideshow">
-        <?php foreach ($heroImages as $index => $image): ?>
-        <div class="hero-slide <?php echo $index === 0 ? 'active' : ''; ?>">
-            <img loading="eager" style="width: 100%; height: auto; display: block;" src="<?php echo htmlspecialchars($webPath . '/' . rawurlencode($image)); ?>" alt="Sissy Long Legs">
-        </div>
-        <?php endforeach; ?>
-    </div>
-    
     <div class="hero-content">
         <h1 class="dissolve">Sissy Long Legs</h1>
         <p class="hero-tagline">Your Favorite Bratty PAWG Finding Her Confidence</p>
@@ -151,17 +121,33 @@ $portfolioImages = array_slice($images, 5, 3);
             <p>A taste of what's waiting for subscribers</p>
         </div>
         <div class="portfolio-grid">
-            <?php foreach ($portfolioImages as $image): ?>
             <div class="portfolio-item">
                 <div class="image-container">
-                    <img src="<?php echo htmlspecialchars($webPath . '/' . rawurlencode($image)); ?>" alt="Sissy Long Legs">
+                    <img src="https://i.ibb.co/PGxPyPdz/mirror.jpg" alt="Sissy Long Legs">
                     <div class="hover-text">
                         <h4>Want More?</h4>
                         <p>Subscribe to see the full set</p>
                     </div>
                 </div>
             </div>
-            <?php endforeach; ?>
+            <div class="portfolio-item portrait">
+                <div class="image-container">
+                    <img src="https://i.ibb.co/Y7CtTn9G/IMG-1679.jpg" alt="Sissy Long Legs">
+                    <div class="hover-text">
+                        <h4>Want More?</h4>
+                        <p>Subscribe to see the full set</p>
+                    </div>
+                </div>
+            </div>
+            <div class="portfolio-item">
+                <div class="image-container">
+                    <img src="https://i.ibb.co/PvvLc8Zp/sissy4.jpg" alt="Sissy Long Legs">
+                    <div class="hover-text">
+                        <h4>Want More?</h4>
+                        <p>Subscribe to see the full set</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>

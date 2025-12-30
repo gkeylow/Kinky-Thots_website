@@ -160,7 +160,7 @@ endif;
             <li class="dropdown">
                 <button class="dropdown-toggle">Models</button>
                 <ul class="dropdown-menu">
-                    <li><a href="/sissylonglegs.php">Sissy Long Legs</a></li>
+                    <li><a href="/sissylonglegs.html">Sissy Long Legs</a></li>
                     <li><a href="/bustersherry.html">Buster Sherry</a></li>
                 </ul>
             </li>

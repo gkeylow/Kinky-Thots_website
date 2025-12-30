@@ -97,7 +97,7 @@ journalctl -u stream-watcher -u rtmp-hls -f
 - `live.html` - Live streaming page (uses HLS.js + Red5)
 - `porn.php` - Video gallery
 - `gallery.php` - Photo gallery
-- `sissylonglegs.php` - Model page
+- `sissylonglegs.html` - Model page
 - `bustersherry.html` - Model page
 - `terms.html` - Terms & conditions
 
@@ -133,7 +133,7 @@ Reorganized CSS into modular, reusable files:
 | Page | CSS Files Loaded |
 |------|------------------|
 | index.html | main.css + index.css |
-| sissylonglegs.php | main.css + index.css |
+| sissylonglegs.html | main.css + index.css |
 | bustersherry.html | main.css + index.css |
 | gallery.php | main.css + media-gallery.css |
 | porn.php | main.css + media-gallery.css |
