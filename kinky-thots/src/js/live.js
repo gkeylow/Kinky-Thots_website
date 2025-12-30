@@ -1,0 +1,459 @@
+import '../css/live.css';
+import '../css/chat.css';
+
+const CONFIG = {
+  stream: {
+    hlsUrl: '/hls/stream.m3u8',
+    retryInterval: 10000,
+    maxRetries: 5,
+  },
+  rtmp: {
+    server: 'rtmp://YOUR_SERVER_IP:1935/live',
+    streamKey: 'stream',
+  },
+};
+
+const MobileSupport = {
+  isMobile: () =>
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+
+  isTablet: () => /iPad|Android(?!.*Mobile)|(Silk)|(Windows.*Touch)/i.test(navigator.userAgent),
+
+  getDeviceType: () => {
+    if (MobileSupport.isTablet()) {return 'tablet';}
+    if (MobileSupport.isMobile()) {return 'mobile';}
+    return 'desktop';
+  },
+
+  getOrientation: () => (window.innerHeight > window.innerWidth ? 'portrait' : 'landscape'),
+
+  supportsWebWorkers: () => typeof Worker !== 'undefined',
+
+  supportsLocalStorage: () => {
+    try {
+      localStorage.setItem('test', 'test');
+      localStorage.removeItem('test');
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  getConnectionSpeed: async () => {
+    if ('connection' in navigator) {
+      const connection = /** @type {any} */ (navigator).connection;
+      return {
+        type: connection.effectiveType,
+        downlink: connection.downlink,
+        rtt: connection.rtt,
+        saveData: connection.saveData,
+      };
+    }
+    return null;
+  },
+};
+
+class LivePlayer {
+  constructor() {
+    this.video = document.getElementById('liveVideo');
+    this.placeholder = document.getElementById('offlinePlaceholder');
+    this.hls = null;
+    this.isLive = false;
+    this.retryCount = 0;
+    this.init();
+  }
+
+  init() {
+    this.bindEvents();
+    this.setupMobileOptimizations();
+    this.setupOrientationDetection();
+
+    if (CONFIG.stream.hlsUrl) {
+      this.loadStream();
+    }
+  }
+
+  setupMobileOptimizations() {
+    const deviceType = MobileSupport.getDeviceType();
+    document.documentElement.setAttribute('data-device', deviceType);
+
+    MobileSupport.getConnectionSpeed().then((conn) => {
+      if (conn?.saveData) {
+        CONFIG.stream.lowDataMode = true;
+        const lowDataEl = document.getElementById('lowDataMode');
+        if (lowDataEl) {lowDataEl.checked = true;}
+      }
+    });
+
+    document.addEventListener(
+      'touchmove',
+      (e) => {
+        if (e.touches.length > 1) {e.preventDefault();}
+      },
+      { passive: false }
+    );
+  }
+
+  setupOrientationDetection() {
+    const handleOrientationChange = () => {
+      const orientation = MobileSupport.getOrientation();
+      document.documentElement.setAttribute('data-orientation', orientation);
+
+      const container = document.querySelector('.live-container');
+      if (orientation === 'landscape' && MobileSupport.isMobile() && container) {
+        container.style.marginTop = '50px';
+      } else if (container) {
+        container.style.marginTop = '';
+      }
+    };
+
+    window.addEventListener('orientationchange', handleOrientationChange);
+    window.addEventListener('resize', handleOrientationChange);
+    handleOrientationChange();
+  }
+
+  bindEvents() {
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const theaterBtn = document.getElementById('theaterBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const closeSettings = document.getElementById('closeSettings');
+    const lowDataMode = document.getElementById('lowDataMode');
+    const volumeControl = document.getElementById('volumeControl');
+
+    if (fullscreenBtn) {
+      fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+    }
+
+    if (theaterBtn) {
+      theaterBtn.addEventListener('click', () => {
+        document.querySelector('.live-content')?.classList.toggle('theater-mode');
+      });
+    }
+
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', () => {
+        const panel = document.getElementById('settingsPanel');
+        if (panel) {panel.style.display = panel.style.display === 'none' ? 'block' : 'none';}
+      });
+    }
+
+    if (closeSettings) {
+      closeSettings.addEventListener('click', () => {
+        const panel = document.getElementById('settingsPanel');
+        if (panel) {panel.style.display = 'none';}
+      });
+    }
+
+    if (lowDataMode) {
+      lowDataMode.addEventListener('change', (e) => {
+        CONFIG.stream.lowDataMode = e.target.checked;
+        if (this.hls) {this.adjustHLSQuality();}
+      });
+    }
+
+    if (volumeControl) {
+      volumeControl.addEventListener('change', (e) => {
+        if (this.video) {this.video.volume = e.target.value / 100;}
+      });
+    }
+
+    this.setupTouchGestures();
+  }
+
+  setupTouchGestures() {
+    if (!this.video) {return;}
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    this.video.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    });
+
+    this.video.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const diffX = touchEndX - touchStartX;
+      const diffY = touchEndY - touchStartY;
+
+      if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 30) {
+        const volumeControl = document.getElementById('volumeControl');
+        let newVolume = this.video.volume * 100 + (diffY > 0 ? -10 : 10);
+        newVolume = Math.max(0, Math.min(100, newVolume));
+        this.video.volume = newVolume / 100;
+        if (volumeControl) {volumeControl.value = newVolume;}
+      }
+
+      if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
+        if (this.video.paused) {
+          this.video.play();
+        } else {
+          this.video.pause();
+        }
+      }
+    });
+  }
+
+  adjustHLSQuality() {
+    if (!this.hls) {return;}
+
+    if (CONFIG.stream.lowDataMode) {
+      this.hls.currentLevel =
+        this.hls.levels.map((l, i) => ({ level: i, height: l.height })).filter((l) => l.height <= 480)[0]
+          ?.level || 0;
+    } else {
+      this.hls.currentLevel = -1;
+    }
+  }
+
+  loadStream() {
+    const streamUrl = CONFIG.stream.hlsUrl;
+    if (typeof Hls === 'undefined') return;
+
+    if (Hls.isSupported()) {
+      const hlsConfig = {
+        enableWorker: MobileSupport.supportsWebWorkers(),
+        lowLatencyMode: true,
+      };
+
+      if (MobileSupport.isMobile()) {
+        hlsConfig.maxBufferLength = 10;
+        hlsConfig.maxMaxBufferLength = 20;
+        hlsConfig.fragLoadingTimeOut = 30000;
+      }
+
+      if (this.hls) {
+        this.hls.destroy();
+      }
+      this.hls = new Hls(hlsConfig);
+
+      this.hls.loadSource(streamUrl);
+      this.hls.attachMedia(this.video);
+
+      this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        this.setLiveStatus(true);
+        this.video?.play().catch(() => {});
+      });
+
+      this.hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          this.handleStreamError();
+        }
+      });
+    } else if (this.video?.canPlayType('application/vnd.apple.mpegurl')) {
+      this.video.src = streamUrl;
+      this.video.addEventListener('loadedmetadata', () => {
+        this.setLiveStatus(true);
+        this.video?.play();
+      });
+      this.video.addEventListener('error', () => {
+        this.handleStreamError();
+      });
+    }
+  }
+
+  setLiveStatus(isLive) {
+    this.isLive = isLive;
+    const chatStatusDot = document.getElementById('chatStatusDot');
+    const chatStatusLabel = document.getElementById('chatStatusLabel');
+
+    if (isLive) {
+      if (this.placeholder) this.placeholder.style.display = 'none';
+      if (this.video) this.video.style.display = 'block';
+      chatStatusDot?.classList.replace('offline', 'live');
+      chatStatusLabel?.classList.replace('offline', 'live');
+      if (chatStatusLabel) chatStatusLabel.textContent = 'LIVE';
+    } else {
+      if (this.placeholder) this.placeholder.style.display = 'flex';
+      if (this.video) this.video.style.display = 'none';
+      chatStatusDot?.classList.replace('live', 'offline');
+      chatStatusLabel?.classList.replace('live', 'offline');
+      if (chatStatusLabel) chatStatusLabel.textContent = 'Offline';
+    }
+  }
+
+  handleStreamError() {
+    this.setLiveStatus(false);
+    if (this.retryCount < CONFIG.stream.maxRetries) {
+      this.retryCount++;
+      setTimeout(() => this.loadStream(), CONFIG.stream.retryInterval);
+    }
+  }
+
+  toggleFullscreen() {
+    const player = document.querySelector('.video-wrapper');
+    if (!player) {return;}
+
+    if (!document.fullscreenElement) {
+      player.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen();
+    }
+  }
+}
+
+class LiveChat {
+  constructor() {
+    /** @type {WebSocket|null} */
+    this.ws = null;
+    this.username = 'Guest';
+    this.userColor = '#FFFFFF';
+    this.messagesContainer = document.getElementById('chatMessages');
+    this.chatInput = document.getElementById('chatInput');
+    this.sendBtn = document.getElementById('chatSendBtn');
+    this.viewersDisplay = document.getElementById('chatViewers');
+    this.reconnectAttempts = 0;
+    this.maxReconnects = 5;
+
+    this.connect();
+    this.bindEvents();
+  }
+
+  connect() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/chat`;
+    this.ws = new WebSocket(wsUrl);
+
+    this.ws.onopen = () => {
+      this.reconnectAttempts = 0;
+      this.addSystemMessage('Connected to chat');
+    };
+
+    this.ws.onmessage = (event) => {
+      this.handleMessage(JSON.parse(event.data));
+    };
+
+    this.ws.onclose = () => {
+      this.addSystemMessage('Disconnected from chat');
+      this.tryReconnect();
+    };
+
+    this.ws.onerror = () => {};
+  }
+
+  tryReconnect() {
+    if (this.reconnectAttempts < this.maxReconnects) {
+      this.reconnectAttempts++;
+      const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+      setTimeout(() => this.connect(), delay);
+    }
+  }
+
+  handleMessage(data) {
+    switch (data.type) {
+      case 'welcome':
+        this.username = data.username;
+        this.userColor = data.color;
+        this.updateViewers(data.viewerCount);
+        break;
+      case 'chat':
+        this.addChatMessage(data.username, data.message, data.color);
+        break;
+      case 'reaction':
+        this.showFloatingEmoji(data.emoji);
+        break;
+      case 'viewers':
+        this.updateViewers(data.count);
+        break;
+      case 'nameChanged':
+        this.username = data.username;
+        this.addSystemMessage(`Your name is now ${data.username}`);
+        break;
+    }
+  }
+
+  bindEvents() {
+    if (this.sendBtn) {
+      this.sendBtn.addEventListener('click', () => this.sendMessage());
+    }
+
+    if (this.chatInput) {
+      this.chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {this.sendMessage();}
+      });
+    }
+
+    document.querySelectorAll('.reaction-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const emoji = btn.dataset.emoji;
+        this.sendReaction(emoji);
+        this.showFloatingEmoji(emoji);
+      });
+    });
+  }
+
+  sendMessage() {
+    const message = this.chatInput?.value.trim();
+    if (!message || !this.ws || this.ws.readyState !== WebSocket.OPEN) {return;}
+
+    if (message.startsWith('/name ')) {
+      const newName = message.substring(6).trim();
+      this.ws.send(JSON.stringify({ type: 'setName', name: newName }));
+    } else {
+      this.ws.send(JSON.stringify({ type: 'chat', message }));
+    }
+
+    if (this.chatInput) {this.chatInput.value = '';}
+  }
+
+  sendReaction(emoji) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {return;}
+    this.ws.send(JSON.stringify({ type: 'reaction', emoji }));
+  }
+
+  addChatMessage(username, message, color) {
+    if (!this.messagesContainer) {return;}
+    const msgEl = document.createElement('div');
+    msgEl.className = 'chat-message';
+    msgEl.innerHTML = `<span class="chat-username" style="color: ${color}">${this.escapeHtml(username)}:</span> <span class="chat-text">${this.escapeHtml(message)}</span>`;
+    this.messagesContainer.appendChild(msgEl);
+    this.scrollToBottom();
+  }
+
+  addSystemMessage(text) {
+    if (!this.messagesContainer) {return;}
+    const msgEl = document.createElement('div');
+    msgEl.className = 'chat-system';
+    msgEl.textContent = text;
+    this.messagesContainer.appendChild(msgEl);
+    this.scrollToBottom();
+  }
+
+  updateViewers(count) {
+    if (this.viewersDisplay) {this.viewersDisplay.textContent = `${count} watching`;}
+    const mainViewer = document.getElementById('viewerCount');
+    if (mainViewer) {mainViewer.textContent = `${count} viewers`;}
+  }
+
+  scrollToBottom() {
+    if (this.messagesContainer) {
+      this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+    }
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  showFloatingEmoji(emoji) {
+    const container = document.getElementById('floatingEmojis');
+    if (!container) {return;}
+
+    const emojiEl = document.createElement('div');
+    emojiEl.className = 'floating-emoji';
+    emojiEl.textContent = emoji;
+    emojiEl.style.left = `${Math.random() * 80 + 10}%`;
+    emojiEl.style.animationDuration = `${2 + Math.random() * 2}s`;
+
+    container.appendChild(emojiEl);
+    setTimeout(() => emojiEl.remove(), 4000);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  new LivePlayer();
+  new LiveChat();
+});

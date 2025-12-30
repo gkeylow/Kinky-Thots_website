@@ -33,8 +33,9 @@ $portfolioImages = array_slice($images, 5, 3);
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data:; media-src 'self' http: https: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:; font-src 'self' https:; connect-src 'self' https: http:;">
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
     <title>Kinky Thots - Sissy Long Legs</title>
-    <link rel="stylesheet" href="/assets/sissylonglegs.css">
-    <link rel="stylesheet" href="/assets/dropdown-nav.css">
+    <!-- Built CSS (Vite + Tailwind) -->
+    <link rel="stylesheet" href="/assets/dist/css/main.css">
+    <link rel="stylesheet" href="/assets/dist/css/index.css">
 </head>
 <body>
 <nav id="navbar">
@@ -42,10 +43,10 @@ $portfolioImages = array_slice($images, 5, 3);
         <div class="logo">
             <a href="/index.html">Kinky-Thots<img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></a>
         </div>
-        
+
         <ul class="nav-links">
             <li><a href="/index.html">Home</a></li>
-            
+
             <li class="dropdown">
                 <button class="dropdown-toggle">About</button>
                 <ul class="dropdown-menu">
@@ -55,7 +56,7 @@ $portfolioImages = array_slice($images, 5, 3);
                     <li><a href="/index.html#contact">Contact</a></li>
                 </ul>
             </li>
-            
+
             <li class="dropdown">
                 <button class="dropdown-toggle">Models</button>
                 <ul class="dropdown-menu">
@@ -63,24 +64,25 @@ $portfolioImages = array_slice($images, 5, 3);
                     <li><a href="/bustersherry.html">Buster Sherry</a></li>
                 </ul>
             </li>
-            
+
             <li class="dropdown">
-                <button class="dropdown-toggle">Subscriptions</button>
+                <button class="dropdown-toggle">Media</button>
                 <ul class="dropdown-menu">
-                    <li><a href="/subscriptions.html">Pricing & Plans</a></li>
                     <li><a href="/porn.php">Video Gallery</a></li>
-                    <li><a href="https://onlyfans.com/kinkythots" target="_blank">OnlyFans</a></li>
-                    <li><a href="https://sharesome.com/KinkyThots" target="_blank">Sharesome (Free)</a></li>
+                    <li><a href="/gallery.php">Photo Gallery</a></li>
+                    <li><a href="/live.html">Live Cam</a></li>
+                    <li><a href="https://onlyfans.com/kinkythots" target="_blank">Full Content</a></li>
                 </ul>
             </li>
-            
+
             <li><a href="#" class="login-btn disabled" title="Coming Soon">Login</a></li>
         </ul>
-        
-        <button class="nav-toggle" aria-label="Toggle navigation menu">☰</button>
+
+        <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
     </div>
 </nav>
-<script src="/assets/dropdown-nav.js"></script>
+<!-- Built JS (Vite) - Navigation -->
+<script type="module" src="/assets/dist/js/main.js"></script>
 
 <!-- Hero Section -->
 <section class="hero" id="home">
@@ -105,33 +107,67 @@ $portfolioImages = array_slice($images, 5, 3);
     </div>
 </section>
 
-<!-- About Sissy Section -->
-<section class="about-sissy" id="about-sissy">
+<!-- Skills Section - What She Does Best -->
+<section class="skills" id="skills">
     <div class="container">
         <div class="section-header">
-            <h2>From Good Girl to Cock Hungry Slut</h2>
+            <h2>What She Does Best</h2>
+            <p>Sissy's specialties that keep fans coming back</p>
         </div>
-        <div class="about-content">
-            <p>Growing up in a household where sex was shameful and women were meant to be submissive housewives, Sissy was the perfect daughter—until she wasn't. At 15, she gave her first blowjob in the back of a car and discovered her true calling. While her family preached purity, she was sneaking out to practice what she was born to do.</p>
-            
-            <p>Seventeen years later, she's still that bratty girl who loves breaking the rules, but now she's a 32-year-old PAWG with an ass that won't quit and a mouth that was made for worship. She gives head like it's her religion—sloppy, enthusiastic, and desperate to please. But here's the twist: she's still scared to swallow. She'll suck you dry but flinch when you want to finish in her mouth. It's that perfect mix of slut and innocence that makes her so fucking addictive.</p>
-            
-            <h3>What Makes Her Special</h3>
-            <p>Sissy isn't your typical confident porn star. She's a work in progress—a girl who knows she's sexy but doesn't quite believe it yet. She'll arch that perfect ass for the camera but blush when you tell her how good she looks. She craves being dominated but gets bratty when you push her limits. She wants to be your slut but needs you to teach her how.</p>
-            
-            <p>Her specialty? Blowjobs that will ruin you for anyone else. She approaches cock like it's her favorite meal—eager, messy, and completely devoted. Watch her struggle to take it deeper, gag and keep going, look up at you with those innocent eyes while doing the dirtiest things. She's learning to love the taste of cum, even if she's not quite there yet.</p>
-            
-            <div class="cta-box">
-                <h3>Watch Her Transformation</h3>
-                <p>Subscribe to see this scared good girl become a confident whore. Watch her learn to embrace her slutty side, one cock at a time.</p>
-                <a href="https://onlyfans.com/kinkythots" target="_blank" class="cta-button primary">Join Now</a>
+        <div class="skills-grid">
+            <div class="skill-card">
+                <div class="hover-image"></div>
+                <div class="skill-content">
+                    <div class="skill-icon"><img src="https://i.ibb.co/pjzNBPf0/camera.png" width="75px"></div>
+                    <h3>Solo Content</h3>
+                    <p>Watch her explore herself with toys, fingers, and pure desire. From teasing strips to intense orgasms, she holds nothing back.</p>
+                </div>
+            </div>
+            <div class="skill-card">
+                <div class="hover-image"></div>
+                <div class="skill-content">
+                    <div class="skill-icon"><img src="https://i.ibb.co/yn1L7TpR/video.png" width="75px"></div>
+                    <h3>Blowjob Queen</h3>
+                    <p>Her true calling. Sloppy, enthusiastic, and utterly devoted. Watch her worship cock like it's her favorite meal.</p>
+                </div>
+            </div>
+            <div class="skill-card">
+                <div class="hover-image"></div>
+                <div class="skill-content">
+                    <div class="skill-icon"><img src="https://i.ibb.co/qLHz4Fcj/webcam.png" width="75px"></div>
+                    <h3>Live Shows</h3>
+                    <p>Catch her live on cam where anything can happen. Interactive, spontaneous, and always ready to please her audience.</p>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Gallery Section -->
-<section class="skills" id="skills">
+<!-- Portfolio Section - Free Samples -->
+<section class="portfolio" id="portfolio">
+    <div class="container">
+        <div class="section-header">
+            <h2>Free Samples</h2>
+            <p>A taste of what's waiting for subscribers</p>
+        </div>
+        <div class="portfolio-grid">
+            <?php foreach ($portfolioImages as $image): ?>
+            <div class="portfolio-item">
+                <div class="image-container">
+                    <img src="<?php echo htmlspecialchars($webPath . '/' . rawurlencode($image)); ?>" alt="Sissy Long Legs">
+                    <div class="hover-text">
+                        <h4>Want More?</h4>
+                        <p>Subscribe to see the full set</p>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- Gallery Section - Recent Selfies -->
+<section class="gallery-section" id="gallery">
     <div class="container">
         <div class="section-header">
             <h2>Recent Selfies</h2>
@@ -141,6 +177,9 @@ $portfolioImages = array_slice($images, 5, 3);
         <div id="gallery-grid-sissy" class="gallery-grid mosaic-grid"></div>
     </div>
 </section>
+<!-- Built JS (Vite) -->
+<script type="module" src="/assets/dist/js/sissylonglegs.js"></script>
+<!-- Legacy gallery script (pending full migration) -->
 <script src="/assets/sissygallery.js?v=1765148000"></script>
 
 <!-- Lightbox overlay for sissylonglegs gallery -->
@@ -155,10 +194,6 @@ $portfolioImages = array_slice($images, 5, 3);
         <button class="lightbox-nav-btn" id="lightbox-next-sissy">&#8594;</button>
     </div>
 </div>
-</div>
-
-<!-- Portfolio Section -->
-<a href="https://ibb.co/jvQCFdVb"><img src="https://i.ibb.co/mC2n7mvb/banner-throatgoat-1200-300.gif" alt="banner-throatgoat-1200-300" border="0"></a>
 
 <!-- Contact Section -->
 <section class="contact" id="contact">
@@ -191,40 +226,6 @@ $portfolioImages = array_slice($images, 5, 3);
             </div>
         </div>
     </div>
-    <script src="/assets/scrolling.js"></script>
 </footer>
-
-<script>
-    // Hero slideshow
-    let currentSlide = 0;
-    const slides = document.querySelectorAll('.hero-slide');
-    const totalSlides = slides.length;
-    
-    function nextSlide() {
-        slides[currentSlide].classList.remove('active');
-        currentSlide = (currentSlide + 1) % totalSlides;
-        slides[currentSlide].classList.add('active');
-    }
-    
-    // Change image every 4 seconds
-    if (totalSlides > 1) {
-        setInterval(nextSlide, 4000);
-    }
-</script>
-<script>
-// Force gallery reload and log errors
-window.addEventListener("load", function() {
-    console.log("Page loaded, gallery should initialize...");
-    setTimeout(function() {
-        const grid = document.getElementById("gallery-grid-sissy");
-        if (grid) {
-            console.log("Gallery grid found");
-            console.log("Grid content:", grid.innerHTML.substring(0, 200));
-        } else {
-            console.error("Gallery grid NOT found!");
-        }
-    }, 3000);
-});
-</script>
 </body>
 </html>

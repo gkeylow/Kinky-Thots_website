@@ -73,6 +73,10 @@ function getAspectRatioClass($width, $height) {
     }
 }
 
+// Thumbnail configuration
+$thumbnailDir = '/assets/thumbnails/';
+$thumbnailPath = __DIR__ . '/assets/thumbnails/';
+
 // Process videos
 $videoData = [];
 foreach ($videos as $video) {
@@ -80,22 +84,29 @@ foreach ($videos as $video) {
     $width = $video['width'] ?? null;
     $height = $video['height'] ?? null;
     $onCdn = $video['on_cdn'] ?? true;
-    
+
     // Skip videos not on CDN if CDN is enabled
     if ($cdnEnabled && !$onCdn) {
         continue;
     }
-    
+
     $aspectClass = getAspectRatioClass($width, $height);
-    
+
     // Build CDN URL
-    $videoUrl = $cdnEnabled 
+    $videoUrl = $cdnEnabled
         ? $cdnBaseUrl . '/' . rawurlencode($filename)
         : '/porn/kinky-thots-shorts/' . rawurlencode($filename);
-    
+
+    // Build thumbnail URL (local file for fast loading)
+    $thumbFilename = pathinfo($filename, PATHINFO_FILENAME) . '.jpg';
+    $thumbUrl = file_exists($thumbnailPath . $thumbFilename)
+        ? $thumbnailDir . rawurlencode($thumbFilename)
+        : null;
+
     $videoData[] = [
         'filename' => $filename,
         'url' => $videoUrl,
+        'thumbnailUrl' => $thumbUrl,
         'mimeType' => getMimeType($filename),
         'width' => $width,
         'height' => $height,
@@ -132,8 +143,9 @@ foreach ($videoData as $v) {
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data:; media-src 'self' http: https: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:; font-src 'self' https:; connect-src 'self' https: http:;">
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
     <title>Kinky Thots - Video Gallery</title>
-    <link rel="stylesheet" href="/assets/porn.css">
-    <link rel="stylesheet" href="/assets/dropdown-nav.css">
+    <!-- Built CSS (Vite + Tailwind) -->
+    <link rel="stylesheet" href="/assets/dist/css/main.css">
+    <link rel="stylesheet" href="/assets/dist/css/media-gallery.css">
 </head>
 <body>
 <nav id="navbar">
@@ -141,10 +153,10 @@ foreach ($videoData as $v) {
         <div class="logo">
             <a href="/index.html">Kinky-Thots<img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></a>
         </div>
-        
+
         <ul class="nav-links">
             <li><a href="/index.html">Home</a></li>
-            
+
             <li class="dropdown">
                 <button class="dropdown-toggle">About</button>
                 <ul class="dropdown-menu">
@@ -154,7 +166,7 @@ foreach ($videoData as $v) {
                     <li><a href="/index.html#contact">Contact</a></li>
                 </ul>
             </li>
-            
+
             <li class="dropdown">
                 <button class="dropdown-toggle">Models</button>
                 <ul class="dropdown-menu">
@@ -162,24 +174,25 @@ foreach ($videoData as $v) {
                     <li><a href="/bustersherry.html">Buster Sherry</a></li>
                 </ul>
             </li>
-            
+
             <li class="dropdown">
-                <button class="dropdown-toggle">Subscriptions</button>
+                <button class="dropdown-toggle">Media</button>
                 <ul class="dropdown-menu">
-                    <li><a href="/subscriptions.html">Pricing & Plans</a></li>
                     <li><a href="/porn.php">Video Gallery</a></li>
-                    <li><a href="https://onlyfans.com/kinkythots" target="_blank">OnlyFans</a></li>
-                    <li><a href="https://sharesome.com/KinkyThots" target="_blank">Sharesome (Free)</a></li>
+                    <li><a href="/gallery.php">Photo Gallery</a></li>
+                    <li><a href="/live.html">Live Cam</a></li>
+                    <li><a href="https://onlyfans.com/kinkythots" target="_blank">Full Content</a></li>
                 </ul>
             </li>
-            
+
             <li><a href="#" class="login-btn disabled" title="Coming Soon">Login</a></li>
         </ul>
-        
-        <button class="nav-toggle" aria-label="Toggle navigation menu">☰</button>
+
+        <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
     </div>
 </nav>
-<script src="/assets/dropdown-nav.js"></script>
+<!-- Built JS (Vite) - Navigation -->
+<script type="module" src="/assets/dist/js/main.js"></script>
 
     <div class="container">
         <div class="header">
@@ -226,17 +239,32 @@ foreach ($videoData as $v) {
 
         <div class="video-grid" id="videoGrid">
             <?php foreach ($videoData as $video): ?>
-            <div class="video-container <?php echo $video['aspectClass']; ?>" 
+            <div class="video-container <?php echo $video['aspectClass']; ?>"
                  data-aspect="<?php echo str_replace('aspect-', '', $video['aspectClass']); ?>"
-                 data-ratio="<?php echo $video['aspectRatio'] ?? 'unknown'; ?>">
+                 data-ratio="<?php echo $video['aspectRatio'] ?? 'unknown'; ?>"
+                 data-video-url="<?php echo htmlspecialchars($video['url']); ?>"
+                 data-video-type="<?php echo $video['mimeType']; ?>">
+                <?php if ($video['thumbnailUrl']): ?>
+                <div class="video-thumbnail" onclick="openLightbox(this)">
+                    <img src="<?php echo htmlspecialchars($video['thumbnailUrl']); ?>"
+                         alt="Video thumbnail"
+                         loading="lazy">
+                    <div class="play-button">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </div>
+                </div>
+                <?php else: ?>
                 <video controls preload="metadata"
-                    <?php if ($video['width'] && $video['height']): ?> 
-                        width="<?php echo $video['width']; ?>" 
+                    <?php if ($video['width'] && $video['height']): ?>
+                        width="<?php echo $video['width']; ?>"
                         height="<?php echo $video['height']; ?>"
                     <?php endif; ?>>
                     <source src="<?php echo htmlspecialchars($video['url']); ?>" type="<?php echo $video['mimeType']; ?>">
                     Your browser does not support the video tag.
                 </video>
+                <?php endif; ?>
             </div>
             <?php endforeach; ?>
         </div>
@@ -261,45 +289,7 @@ foreach ($videoData as $v) {
         </div>
     </footer>
 
-    <script>
-        // Navbar scroll effect
-        let lastScroll = 0;
-        const navbar = document.getElementById('navbar');
-        
-        window.addEventListener('scroll', () => {
-            const currentScroll = window.pageYOffset;
-            
-            if (currentScroll <= 0) {
-                navbar.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
-            } else {
-                navbar.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.4)';
-            }
-            
-            lastScroll = currentScroll;
-        });
-
-        // Filter functionality
-        const filterBtns = document.querySelectorAll('.filter-btn');
-        const videoContainers = document.querySelectorAll('.video-container');
-
-        filterBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const filter = this.dataset.filter;
-                
-                // Update active button
-                filterBtns.forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                
-                // Filter videos
-                videoContainers.forEach(container => {
-                    if (filter === 'all' || container.dataset.aspect === filter) {
-                        container.style.display = 'block';
-                    } else {
-                        container.style.display = 'none';
-                    }
-                });
-            });
-        });
-    </script>
+    <!-- Built JS (Vite) -->
+    <script type="module" src="/assets/dist/js/porn.js"></script>
 </body>
 </html>
