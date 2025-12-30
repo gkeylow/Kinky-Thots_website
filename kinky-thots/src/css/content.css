@@ -1,0 +1,147 @@
+/* content.css - Text/content page styles */
+/* Used by: terms.html and other simple content pages */
+
+/* ===========================================
+   PAGE LAYOUT
+   =========================================== */
+
+body {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    background: #242424;
+    color: #f5f5f5;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+main.container {
+    padding-top: 120px;
+    padding-bottom: 60px;
+    min-height: calc(100vh - 200px);
+}
+
+/* ===========================================
+   SECTION HEADER
+   =========================================== */
+
+.section-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    color: #ffffff;
+}
+
+.section-header h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    background: linear-gradient(45deg, #f805a7, #4ecdc4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.section-header p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* ===========================================
+   PDF CONTAINER
+   =========================================== */
+
+.pdf-container {
+    background: #181818;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.pdf-container iframe {
+    display: block;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 900px;
+    height: 800px;
+    border: none;
+    border-radius: 8px;
+}
+
+/* ===========================================
+   TEXT CONTENT STYLES
+   =========================================== */
+
+.content-section {
+    background: #181818;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.content-section h3 {
+    font-size: 1.5rem;
+    color: #0bd0f3;
+    margin-bottom: 1rem;
+}
+
+.content-section p {
+    color: #ccc;
+    margin-bottom: 1rem;
+    line-height: 1.8;
+}
+
+.content-section ul,
+.content-section ol {
+    color: #ccc;
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.content-section li {
+    margin-bottom: 0.5rem;
+}
+
+.content-section a {
+    color: #f805a7;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.content-section a:hover {
+    color: #0bd0f3;
+    text-decoration: underline;
+}
+
+/* ===========================================
+   MOBILE RESPONSIVE
+   =========================================== */
+
+@media (max-width: 768px) {
+    main.container {
+        padding-top: 100px;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .section-header h2 {
+        font-size: 2rem;
+    }
+
+    .pdf-container {
+        padding: 10px;
+    }
+
+    .pdf-container iframe {
+        height: 500px;
+    }
+
+    .content-section {
+        padding: 1.5rem;
+    }
+}

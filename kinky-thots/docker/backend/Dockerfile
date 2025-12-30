@@ -5,15 +5,19 @@ RUN apk add --no-cache \
     python3 \
     make \
     g++ \
-    vips-dev
+    vips-dev \
+    pkgconfig
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
+# Install build tools for sharp (required for building from source)
+RUN npm install node-addon-api node-gyp --ignore-scripts
+
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy application code
 COPY . .

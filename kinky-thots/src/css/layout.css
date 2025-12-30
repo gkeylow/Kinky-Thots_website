@@ -1,13 +1,23 @@
-/* Dropdown Navigation Styles */
+/* layout.css - Header (Navigation) and Footer styles */
+/* Shared across all pages */
+
+/* ===========================================
+   NAVIGATION
+   =========================================== */
 
 nav {
     position: fixed;
     top: 0;
     width: 100%;
-    background: #181818;
+    background: transparent;
     z-index: 1000;
     padding: 1rem 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+nav.scrolled {
+    background: #181818;
+    box-shadow: 0 2px 15px rgba(11, 208, 243, 0.3);
 }
 
 .nav-container {
@@ -178,7 +188,60 @@ nav {
     color: #f805a7;
 }
 
-/* Mobile Responsive */
+/* ===========================================
+   FOOTER
+   =========================================== */
+
+.site-footer {
+    background: linear-gradient(135deg, #f805a7 0%, #0bd0f3 100%);
+    color: #ffffff;
+    padding: 20px 0;
+    margin-top: 40px;
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.footer-left p {
+    margin: 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.footer-right {
+    display: flex;
+    gap: 20px;
+}
+
+.footer-link {
+    color: #000000;
+    text-decoration: none;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.footer-link:hover {
+    opacity: 1;
+    text-decoration: underline;
+    color: #f805a7;
+}
+
+/* ===========================================
+   MOBILE RESPONSIVE
+   =========================================== */
+
 @media (max-width: 768px) {
     .nav-container {
         padding: 0 1rem;
@@ -268,9 +331,10 @@ nav {
         text-align: center;
         width: calc(100% - 2rem);
     }
-}
 
-/* Smooth transitions */
-* {
-    box-sizing: border-box;
+    .footer-content {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
 }
