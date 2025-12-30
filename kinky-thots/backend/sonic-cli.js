@@ -85,6 +85,54 @@ async function runCommand() {
         process.exit(delResult.success ? 0 : 1);
         break;
 
+      case 'sync-manifest':
+        console.log('\n🔄 Syncing video manifest from CDN...\n');
+        const manifestPath = path.join(__dirname, '../data/video-manifest.json');
+
+        // List all objects (increase limit to get all)
+        const syncResult = await client.listObjects('', 1000);
+        if (!syncResult.success) {
+          console.error('Error listing objects:', syncResult.error);
+          process.exit(1);
+        }
+
+        // Filter for video files only
+        const videoExtensions = ['.mp4', '.webm', '.mkv', '.mov', '.avi'];
+        const videos = syncResult.objects.filter(obj => {
+          const ext = path.extname(obj.key).toLowerCase();
+          return videoExtensions.includes(ext);
+        });
+
+        console.log(`Found ${videos.length} video(s) on CDN\n`);
+
+        // Build manifest
+        const manifest = {
+          generated: new Date().toISOString(),
+          cdn_base_url: client.getCdnBaseUrl(),
+          videos: videos.map(obj => ({
+            filename: obj.key,
+            width: null,
+            height: null,
+            size_bytes: obj.size,
+            on_cdn: true
+          }))
+        };
+
+        // Write manifest
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+        console.log(`✓ Manifest saved to: ${manifestPath}`);
+        console.log(`  Videos: ${manifest.videos.length}`);
+        console.log(`  CDN: ${manifest.cdn_base_url}`);
+
+        // List videos
+        console.log('\nVideos in manifest:');
+        manifest.videos.forEach((v, i) => {
+          console.log(`  ${i + 1}. ${v.filename}`);
+        });
+
+        process.exit(0);
+        break;
+
       case 'help':
       default:
         console.log(`
