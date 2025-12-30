@@ -9,24 +9,57 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data:; media-src 'self' http: https: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:; font-src 'self' https:; connect-src 'self' https: http:;">
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
     <title>Terms & Conditions - Kinky Thots</title>
-    <link rel="stylesheet" href="assets/terms.css">
-    
+    <!-- Built CSS (Vite + Tailwind) -->
+    <link rel="stylesheet" href="/assets/dist/css/main.css">
+    <link rel="stylesheet" href="/assets/dist/css/content.css">
 </head>
 <body>
     <!-- Navigation Section -->
-    <nav id="navbar">
-        <div class="nav-container">
-            <div class="logo"><a href="/">Kinky-Thots</a><img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></div>
-            <ul class="nav-links">
-                <li><a href="/index.html#about">About</a></li>
-                <li><a href="/index.html#skills">Skills</a></li>
-                <li><a href="/sissylonglegs.html">Sissy</a></li>
-                <li><a href="/index.html#contact">Contact</a></li>
-            </ul>
-            <button class="nav-toggle" aria-label="Toggle navigation menu">☰</button>
+<nav id="navbar">
+    <div class="nav-container">
+        <div class="logo">
+            <a href="/index.html">Kinky-Thots<img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></a>
         </div>
-    </nav>
-    <script src="/assets/dropdown-nav.js"></script>
+
+        <ul class="nav-links">
+            <li><a href="/index.html">Home</a></li>
+
+            <li class="dropdown">
+                <button class="dropdown-toggle">About</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/index.html#about">About Us</a></li>
+                    <li><a href="/index.html#skills">Our Skills</a></li>
+                    <li><a href="/index.html#portfolio">Portfolio</a></li>
+                    <li><a href="/index.html#contact">Contact</a></li>
+                </ul>
+            </li>
+
+            <li class="dropdown">
+                <button class="dropdown-toggle">Models</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/sissylonglegs.php">Sissy Long Legs</a></li>
+                    <li><a href="/bustersherry.html">Buster Sherry</a></li>
+                </ul>
+            </li>
+
+            <li class="dropdown">
+                <button class="dropdown-toggle">Media</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/porn.php">Video Gallery</a></li>
+                    <li><a href="/gallery.php">Photo Gallery</a></li>
+                    <li><a href="/live.html">Live Cam</a></li>
+                    <li><a href="https://onlyfans.com/kinkythots" target="_blank">Full Content</a></li>
+                </ul>
+            </li>
+
+            <li><a href="#" class="login-btn disabled" title="Coming Soon">Login</a></li>
+        </ul>
+
+        <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
+    </div>
+</nav>
+    <!-- Built JS (Vite) -->
+    <script type="module" src="/assets/dist/js/main.js"></script>
 
     <main class="container">
         <div class="section-header">
@@ -45,7 +78,7 @@
                     <p>© 2025 <a href="/index.html">Kinky-Thots</a> <img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="25px">All rights reserved.</p>
                 </div>
                 <div class="footer-right">
-                    <a href="terms.html" class="footer-link">Terms &amp; Conditions</a>
+                    <a href="/terms.html" class="footer-link">Terms &amp; Conditions</a>
                 </div>
             </div>
         </div>

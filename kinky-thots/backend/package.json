@@ -13,7 +13,8 @@
     "express": "^5.1.0",
     "express-fileupload": "^1.5.2",
     "mariadb": "^3.4.4",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "jest": "^29.7.0",

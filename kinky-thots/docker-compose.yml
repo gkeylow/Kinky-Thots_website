@@ -4,17 +4,19 @@ services:
   # Apache/PHP Web Server
   web:
     build:
-      context: .
-      dockerfile: docker/web/Dockerfile
+      context: ./docker/web
+      dockerfile: Dockerfile
     container_name: kinky-web
     ports:
       - "80:80"
-      - "443:443"
+      # - "443:443"   # Uncomment for HTTPS
     volumes:
       - ./:/var/www/html:ro
       - ./uploads:/var/www/html/uploads
       - ./hls:/var/www/html/hls
       - ./logs:/var/www/html/logs
+    environment:
+      - GALLERY_ADMIN_PASSWORD=${GALLERY_ADMIN_PASSWORD}
     depends_on:
       - db
       - backend
@@ -29,7 +31,7 @@ services:
       dockerfile: ../docker/backend/Dockerfile
     container_name: kinky-backend
     ports:
-      - "3001:3001"
+      - "3002:3001"    # Test mode: use 3002 instead of 3001
     volumes:
       - ./uploads:/var/www/kinky-thots/uploads
       - ./config:/var/www/kinky-thots/config:ro
@@ -58,7 +60,7 @@ services:
     container_name: kinky-rtmp
     ports:
       - "1935:1935"
-      - "8080:8080"
+      - "8081:8080"
     volumes:
       - ./hls:/tmp/hls
     networks:
