@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Subscriptions - Kinky Thots</title>
+    <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
+    <link rel="stylesheet" href="/assets/dist/css/main.css">
+    <style>
+        .subscriptions-container {
+            max-width: 1200px;
+            margin: 100px auto 40px;
+            padding: 0 20px;
+        }
+        .subscriptions-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .subscriptions-header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+        .subscriptions-header p {
+            color: #888;
+            font-size: 1.1rem;
+        }
+        .tiers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        .tier-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+            border: 1px solid rgba(11, 208, 243, 0.3);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+        .tier-card:hover {
+            transform: translateY(-5px);
+            border-color: #0bd0f3;
+        }
+        .tier-card.featured {
+            border-color: #f805a7;
+            position: relative;
+        }
+        .tier-card.featured::before {
+            content: 'BEST VALUE';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .tier-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+        .tier-price {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .tier-price span {
+            font-size: 1rem;
+            color: #888;
+            -webkit-text-fill-color: #888;
+        }
+        .tier-access {
+            color: #0bd0f3;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+        .tier-features {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 2rem;
+            text-align: left;
+        }
+        .tier-features li {
+            padding: 0.5rem 0;
+            color: #ccc;
+            font-size: 0.95rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .tier-features li::before {
+            content: '✓';
+            color: #2ecc71;
+            margin-right: 10px;
+        }
+        .tier-btn {
+            display: inline-block;
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        .tier-btn:hover {
+            opacity: 0.9;
+        }
+        .tier-btn.current {
+            background: #333;
+            cursor: default;
+        }
+        .current-tier-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+        }
+        .faq-section {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .faq-section h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #fff;
+        }
+        .faq-item {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        .faq-question {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .faq-question:hover {
+            background: rgba(11, 208, 243, 0.1);
+        }
+        .faq-answer {
+            padding: 0 1.5rem 1rem;
+            color: #888;
+            display: none;
+        }
+        .faq-item.open .faq-answer {
+            display: block;
+        }
+        @media (max-width: 768px) {
+            .subscriptions-header h1 { font-size: 2rem; }
+            .tier-price { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+<!-- Navigation -->
+<nav id="navbar">
+    <div class="nav-container">
+        <div class="logo">
+            <a href="/index.html">Kinky-Thots<img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></a>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/index.html">Home</a></li>
+            <li class="dropdown">
+                <button class="dropdown-toggle">Media</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/porn.php">Video Gallery</a></li>
+                    <li><a href="/gallery.php">Photo Gallery</a></li>
+                    <li><a href="/live.html">Live Cam</a></li>
+                </ul>
+            </li>
+            <li class="dropdown" id="userDropdown" style="display: none;">
+                <button class="dropdown-toggle" id="userTrigger">Account</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/profile.html">My Profile</a></li>
+                    <li><a href="/subscriptions.html">Subscription</a></li>
+                    <li><a href="#" id="logoutLink">Logout</a></li>
+                </ul>
+            </li>
+            <li id="loginItem"><a href="/live.html" class="login-btn" id="authTrigger">Login</a></li>
+        </ul>
+        <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
+    </div>
+</nav>
+<script type="module" src="/assets/dist/js/main.js"></script>
+<script>
+(function() {
+    const user = JSON.parse(localStorage.getItem('kt_auth_user') || 'null');
+    if (user) {
+        document.getElementById('loginItem').style.display = 'none';
+        document.getElementById('userDropdown').style.display = 'block';
+        document.getElementById('userTrigger').textContent = user.username;
+        document.getElementById('logoutLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('kt_auth_token');
+            localStorage.removeItem('kt_auth_user');
+            window.location.reload();
+        });
+    }
+})();
+</script>
+
+<main class="subscriptions-container">
+    <div class="subscriptions-header">
+        <h1>Choose Your Plan</h1>
+        <p>Unlock exclusive content and features</p>
+        <div id="currentTierDisplay"></div>
+    </div>
+
+    <div class="tiers-grid" id="tiersGrid">
+        <!-- Tiers loaded dynamically -->
+    </div>
+
+    <section class="faq-section">
+        <h2>Frequently Asked Questions</h2>
+        <div class="faq-item">
+            <div class="faq-question">What payment methods do you accept? <span>+</span></div>
+            <div class="faq-answer">We accept PayPal for all subscription payments. This includes PayPal balance, linked bank accounts, and credit/debit cards through PayPal.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">Can I cancel anytime? <span>+</span></div>
+            <div class="faq-answer">Yes! You can cancel your subscription at any time. You'll continue to have access until the end of your billing period.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">How do I upgrade my plan? <span>+</span></div>
+            <div class="faq-answer">Simply click on the plan you want to upgrade to. Your billing will be prorated for the remainder of your current billing cycle.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">What's included in Premium? <span>+</span></div>
+            <div class="faq-answer">Premium members get access to 100% of all content, including exclusive videos, 4K streaming quality, VIP chat badge, and direct messaging with models.</div>
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-left">
+                <p>&copy; 2025 <a href="/index.html">Kinky-Thots</a> All rights reserved.</p>
+            </div>
+            <div class="footer-right">
+                <a href="/terms.html" class="footer-link">Terms & Conditions</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+    const AUTH_TOKEN_KEY = 'kt_auth_token';
+    const AUTH_USER_KEY = 'kt_auth_user';
+
+    async function loadTiers() {
+        const user = JSON.parse(localStorage.getItem(AUTH_USER_KEY) || 'null');
+        const currentTier = user?.subscription_tier || 'free';
+
+        // Show current tier
+        if (user) {
+            document.getElementById('currentTierDisplay').innerHTML =
+                `<span class="current-tier-badge">Current Plan: ${currentTier.toUpperCase()}</span>`;
+        }
+
+        try {
+            const response = await fetch('/api/subscriptions/tiers');
+            const data = await response.json();
+
+            const grid = document.getElementById('tiersGrid');
+            grid.innerHTML = data.tiers.filter(t => t.id !== 'vip').map(tier => `
+                <div class="tier-card ${tier.id === 'premium' ? 'featured' : ''}">
+                    <h3 class="tier-name">${tier.name}</h3>
+                    <div class="tier-price">$${tier.price}<span>/mo</span></div>
+                    <div class="tier-access">${tier.contentAccess}% Content Access</div>
+                    <ul class="tier-features">
+                        ${tier.features.map(f => `<li>${f}</li>`).join('')}
+                    </ul>
+                    ${currentTier === tier.id
+                        ? '<button class="tier-btn current">Current Plan</button>'
+                        : tier.price === 0
+                            ? '<button class="tier-btn current">Free Tier</button>'
+                            : `<a href="/checkout.html?tier=${tier.id}" class="tier-btn">Subscribe Now</a>`
+                    }
+                </div>
+            `).join('');
+        } catch (err) {
+            console.error('Failed to load tiers:', err);
+        }
+    }
+
+    // FAQ toggle
+    document.querySelectorAll('.faq-question').forEach(q => {
+        q.addEventListener('click', () => {
+            q.parentElement.classList.toggle('open');
+            q.querySelector('span').textContent = q.parentElement.classList.contains('open') ? '-' : '+';
+        });
+    });
+
+    loadTiers();
+</script>
+</body>
+</html>

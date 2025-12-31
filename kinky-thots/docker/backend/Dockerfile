@@ -28,8 +28,8 @@ RUN mkdir -p /var/www/kinky-thots/uploads \
 
 EXPOSE 3001
 
-# Health check
+# Health check (use 127.0.0.1 to force IPv4, as server binds to 0.0.0.0)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3001/health || exit 1
 
 CMD ["node", "server.js"]

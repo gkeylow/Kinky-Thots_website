@@ -32,7 +32,6 @@ function setupLightbox() {
     const lightbox = document.createElement('div');
     lightbox.className = 'video-lightbox';
     lightbox.innerHTML = `
-      <div class="lightbox-overlay"></div>
       <div class="lightbox-content">
         <button class="lightbox-close">&times;</button>
         <video controls autoplay>
@@ -55,7 +54,9 @@ function setupLightbox() {
       document.body.style.overflow = '';
     };
 
-    lightbox.querySelector('.lightbox-overlay')?.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox) closeLightbox();
+    });
     lightbox.querySelector('.lightbox-close')?.addEventListener('click', closeLightbox);
 
     const escHandler = (e) => {

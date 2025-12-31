@@ -20,8 +20,8 @@ Located in `config/sonic-s3-cdn.json`:
 {
   "s3": {
     "endpoint": "https://s3.eu-central.r-cdn.com",
-    "access_key": "L81UC90ZDB5TMEAY7PUUU",
-    "secret_key": "QU9DNUI5VzVGN05FQ01IpEzDVjZEUkZURcNGSjFR",
+    "access_key": "<YOUR_S3_ACCESS_KEY>",
+    "secret_key": "<YOUR_S3_SECRET_KEY>",
     "bucket": "6317",
     "region": "eu-central"
   },

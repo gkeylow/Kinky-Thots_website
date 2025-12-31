@@ -82,10 +82,10 @@ CREATE TABLE images (
 ```
 
 ### Database User
-- **User**: gkeylow
-- **Password**: REDACTED_DB_PASSWORD
-- **Database**: gallery_db
-- **Privileges**: ALL on gallery_db.*
+- **User**: `<DB_USER>` (see .env)
+- **Password**: `<DB_PASSWORD>` (see .env)
+- **Database**: kinky_thots
+- **Privileges**: ALL on kinky_thots.*
 
 ## File Structure
 
@@ -169,8 +169,8 @@ curl http://kinky-thots.com/api/gallery
 4. Verify file type is image
 
 ### Database errors
-1. Test connection: `mysql -u gkeylow -pREDACTED_DB_PASSWORD gallery_db -e "SELECT COUNT(*) FROM images;"`
-2. Check user privileges: `mysql -u root -e "SHOW GRANTS FOR 'gkeylow'@'localhost';"`
+1. Test connection: `mysql -u $MARIADB_USER -p$MARIADB_PASSWORD kinky_thots -e "SELECT COUNT(*) FROM images;"`
+2. Check user privileges: `mysql -u root -e "SHOW GRANTS FOR '$MARIADB_USER'@'localhost';"`
 
 ### Images not displaying
 1. Check uploads directory: `ls /var/www/kinky-thots/backend/uploads/`

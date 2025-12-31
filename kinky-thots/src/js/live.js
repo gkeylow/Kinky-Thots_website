@@ -1,5 +1,7 @@
 import '../css/live.css';
 import '../css/chat.css';
+import '../css/auth-modal.css';
+import { auth } from './auth.js';
 
 const CONFIG = {
   stream: {
@@ -299,6 +301,8 @@ class LiveChat {
     this.ws = null;
     this.username = 'Guest';
     this.userColor = '#FFFFFF';
+    this.isAuthenticated = false;
+    this.subscriptionTier = null;
     this.messagesContainer = document.getElementById('chatMessages');
     this.chatInput = document.getElementById('chatInput');
     this.sendBtn = document.getElementById('chatSendBtn');
@@ -306,13 +310,24 @@ class LiveChat {
     this.reconnectAttempts = 0;
     this.maxReconnects = 5;
 
+    // Initialize auth manager and set up auth change callback
+    this.authManager = auth.init();
+    this.authManager.onAuthChange = () => this.reconnectWithAuth();
+
     this.connect();
     this.bindEvents();
   }
 
   connect() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/chat`;
+    let wsUrl = `${protocol}//${window.location.host}/ws/chat`;
+
+    // Append JWT token if authenticated
+    const token = this.authManager.getToken();
+    if (token) {
+      wsUrl += `?token=${encodeURIComponent(token)}`;
+    }
+
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
@@ -340,15 +355,30 @@ class LiveChat {
     }
   }
 
+  /**
+   * Reconnect with fresh auth state (called after login/logout)
+   */
+  reconnectWithAuth() {
+    if (this.ws) {
+      this.ws.close();
+    }
+    setTimeout(() => this.connect(), 100);
+  }
+
   handleMessage(data) {
     switch (data.type) {
       case 'welcome':
         this.username = data.username;
         this.userColor = data.color;
+        this.isAuthenticated = data.isAuthenticated || false;
+        this.subscriptionTier = data.subscriptionTier || null;
         this.updateViewers(data.viewerCount);
+        if (this.isAuthenticated) {
+          this.addSystemMessage(`Welcome back, ${this.username}!`);
+        }
         break;
       case 'chat':
-        this.addChatMessage(data.username, data.message, data.color);
+        this.addChatMessage(data.username, data.message, data.color, data.isAuthenticated, data.subscriptionTier);
         break;
       case 'reaction':
         this.showFloatingEmoji(data.emoji);
@@ -360,7 +390,67 @@ class LiveChat {
         this.username = data.username;
         this.addSystemMessage(`Your name is now ${data.username}`);
         break;
+      case 'error':
+        this.addSystemMessage(`Error: ${data.message}`);
+        break;
+      case 'modAction':
+        this.handleModAction(data);
+        break;
+      case 'banned':
+        this.addSystemMessage(`You have been banned: ${data.reason}`);
+        break;
     }
+  }
+
+  /**
+   * Handle moderation actions
+   */
+  handleModAction(data) {
+    switch (data.action) {
+      case 'ban':
+        this.addModMessage(`${data.target} was banned by ${data.moderator}`);
+        break;
+      case 'unban':
+        this.addModMessage(`${data.target} was unbanned by ${data.moderator}`);
+        break;
+      case 'mute':
+        this.addModMessage(`${data.target} was muted for ${data.duration}s by ${data.moderator}`);
+        break;
+      case 'unmute':
+        this.addModMessage(`${data.target} was unmuted by ${data.moderator}`);
+        break;
+      case 'slow':
+        if (data.seconds > 0) {
+          this.addModMessage(`Slow mode enabled: ${data.seconds}s between messages`);
+        } else {
+          this.addModMessage(`Slow mode disabled`);
+        }
+        break;
+      case 'clear':
+        this.clearChat();
+        this.addModMessage(`Chat cleared by ${data.moderator}`);
+        break;
+    }
+  }
+
+  /**
+   * Add moderation message
+   */
+  addModMessage(text) {
+    if (!this.messagesContainer) return;
+    const msgEl = document.createElement('div');
+    msgEl.className = 'chat-mod-action';
+    msgEl.textContent = `[MOD] ${text}`;
+    this.messagesContainer.appendChild(msgEl);
+    this.scrollToBottom();
+  }
+
+  /**
+   * Clear all chat messages
+   */
+  clearChat() {
+    if (!this.messagesContainer) return;
+    this.messagesContainer.innerHTML = '<div class="chat-welcome">Chat was cleared</div>';
   }
 
   bindEvents() {
@@ -402,11 +492,21 @@ class LiveChat {
     this.ws.send(JSON.stringify({ type: 'reaction', emoji }));
   }
 
-  addChatMessage(username, message, color) {
+  addChatMessage(username, message, color, isAuthenticated = false, tier = null) {
     if (!this.messagesContainer) {return;}
     const msgEl = document.createElement('div');
     msgEl.className = 'chat-message';
-    msgEl.innerHTML = `<span class="chat-username" style="color: ${color}">${this.escapeHtml(username)}:</span> <span class="chat-text">${this.escapeHtml(message)}</span>`;
+
+    // Build badge HTML for subscription tiers
+    let badge = '';
+    if (tier && tier !== 'free') {
+      badge = `<span class="chat-badge chat-badge-${tier}">${tier.toUpperCase()}</span>`;
+    }
+
+    // Add verified checkmark for authenticated users
+    const verified = isAuthenticated ? '<span class="chat-verified" title="Verified User">✓</span>' : '';
+
+    msgEl.innerHTML = `${badge}<span class="chat-username" style="color: ${color}">${this.escapeHtml(username)}${verified}:</span> <span class="chat-text">${this.escapeHtml(message)}</span>`;
     this.messagesContainer.appendChild(msgEl);
     this.scrollToBottom();
   }
