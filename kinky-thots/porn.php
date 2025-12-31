@@ -185,7 +185,15 @@ foreach ($videoData as $v) {
                 </ul>
             </li>
 
-            <li><a href="#" class="login-btn disabled" title="Coming Soon">Login</a></li>
+            <li class="dropdown" id="userDropdown" style="display: none;">
+                <button class="dropdown-toggle" id="userTrigger">Account</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/profile.html">My Profile</a></li>
+                    <li><a href="/subscriptions.html">Subscription</a></li>
+                    <li><a href="#" id="logoutLink">Logout</a></li>
+                </ul>
+            </li>
+            <li id="loginItem"><a href="/live.html" class="login-btn" id="authTrigger">Login</a></li>
         </ul>
 
         <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
@@ -193,11 +201,36 @@ foreach ($videoData as $v) {
 </nav>
 <!-- Built JS (Vite) - Navigation -->
 <script type="module" src="/assets/dist/js/main.js"></script>
+<script>
+(function() {
+    const user = JSON.parse(localStorage.getItem('kt_auth_user') || 'null');
+    if (user) {
+        document.getElementById('loginItem').style.display = 'none';
+        document.getElementById('userDropdown').style.display = 'block';
+        document.getElementById('userTrigger').textContent = user.username;
+        document.getElementById('logoutLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('kt_auth_token');
+            localStorage.removeItem('kt_auth_user');
+            window.location.reload();
+        });
+    }
+})();
+</script>
 
     <div class="container">
         <div class="header">
             <h1>Video Gallery</h1>
             <p>Exclusive Content Collection</p>
+        </div>
+
+        <!-- Subscription banner (shown for non-premium users) -->
+        <div id="subscriptionBanner" class="subscription-banner" style="display: none;">
+            <div class="subscription-banner-text">
+                <strong id="bannerAccessText">Unlock all content</strong><br>
+                <span id="bannerSubText">Subscribe to access premium videos</span>
+            </div>
+            <a href="/subscriptions.html" class="subscription-banner-btn">View Plans</a>
         </div>
 
         <div class="video-stats">
@@ -238,12 +271,20 @@ foreach ($videoData as $v) {
         </div>
 
         <div class="video-grid" id="videoGrid">
-            <?php foreach ($videoData as $video): ?>
+            <?php foreach ($videoData as $index => $video): ?>
             <div class="video-container <?php echo $video['aspectClass']; ?>"
                  data-aspect="<?php echo str_replace('aspect-', '', $video['aspectClass']); ?>"
                  data-ratio="<?php echo $video['aspectRatio'] ?? 'unknown'; ?>"
                  data-video-url="<?php echo htmlspecialchars($video['url']); ?>"
-                 data-video-type="<?php echo $video['mimeType']; ?>">
+                 data-video-type="<?php echo $video['mimeType']; ?>"
+                 data-index="<?php echo $index; ?>">
+                <!-- Lock overlay (shown via JS for gated content) -->
+                <div class="lock-overlay">
+                    <div class="lock-icon">🔒</div>
+                    <div class="lock-text">Premium Content</div>
+                    <div class="lock-tier">Upgrade to unlock</div>
+                    <a href="/subscriptions.html" class="lock-upgrade-btn">Subscribe</a>
+                </div>
                 <?php if ($video['thumbnailUrl']): ?>
                 <div class="video-thumbnail" onclick="openLightbox(this)">
                     <img src="<?php echo htmlspecialchars($video['thumbnailUrl']); ?>"
@@ -291,5 +332,82 @@ foreach ($videoData as $v) {
 
     <!-- Built JS (Vite) -->
     <script type="module" src="/assets/dist/js/porn.js"></script>
+
+    <!-- Content Gating Script -->
+    <script>
+    (function() {
+        const AUTH_TOKEN_KEY = 'kt_auth_token';
+        const AUTH_USER_KEY = 'kt_auth_user';
+
+        // Subscription tier access levels (percentage of content)
+        const TIER_ACCESS = {
+            free: 0.2,      // 20%
+            basic: 0.6,     // 60%
+            premium: 1.0,   // 100%
+            vip: 1.0        // 100%
+        };
+
+        function initContentGating() {
+            const user = JSON.parse(localStorage.getItem(AUTH_USER_KEY) || 'null');
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
+            const isLoggedIn = user && token;
+            const userTier = user?.subscription_tier || 'free';
+            const accessLevel = TIER_ACCESS[userTier] || TIER_ACCESS.free;
+
+            // Get all video containers
+            const videos = document.querySelectorAll('.video-container[data-index]');
+            const totalVideos = videos.length;
+            const accessibleCount = Math.ceil(totalVideos * accessLevel);
+
+            // Show subscription banner for non-premium users
+            const banner = document.getElementById('subscriptionBanner');
+            if (banner && accessLevel < 1.0) {
+                banner.style.display = 'flex';
+                const accessText = document.getElementById('bannerAccessText');
+                const subText = document.getElementById('bannerSubText');
+
+                if (isLoggedIn) {
+                    const lockedCount = totalVideos - accessibleCount;
+                    accessText.textContent = `${lockedCount} videos locked`;
+                    subText.textContent = `Upgrade to ${userTier === 'free' ? 'Basic ($5/mo)' : 'Premium ($10/mo)'} for more access`;
+                } else {
+                    accessText.textContent = 'Sign in to unlock content';
+                    subText.textContent = 'Free members get 20% access, Premium gets 100%';
+                }
+            }
+
+            // Apply content locking
+            videos.forEach((container, index) => {
+                if (index >= accessibleCount) {
+                    container.classList.add('content-locked');
+
+                    // Update lock overlay text based on required tier
+                    const lockTier = container.querySelector('.lock-tier');
+                    if (lockTier) {
+                        if (accessLevel < 0.6) {
+                            lockTier.textContent = 'Basic ($5/mo) or higher';
+                        } else {
+                            lockTier.textContent = 'Premium ($10/mo) required';
+                        }
+                    }
+                }
+            });
+
+            // Log access info (debug)
+            console.log(`Content Gating: ${userTier} tier, ${accessibleCount}/${totalVideos} videos accessible`);
+        }
+
+        // Run on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initContentGating);
+        } else {
+            initContentGating();
+        }
+    })();
+    </script>
+
+    <!-- Elfsight Age Verification -->
+    <script src="https://static.elfsight.com/platform/platform.js" async></script>
+    <div class="elfsight-app-ea2f58c6-6128-4e92-b2d9-c0b5c09769c3" data-elfsight-app-lazy></div>
 </body>
 </html>

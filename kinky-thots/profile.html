@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>My Profile - Kinky Thots</title>
+    <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
+    <link rel="stylesheet" href="/assets/dist/css/main.css">
+    <style>
+        .profile-container {
+            max-width: 800px;
+            margin: 100px auto 40px;
+            padding: 0 20px;
+        }
+        .profile-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .profile-header h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .profile-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+            border: 1px solid rgba(11, 208, 243, 0.3);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        .profile-card h2 {
+            font-size: 1.25rem;
+            color: #fff;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .profile-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .profile-row:last-child {
+            border-bottom: none;
+        }
+        .profile-label {
+            color: #888;
+            font-size: 0.9rem;
+        }
+        .profile-value {
+            color: #fff;
+            font-weight: 500;
+        }
+        .tier-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .tier-badge.free {
+            background: #333;
+            color: #888;
+        }
+        .tier-badge.basic {
+            background: linear-gradient(135deg, #4ECDC4, #45B7D1);
+            color: #000;
+        }
+        .tier-badge.premium {
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            color: #fff;
+        }
+        .tier-badge.vip {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+        }
+        .status-active {
+            color: #2ecc71;
+        }
+        .status-expired {
+            color: #e74c3c;
+        }
+        .color-preview {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .profile-form {
+            margin-top: 1rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-label {
+            display: block;
+            color: #b0b0b0;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(11, 208, 243, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #0bd0f3;
+        }
+        .form-input[type="color"] {
+            width: 60px;
+            height: 40px;
+            padding: 4px;
+            cursor: pointer;
+        }
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+        .form-row .form-group {
+            flex: 1;
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #333;
+        }
+        .btn-secondary:hover {
+            background: #444;
+        }
+        .btn-block {
+            display: block;
+            width: 100%;
+            text-align: center;
+        }
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        .alert-success {
+            background: rgba(46, 204, 113, 0.1);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            color: #2ecc71;
+        }
+        .alert-error {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+        }
+        .subscription-cta {
+            text-align: center;
+            padding: 1.5rem;
+            background: rgba(248, 5, 167, 0.05);
+            border-radius: 12px;
+            margin-top: 1rem;
+        }
+        .subscription-cta p {
+            color: #888;
+            margin-bottom: 1rem;
+        }
+        .not-logged-in {
+            text-align: center;
+            padding: 3rem;
+        }
+        .not-logged-in h2 {
+            color: #fff;
+            margin-bottom: 1rem;
+        }
+        .not-logged-in p {
+            color: #888;
+            margin-bottom: 1.5rem;
+        }
+        .logout-section {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .logout-btn {
+            background: transparent;
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+            padding: 0.75rem 2rem;
+        }
+        .logout-btn:hover {
+            background: rgba(231, 76, 60, 0.1);
+        }
+        @media (max-width: 600px) {
+            .profile-container { margin-top: 80px; }
+            .profile-card { padding: 1.5rem; }
+            .profile-row { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+            .form-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<!-- Navigation -->
+<nav id="navbar">
+    <div class="nav-container">
+        <div class="logo">
+            <a href="/index.html">Kinky-Thots<img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></a>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/index.html">Home</a></li>
+            <li class="dropdown">
+                <button class="dropdown-toggle">Media</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/porn.php">Video Gallery</a></li>
+                    <li><a href="/gallery.php">Photo Gallery</a></li>
+                    <li><a href="/live.html">Live Cam</a></li>
+                </ul>
+            </li>
+            <li class="dropdown" id="userDropdown" style="display: none;">
+                <button class="dropdown-toggle" id="userTrigger">Account</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/profile.html">My Profile</a></li>
+                    <li><a href="/subscriptions.html">Subscription</a></li>
+                    <li><a href="#" id="logoutLink">Logout</a></li>
+                </ul>
+            </li>
+            <li id="loginItem"><a href="/live.html" class="login-btn" id="authTrigger">Login</a></li>
+        </ul>
+        <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
+    </div>
+</nav>
+<script type="module" src="/assets/dist/js/main.js"></script>
+<script>
+(function() {
+    const user = JSON.parse(localStorage.getItem('kt_auth_user') || 'null');
+    if (user) {
+        document.getElementById('loginItem').style.display = 'none';
+        document.getElementById('userDropdown').style.display = 'block';
+        document.getElementById('userTrigger').textContent = user.username;
+        document.getElementById('logoutLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('kt_auth_token');
+            localStorage.removeItem('kt_auth_user');
+            window.location.href = '/index.html';
+        });
+    }
+})();
+</script>
+
+<main class="profile-container">
+    <div class="profile-header">
+        <h1>My Profile</h1>
+    </div>
+
+    <!-- Not logged in state -->
+    <div id="notLoggedIn" class="profile-card not-logged-in" style="display: none;">
+        <h2>Please Log In</h2>
+        <p>You need to be logged in to view your profile.</p>
+        <a href="/live.html" class="btn">Go to Login</a>
+    </div>
+
+    <!-- Profile content (shown when logged in) -->
+    <div id="profileContent" style="display: none;">
+        <!-- Alerts -->
+        <div id="alertContainer"></div>
+
+        <!-- Account Info -->
+        <div class="profile-card">
+            <h2>Account Information</h2>
+            <div class="profile-row">
+                <span class="profile-label">Username</span>
+                <span class="profile-value" id="profileUsername">-</span>
+            </div>
+            <div class="profile-row">
+                <span class="profile-label">Email</span>
+                <span class="profile-value" id="profileEmail">-</span>
+            </div>
+            <div class="profile-row">
+                <span class="profile-label">Member Since</span>
+                <span class="profile-value" id="profileCreated">-</span>
+            </div>
+            <div class="profile-row">
+                <span class="profile-label">Last Login</span>
+                <span class="profile-value" id="profileLastLogin">-</span>
+            </div>
+            <div class="profile-row">
+                <span class="profile-label">Chat Color</span>
+                <span class="profile-value color-preview">
+                    <span class="color-swatch" id="colorSwatch"></span>
+                    <span id="profileColor">-</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Subscription -->
+        <div class="profile-card">
+            <h2>Subscription</h2>
+            <div class="profile-row">
+                <span class="profile-label">Current Plan</span>
+                <span class="profile-value"><span class="tier-badge" id="profileTier">FREE</span></span>
+            </div>
+            <div class="profile-row">
+                <span class="profile-label">Status</span>
+                <span class="profile-value" id="profileStatus">-</span>
+            </div>
+            <div class="profile-row" id="expiresRow" style="display: none;">
+                <span class="profile-label">Expires</span>
+                <span class="profile-value" id="profileExpires">-</span>
+            </div>
+            <div class="subscription-cta" id="upgradeCta">
+                <p>Upgrade your plan to unlock more content</p>
+                <a href="/subscriptions.html" class="btn">View Plans</a>
+            </div>
+            <div id="cancelCta" style="display: none; text-align: center; margin-top: 1rem;">
+                <button class="btn btn-secondary" id="cancelSubBtn">Cancel Subscription</button>
+            </div>
+        </div>
+
+        <!-- Change Color -->
+        <div class="profile-card">
+            <h2>Customize Chat Color</h2>
+            <form id="colorForm" class="profile-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="newColor">Select Color</label>
+                        <input type="color" class="form-input" id="newColor" value="#0bd0f3">
+                    </div>
+                    <button type="submit" class="btn" id="colorSubmit">Update Color</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Change Password -->
+        <div class="profile-card">
+            <h2>Change Password</h2>
+            <form id="passwordForm" class="profile-form">
+                <div class="form-group">
+                    <label class="form-label" for="currentPassword">Current Password</label>
+                    <input type="password" class="form-input" id="currentPassword" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="newPassword">New Password</label>
+                    <input type="password" class="form-input" id="newPassword" required minlength="8"
+                           placeholder="Min 8 chars, uppercase, lowercase, number">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="confirmPassword">Confirm New Password</label>
+                    <input type="password" class="form-input" id="confirmPassword" required>
+                </div>
+                <button type="submit" class="btn" id="passwordSubmit">Change Password</button>
+            </form>
+        </div>
+
+        <!-- Logout -->
+        <div class="logout-section">
+            <button class="btn logout-btn" id="logoutBtn">Log Out</button>
+        </div>
+    </div>
+</main>
+
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-left">
+                <p>&copy; 2025 <a href="/index.html">Kinky-Thots</a> All rights reserved.</p>
+            </div>
+            <div class="footer-right">
+                <a href="/terms.html" class="footer-link">Terms & Conditions</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+    const AUTH_TOKEN_KEY = 'kt_auth_token';
+    const AUTH_USER_KEY = 'kt_auth_user';
+
+    let currentUser = null;
+
+    function getToken() {
+        return localStorage.getItem(AUTH_TOKEN_KEY);
+    }
+
+    function getUser() {
+        return JSON.parse(localStorage.getItem(AUTH_USER_KEY) || 'null');
+    }
+
+    function setUser(user) {
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+    }
+
+    function logout() {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        localStorage.removeItem(AUTH_USER_KEY);
+        window.location.href = '/index.html';
+    }
+
+    function showAlert(message, type = 'success') {
+        const container = document.getElementById('alertContainer');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type}`;
+        alert.textContent = message;
+        container.innerHTML = '';
+        container.appendChild(alert);
+        setTimeout(() => alert.remove(), 5000);
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+
+    function formatDateTime(dateStr) {
+        if (!dateStr) return 'Never';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    async function loadProfile() {
+        const token = getToken();
+        const user = getUser();
+
+        // Update nav
+        const authTrigger = document.getElementById('authTrigger');
+        if (authTrigger && user) {
+            authTrigger.textContent = user.username;
+        }
+
+        if (!token || !user) {
+            document.getElementById('notLoggedIn').style.display = 'block';
+            document.getElementById('profileContent').style.display = 'none';
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/auth/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    logout();
+                    return;
+                }
+                throw new Error('Failed to load profile');
+            }
+
+            const data = await response.json();
+            currentUser = data.user;
+
+            // Update local storage with fresh data
+            setUser(currentUser);
+
+            // Display profile data
+            document.getElementById('profileUsername').textContent = currentUser.username;
+            document.getElementById('profileEmail').textContent = currentUser.email;
+            document.getElementById('profileCreated').textContent = formatDate(currentUser.created_at);
+            document.getElementById('profileLastLogin').textContent = formatDateTime(currentUser.last_login_at);
+            document.getElementById('profileColor').textContent = currentUser.display_color || '#0bd0f3';
+            document.getElementById('colorSwatch').style.backgroundColor = currentUser.display_color || '#0bd0f3';
+            document.getElementById('newColor').value = currentUser.display_color || '#0bd0f3';
+
+            // Subscription info
+            const tier = currentUser.subscription_tier || 'free';
+            const tierBadge = document.getElementById('profileTier');
+            tierBadge.textContent = tier.toUpperCase();
+            tierBadge.className = `tier-badge ${tier}`;
+
+            const status = currentUser.subscription_status || 'active';
+            const statusEl = document.getElementById('profileStatus');
+            statusEl.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            statusEl.className = `profile-value status-${status === 'active' ? 'active' : 'expired'}`;
+
+            // Show expiration for paid tiers
+            if (tier !== 'free' && currentUser.subscription_expires_at) {
+                document.getElementById('expiresRow').style.display = 'flex';
+                document.getElementById('profileExpires').textContent = formatDate(currentUser.subscription_expires_at);
+            }
+
+            // Hide upgrade CTA for premium/vip
+            if (tier === 'premium' || tier === 'vip') {
+                document.getElementById('upgradeCta').style.display = 'none';
+            }
+
+            // Show cancel button for paid subscriptions with active status
+            if (tier !== 'free' && tier !== 'vip' && status === 'active') {
+                document.getElementById('cancelCta').style.display = 'block';
+            }
+
+            document.getElementById('notLoggedIn').style.display = 'none';
+            document.getElementById('profileContent').style.display = 'block';
+
+        } catch (err) {
+            console.error('Profile load error:', err);
+            showAlert('Failed to load profile data', 'error');
+        }
+    }
+
+    // Color form handler
+    document.getElementById('colorForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('colorSubmit');
+        const color = document.getElementById('newColor').value;
+
+        btn.disabled = true;
+        btn.textContent = 'Updating...';
+
+        try {
+            const response = await fetch('/api/auth/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getToken()}`
+                },
+                body: JSON.stringify({ display_color: color })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                currentUser.display_color = color;
+                setUser(currentUser);
+                document.getElementById('profileColor').textContent = color;
+                document.getElementById('colorSwatch').style.backgroundColor = color;
+                showAlert('Chat color updated successfully!');
+            } else {
+                showAlert(data.error || 'Failed to update color', 'error');
+            }
+        } catch (err) {
+            showAlert('Network error. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Update Color';
+        }
+    });
+
+    // Password form handler
+    document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('passwordSubmit');
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        if (newPassword !== confirmPassword) {
+            showAlert('New passwords do not match', 'error');
+            return;
+        }
+
+        // Basic password validation
+        if (newPassword.length < 8) {
+            showAlert('Password must be at least 8 characters', 'error');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Changing...';
+
+        try {
+            const response = await fetch('/api/auth/change-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getToken()}`
+                },
+                body: JSON.stringify({
+                    currentPassword,
+                    newPassword
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showAlert('Password changed successfully!');
+                document.getElementById('passwordForm').reset();
+            } else {
+                showAlert(data.error || 'Failed to change password', 'error');
+            }
+        } catch (err) {
+            showAlert('Network error. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Change Password';
+        }
+    });
+
+    // Cancel subscription handler
+    document.getElementById('cancelSubBtn')?.addEventListener('click', async () => {
+        if (!confirm('Are you sure you want to cancel your subscription?\n\nYou will keep access until your current billing period ends.')) {
+            return;
+        }
+
+        const btn = document.getElementById('cancelSubBtn');
+        btn.disabled = true;
+        btn.textContent = 'Cancelling...';
+
+        try {
+            const response = await fetch('/api/subscriptions/cancel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getToken()}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showAlert('Subscription cancelled. You will keep access until the end of your billing period.');
+                document.getElementById('profileStatus').textContent = 'Cancelled';
+                document.getElementById('profileStatus').className = 'profile-value status-expired';
+                document.getElementById('cancelCta').style.display = 'none';
+            } else {
+                showAlert(data.error || 'Failed to cancel subscription', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Cancel Subscription';
+            }
+        } catch (err) {
+            showAlert('Network error. Please try again.', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Cancel Subscription';
+        }
+    });
+
+    // Logout handler
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        if (confirm('Are you sure you want to log out?')) {
+            logout();
+        }
+    });
+
+    // Initialize
+    loadProfile();
+</script>
+</body>
+</html>

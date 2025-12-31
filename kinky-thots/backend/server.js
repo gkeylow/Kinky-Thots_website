@@ -14,6 +14,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const rateLimit = require('express-rate-limit');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 // JWT Configuration - requires environment variable
 if (!process.env.JWT_SECRET) {
@@ -23,6 +25,64 @@ if (!process.env.JWT_SECRET) {
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const BCRYPT_ROUNDS = 12;
+
+// Email configuration for password reset
+const emailTransporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.SMTP_PORT) || 587,
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  }
+});
+
+const SITE_URL = process.env.SITE_URL || 'https://kinky-thots.com';
+const SITE_NAME = 'Kinky-Thots';
+
+// Subscription Tiers Configuration
+const SUBSCRIPTION_TIERS = {
+  free: {
+    name: 'Free',
+    price: 0,
+    priceId: null, // No payment needed
+    contentAccess: 0.2, // 20% of content
+    features: ['Limited gallery access', 'Chat access', 'Stream viewing']
+  },
+  basic: {
+    name: 'Basic',
+    price: 5,
+    priceId: process.env.PAYPAL_BASIC_PLAN_ID,
+    contentAccess: 0.6, // 60% of content
+    features: ['Extended gallery access', 'Chat with badge', 'HD streams', 'Priority support']
+  },
+  premium: {
+    name: 'Premium',
+    price: 10,
+    priceId: process.env.PAYPAL_PREMIUM_PLAN_ID,
+    contentAccess: 1.0, // 100% of content
+    features: ['Full gallery access', 'VIP chat badge', '4K streams', 'Exclusive content', 'Direct messaging']
+  },
+  vip: {
+    name: 'VIP',
+    price: 10, // Same as premium, but manually granted
+    priceId: null,
+    contentAccess: 1.0,
+    features: ['All Premium features', 'Moderator access', 'Early access to content']
+  }
+};
+
+// Get tier access level (0-1)
+function getTierAccessLevel(tier) {
+  return SUBSCRIPTION_TIERS[tier]?.contentAccess || 0.2;
+}
+
+// Check if user can access content
+function canAccessContent(userTier, contentIndex, totalContent) {
+  const accessLevel = getTierAccessLevel(userTier);
+  const accessibleCount = Math.ceil(totalContent * accessLevel);
+  return contentIndex < accessibleCount;
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -449,6 +509,646 @@ app.put('/api/auth/profile', authenticateToken, async (req, res) => {
   }
 });
 
+// Request password reset
+app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
+  let conn;
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    conn = await pool.getConnection();
+
+    // Find user by email
+    const users = await conn.query(
+      'SELECT id, username, email FROM users WHERE email = ?',
+      [email.toLowerCase()]
+    );
+
+    // Always return success to prevent email enumeration
+    if (users.length === 0) {
+      return res.json({ success: true, message: 'If an account exists, a reset link has been sent' });
+    }
+
+    const user = users[0];
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const resetExpires = new Date(Date.now() + 3600000); // 1 hour
+
+    // Save token to database
+    await conn.query(
+      'UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?',
+      [resetTokenHash, resetExpires, user.id]
+    );
+
+    // Send reset email
+    const resetUrl = `${SITE_URL}/reset-password.html?token=${resetToken}`;
+
+    try {
+      await emailTransporter.sendMail({
+        from: `"${SITE_NAME}" <${process.env.SMTP_USER || 'noreply@kinky-thots.com'}>`,
+        to: user.email,
+        subject: `Password Reset - ${SITE_NAME}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #f805a7;">Password Reset Request</h2>
+            <p>Hi ${user.username},</p>
+            <p>You requested a password reset. Click the button below to reset your password:</p>
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="${resetUrl}" style="background: linear-gradient(135deg, #f805a7, #0bd0f3); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; display: inline-block;">Reset Password</a>
+            </p>
+            <p>This link expires in 1 hour.</p>
+            <p>If you didn't request this, please ignore this email.</p>
+            <hr style="border: none; border-top: 1px solid #333; margin: 20px 0;">
+            <p style="color: #666; font-size: 12px;">${SITE_NAME} - ${SITE_URL}</p>
+          </div>
+        `
+      });
+      console.log(`Password reset email sent to ${user.email}`);
+    } catch (emailErr) {
+      console.error('Failed to send reset email:', emailErr.message);
+      // Don't fail the request - token is still valid
+    }
+
+    res.json({ success: true, message: 'If an account exists, a reset link has been sent' });
+
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'Failed to process request' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Reset password with token
+app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
+  let conn;
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Token and password are required' });
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+      return res.status(400).json({ error: 'Password must contain uppercase, lowercase, and a number' });
+    }
+
+    // Hash the token to compare with database
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    conn = await pool.getConnection();
+
+    // Find user with valid token
+    const users = await conn.query(
+      `SELECT id, username FROM users
+       WHERE password_reset_token = ? AND password_reset_expires > NOW()`,
+      [tokenHash]
+    );
+
+    if (users.length === 0) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    const user = users[0];
+
+    // Hash new password
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
+    // Update password and clear reset token
+    await conn.query(
+      `UPDATE users SET password_hash = ?, password_reset_token = NULL, password_reset_expires = NULL WHERE id = ?`,
+      [passwordHash, user.id]
+    );
+
+    console.log(`Password reset successful for user: ${user.username}`);
+
+    res.json({ success: true, message: 'Password has been reset successfully' });
+
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Failed to reset password' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Change password (for logged in users)
+app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
+  let conn;
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.userId;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current and new password are required' });
+    }
+
+    // Validate new password strength
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters' });
+    }
+    if (!/[a-z]/.test(newPassword) || !/[A-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
+      return res.status(400).json({ error: 'Password must contain uppercase, lowercase, and a number' });
+    }
+
+    conn = await pool.getConnection();
+
+    // Get current password hash
+    const users = await conn.query(
+      'SELECT password_hash FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify current password
+    const validPassword = await bcrypt.compare(currentPassword, users[0].password_hash);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    // Hash and save new password
+    const newPasswordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await conn.query('UPDATE users SET password_hash = ? WHERE id = ?', [newPasswordHash, userId]);
+
+    res.json({ success: true, message: 'Password changed successfully' });
+
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({ error: 'Failed to change password' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// ============================================
+// SUBSCRIPTION ENDPOINTS
+// ============================================
+
+// Get all subscription tiers
+app.get('/api/subscriptions/tiers', (req, res) => {
+  const tiers = Object.entries(SUBSCRIPTION_TIERS).map(([id, tier]) => ({
+    id,
+    name: tier.name,
+    price: tier.price,
+    features: tier.features,
+    contentAccess: Math.round(tier.contentAccess * 100)
+  }));
+  res.json({ tiers });
+});
+
+// Get content with access control
+app.get('/api/content', async (req, res) => {
+  // Get user tier from JWT if authenticated
+  let userTier = 'free';
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const conn = await pool.getConnection();
+      const users = await conn.query(
+        'SELECT subscription_tier FROM users WHERE id = ?',
+        [decoded.userId]
+      );
+      conn.release();
+      if (users.length > 0) {
+        userTier = users[0].subscription_tier || 'free';
+      }
+    } catch (err) {
+      // Invalid token, use free tier
+    }
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const rows = await conn.query(
+      'SELECT id, filename, file_type, file_path, upload_time FROM images ORDER BY upload_time DESC'
+    );
+
+    const totalContent = rows.length;
+    const accessLevel = getTierAccessLevel(userTier);
+    const accessibleCount = Math.ceil(totalContent * accessLevel);
+
+    const items = rows.map((row, index) => {
+      const isAccessible = index < accessibleCount;
+      const fileType = row.file_type || 'image';
+
+      return {
+        id: Number(row.id),
+        filename: isAccessible ? String(row.filename) : null,
+        file_type: fileType,
+        accessible: isAccessible,
+        locked: !isAccessible,
+        requiredTier: !isAccessible ? (index < Math.ceil(totalContent * 0.6) ? 'basic' : 'premium') : null,
+        thumbnail: isAccessible ? `/uploads/${encodeURIComponent(row.filename)}` : '/assets/locked-content.jpg',
+        upload_time: row.upload_time ? row.upload_time.toISOString() : null
+      };
+    });
+
+    res.json({
+      items,
+      userTier,
+      totalContent,
+      accessibleCount,
+      accessPercent: Math.round(accessLevel * 100)
+    });
+
+  } catch (err) {
+    console.error('Content error:', err);
+    res.status(500).json({ error: 'Failed to load content' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// ============================================
+// PAYPAL SUBSCRIPTION ENDPOINTS
+// ============================================
+
+// PayPal API configuration
+const PAYPAL_CONFIG = {
+  clientId: process.env.PAYPAL_CLIENT_ID,
+  clientSecret: process.env.PAYPAL_CLIENT_SECRET,
+  mode: process.env.PAYPAL_MODE || 'sandbox', // 'sandbox' or 'live'
+  get baseUrl() {
+    return this.mode === 'live'
+      ? 'https://api-m.paypal.com'
+      : 'https://api-m.sandbox.paypal.com';
+  }
+};
+
+// Get PayPal access token
+async function getPayPalAccessToken() {
+  const auth = Buffer.from(`${PAYPAL_CONFIG.clientId}:${PAYPAL_CONFIG.clientSecret}`).toString('base64');
+
+  const response = await fetch(`${PAYPAL_CONFIG.baseUrl}/v1/oauth2/token`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: 'grant_type=client_credentials'
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error_description || 'Failed to get PayPal access token');
+  }
+
+  return data.access_token;
+}
+
+// Create PayPal subscription
+app.post('/api/subscriptions/create', authenticateToken, async (req, res) => {
+  const { tier } = req.body;
+
+  if (!PAYPAL_CONFIG.clientId || !PAYPAL_CONFIG.clientSecret) {
+    return res.status(503).json({ error: 'PayPal is not configured' });
+  }
+
+  const tierConfig = SUBSCRIPTION_TIERS[tier];
+  if (!tierConfig || !tierConfig.priceId) {
+    return res.status(400).json({ error: 'Invalid subscription tier' });
+  }
+
+  try {
+    const accessToken = await getPayPalAccessToken();
+
+    // Create subscription
+    const response = await fetch(`${PAYPAL_CONFIG.baseUrl}/v1/billing/subscriptions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'PayPal-Request-Id': `sub-${req.user.userId}-${Date.now()}`
+      },
+      body: JSON.stringify({
+        plan_id: tierConfig.priceId,
+        subscriber: {
+          email_address: req.user.email
+        },
+        application_context: {
+          brand_name: 'Kinky-Thots',
+          locale: 'en-US',
+          shipping_preference: 'NO_SHIPPING',
+          user_action: 'SUBSCRIBE_NOW',
+          return_url: `${SITE_URL}/checkout.html?success=true&tier=${tier}`,
+          cancel_url: `${SITE_URL}/checkout.html?cancelled=true&tier=${tier}`
+        }
+      })
+    });
+
+    const subscription = await response.json();
+
+    if (!response.ok) {
+      console.error('PayPal subscription error:', subscription);
+      return res.status(500).json({ error: 'Failed to create subscription' });
+    }
+
+    // Find approval URL
+    const approvalUrl = subscription.links?.find(link => link.rel === 'approve')?.href;
+
+    res.json({
+      subscriptionId: subscription.id,
+      approvalUrl,
+      status: subscription.status
+    });
+
+  } catch (err) {
+    console.error('PayPal error:', err);
+    res.status(500).json({ error: 'PayPal service error' });
+  }
+});
+
+// Activate subscription after PayPal approval
+app.post('/api/subscriptions/activate', authenticateToken, async (req, res) => {
+  const { subscriptionId, tier } = req.body;
+
+  if (!subscriptionId || !tier) {
+    return res.status(400).json({ error: 'Missing subscriptionId or tier' });
+  }
+
+  let conn;
+  try {
+    const accessToken = await getPayPalAccessToken();
+
+    // Get subscription details from PayPal
+    const response = await fetch(`${PAYPAL_CONFIG.baseUrl}/v1/billing/subscriptions/${subscriptionId}`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const subscription = await response.json();
+
+    if (!response.ok || subscription.status !== 'ACTIVE') {
+      return res.status(400).json({ error: 'Subscription not active', status: subscription.status });
+    }
+
+    // Calculate expiration (1 month from now for monthly subscriptions)
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+    // Update user subscription in database
+    conn = await pool.getConnection();
+    await conn.query(
+      `UPDATE users SET
+        subscription_tier = ?,
+        subscription_status = 'active',
+        subscription_expires_at = ?,
+        payment_customer_id = ?,
+        payment_provider = 'paypal'
+      WHERE id = ?`,
+      [tier, expiresAt, subscriptionId, req.user.userId]
+    );
+
+    // Get updated user
+    const users = await conn.query(
+      `SELECT id, username, email, display_color, subscription_tier, subscription_status, subscription_expires_at
+       FROM users WHERE id = ?`,
+      [req.user.userId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Subscription activated',
+      user: users[0]
+    });
+
+  } catch (err) {
+    console.error('Activation error:', err);
+    res.status(500).json({ error: 'Failed to activate subscription' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Cancel subscription
+app.post('/api/subscriptions/cancel', authenticateToken, async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    // Get user's subscription ID
+    const users = await conn.query(
+      'SELECT payment_customer_id, payment_provider FROM users WHERE id = ?',
+      [req.user.userId]
+    );
+
+    if (users.length === 0 || !users[0].payment_customer_id) {
+      return res.status(400).json({ error: 'No active subscription found' });
+    }
+
+    const subscriptionId = users[0].payment_customer_id;
+
+    // Cancel on PayPal
+    if (users[0].payment_provider === 'paypal') {
+      const accessToken = await getPayPalAccessToken();
+
+      const response = await fetch(`${PAYPAL_CONFIG.baseUrl}/v1/billing/subscriptions/${subscriptionId}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          reason: 'Customer requested cancellation'
+        })
+      });
+
+      if (!response.ok && response.status !== 204) {
+        const error = await response.json();
+        console.error('PayPal cancel error:', error);
+        return res.status(500).json({ error: 'Failed to cancel on PayPal' });
+      }
+    }
+
+    // Update database - keep tier until expiration
+    await conn.query(
+      `UPDATE users SET subscription_status = 'cancelled' WHERE id = ?`,
+      [req.user.userId]
+    );
+
+    res.json({ success: true, message: 'Subscription cancelled. Access continues until expiration.' });
+
+  } catch (err) {
+    console.error('Cancel error:', err);
+    res.status(500).json({ error: 'Failed to cancel subscription' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// PayPal webhook handler
+app.post('/api/paypal/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  // Note: In production, verify webhook signature using PayPal-Transmission-Sig header
+  const event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+
+  console.log('PayPal webhook event:', event.event_type);
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    switch (event.event_type) {
+      case 'BILLING.SUBSCRIPTION.ACTIVATED':
+      case 'BILLING.SUBSCRIPTION.RENEWED':
+        // Subscription was activated or renewed
+        const subId = event.resource.id;
+        const expiresAt = new Date();
+        expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+        await conn.query(
+          `UPDATE users SET
+            subscription_status = 'active',
+            subscription_expires_at = ?
+          WHERE payment_customer_id = ?`,
+          [expiresAt, subId]
+        );
+        break;
+
+      case 'BILLING.SUBSCRIPTION.CANCELLED':
+      case 'BILLING.SUBSCRIPTION.EXPIRED':
+        // Subscription was cancelled or expired
+        await conn.query(
+          `UPDATE users SET subscription_status = 'expired' WHERE payment_customer_id = ?`,
+          [event.resource.id]
+        );
+        break;
+
+      case 'BILLING.SUBSCRIPTION.SUSPENDED':
+        // Payment failed
+        await conn.query(
+          `UPDATE users SET subscription_status = 'pending' WHERE payment_customer_id = ?`,
+          [event.resource.id]
+        );
+        break;
+
+      case 'PAYMENT.SALE.COMPLETED':
+        // Successful payment
+        console.log('Payment completed:', event.resource.id);
+        break;
+
+      default:
+        console.log('Unhandled webhook event:', event.event_type);
+    }
+
+    res.status(200).json({ received: true });
+
+  } catch (err) {
+    console.error('Webhook error:', err);
+    res.status(500).json({ error: 'Webhook processing failed' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Get user's subscription status
+app.get('/api/subscriptions/status', authenticateToken, async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const users = await conn.query(
+      `SELECT subscription_tier, subscription_status, subscription_expires_at, payment_provider
+       FROM users WHERE id = ?`,
+      [req.user.userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = users[0];
+    const tierConfig = SUBSCRIPTION_TIERS[user.subscription_tier] || SUBSCRIPTION_TIERS.free;
+
+    res.json({
+      tier: user.subscription_tier || 'free',
+      tierName: tierConfig.name,
+      status: user.subscription_status || 'active',
+      expiresAt: user.subscription_expires_at,
+      provider: user.payment_provider,
+      contentAccess: Math.round(tierConfig.contentAccess * 100)
+    });
+
+  } catch (err) {
+    console.error('Status error:', err);
+    res.status(500).json({ error: 'Failed to get subscription status' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Check if user can access specific content
+app.get('/api/content/:id/access', async (req, res) => {
+  const contentId = parseInt(req.params.id);
+  let userTier = 'free';
+
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const conn = await pool.getConnection();
+      const users = await conn.query(
+        'SELECT subscription_tier FROM users WHERE id = ?',
+        [decoded.userId]
+      );
+      conn.release();
+      if (users.length > 0) {
+        userTier = users[0].subscription_tier || 'free';
+      }
+    } catch (err) {
+      // Invalid token
+    }
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    // Get total content count
+    const countResult = await conn.query('SELECT COUNT(*) as total FROM images');
+    const totalContent = Number(countResult[0].total);
+
+    // Get content position
+    const posResult = await conn.query(
+      `SELECT COUNT(*) as position FROM images WHERE id <= ? ORDER BY upload_time DESC`,
+      [contentId]
+    );
+    const contentIndex = Number(posResult[0].position) - 1;
+
+    const accessible = canAccessContent(userTier, contentIndex, totalContent);
+
+    res.json({
+      accessible,
+      userTier,
+      requiredTier: !accessible ? (contentIndex < Math.ceil(totalContent * 0.6) ? 'basic' : 'premium') : null
+    });
+
+  } catch (err) {
+    console.error('Access check error:', err);
+    res.status(500).json({ error: 'Failed to check access' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
 // Get all gallery items (images and videos)
 app.get('/api/gallery', async (req, res) => {
   // Set CORS headers explicitly
@@ -638,6 +1338,24 @@ const wss = new WebSocket.Server({ server, path: '/ws/chat' });
 const chatClients = new Set();
 let viewerCount = 0;
 
+// Moderation state
+const bannedUsers = new Map(); // username -> { reason, bannedBy, timestamp }
+const mutedUsers = new Map();  // username -> { until, mutedBy }
+let slowModeSeconds = 0;       // 0 = disabled
+const lastMessageTime = new Map(); // username -> timestamp
+
+// Check if user is moderator (VIP tier)
+function isModerator(ws) {
+  return ws.isAuthenticated && ws.subscriptionTier === 'vip';
+}
+
+// Parse moderation command
+function parseModCommand(message) {
+  const match = message.match(/^\/(\w+)\s*(.*)?$/);
+  if (!match) return null;
+  return { command: match[1].toLowerCase(), args: (match[2] || '').trim() };
+}
+
 // Generate random color for usernames
 function getRandomColor() {
   const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'];
@@ -654,22 +1372,57 @@ function broadcast(data, exclude = null) {
   });
 }
 
-wss.on('connection', (ws) => {
+wss.on('connection', async (ws, req) => {
   chatClients.add(ws);
   viewerCount++;
 
-  // Assign guest name and color
-  ws.username = `Guest${Math.floor(Math.random() * 9999)}`;
-  ws.userColor = getRandomColor();
+  // Extract token from query string for JWT auth
+  const url = new URL(req.url, 'ws://localhost');
+  const token = url.searchParams.get('token');
 
-  console.log(`Chat: ${ws.username} connected (${viewerCount} viewers)`);
+  // Try to authenticate with JWT
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const conn = await pool.getConnection();
+      const users = await conn.query(
+        'SELECT id, username, display_color, subscription_tier FROM users WHERE id = ?',
+        [decoded.userId]
+      );
+      conn.release();
 
-  // Send welcome message and viewer count
+      if (users.length > 0) {
+        const user = users[0];
+        ws.userId = Number(user.id);
+        ws.username = user.username;
+        ws.userColor = user.display_color;
+        ws.subscriptionTier = user.subscription_tier || 'free';
+        ws.isAuthenticated = true;
+      }
+    } catch (err) {
+      // Token invalid - fall through to guest mode
+      console.log('WebSocket auth failed:', err.message);
+    }
+  }
+
+  // Default to guest if not authenticated
+  if (!ws.isAuthenticated) {
+    ws.username = `Guest${Math.floor(Math.random() * 9999)}`;
+    ws.userColor = getRandomColor();
+    ws.isAuthenticated = false;
+    ws.subscriptionTier = null;
+  }
+
+  console.log(`Chat: ${ws.username} connected (${viewerCount} viewers) [${ws.isAuthenticated ? 'authenticated' : 'guest'}]`);
+
+  // Send welcome message with auth status
   ws.send(JSON.stringify({
     type: 'welcome',
     username: ws.username,
     color: ws.userColor,
-    viewerCount: viewerCount
+    viewerCount: viewerCount,
+    isAuthenticated: ws.isAuthenticated,
+    subscriptionTier: ws.subscriptionTier
   }));
 
   // Broadcast updated viewer count
@@ -681,17 +1434,127 @@ wss.on('connection', (ws) => {
 
       switch (msg.type) {
         case 'chat':
-          // Broadcast chat message to all
+          const chatMessage = msg.message.substring(0, 500);
+
+          // Check if banned
+          if (bannedUsers.has(ws.username.toLowerCase())) {
+            ws.send(JSON.stringify({ type: 'error', message: 'You are banned from chat' }));
+            return;
+          }
+
+          // Check if muted
+          const muteInfo = mutedUsers.get(ws.username.toLowerCase());
+          if (muteInfo && muteInfo.until > Date.now()) {
+            const remaining = Math.ceil((muteInfo.until - Date.now()) / 1000);
+            ws.send(JSON.stringify({ type: 'error', message: `You are muted for ${remaining} more seconds` }));
+            return;
+          } else if (muteInfo) {
+            mutedUsers.delete(ws.username.toLowerCase());
+          }
+
+          // Check slow mode
+          if (slowModeSeconds > 0 && !isModerator(ws)) {
+            const lastMsg = lastMessageTime.get(ws.username.toLowerCase()) || 0;
+            const elapsed = (Date.now() - lastMsg) / 1000;
+            if (elapsed < slowModeSeconds) {
+              const wait = Math.ceil(slowModeSeconds - elapsed);
+              ws.send(JSON.stringify({ type: 'error', message: `Slow mode: wait ${wait} seconds` }));
+              return;
+            }
+          }
+          lastMessageTime.set(ws.username.toLowerCase(), Date.now());
+
+          // Check for moderation commands
+          const modCmd = parseModCommand(chatMessage);
+          if (modCmd && isModerator(ws)) {
+            switch (modCmd.command) {
+              case 'ban':
+                if (modCmd.args) {
+                  const targetUser = modCmd.args.split(' ')[0].toLowerCase();
+                  const reason = modCmd.args.substring(targetUser.length).trim() || 'No reason given';
+                  bannedUsers.set(targetUser, { reason, bannedBy: ws.username, timestamp: Date.now() });
+                  // Disconnect banned user
+                  chatClients.forEach(client => {
+                    if (client.username.toLowerCase() === targetUser) {
+                      client.send(JSON.stringify({ type: 'banned', reason }));
+                      client.close();
+                    }
+                  });
+                  broadcast({ type: 'modAction', action: 'ban', target: targetUser, moderator: ws.username });
+                  console.log(`Mod: ${ws.username} banned ${targetUser} - ${reason}`);
+                }
+                break;
+
+              case 'unban':
+                if (modCmd.args) {
+                  const targetUser = modCmd.args.toLowerCase();
+                  if (bannedUsers.delete(targetUser)) {
+                    broadcast({ type: 'modAction', action: 'unban', target: targetUser, moderator: ws.username });
+                    console.log(`Mod: ${ws.username} unbanned ${targetUser}`);
+                  }
+                }
+                break;
+
+              case 'mute':
+                if (modCmd.args) {
+                  const parts = modCmd.args.split(' ');
+                  const targetUser = parts[0].toLowerCase();
+                  const duration = parseInt(parts[1]) || 300; // Default 5 minutes
+                  mutedUsers.set(targetUser, { until: Date.now() + (duration * 1000), mutedBy: ws.username });
+                  broadcast({ type: 'modAction', action: 'mute', target: targetUser, duration, moderator: ws.username });
+                  console.log(`Mod: ${ws.username} muted ${targetUser} for ${duration}s`);
+                }
+                break;
+
+              case 'unmute':
+                if (modCmd.args) {
+                  const targetUser = modCmd.args.toLowerCase();
+                  if (mutedUsers.delete(targetUser)) {
+                    broadcast({ type: 'modAction', action: 'unmute', target: targetUser, moderator: ws.username });
+                    console.log(`Mod: ${ws.username} unmuted ${targetUser}`);
+                  }
+                }
+                break;
+
+              case 'slow':
+                const seconds = parseInt(modCmd.args) || 0;
+                slowModeSeconds = Math.min(seconds, 300); // Max 5 minutes
+                broadcast({ type: 'modAction', action: 'slow', seconds: slowModeSeconds, moderator: ws.username });
+                console.log(`Mod: ${ws.username} set slow mode to ${slowModeSeconds}s`);
+                break;
+
+              case 'clear':
+                broadcast({ type: 'modAction', action: 'clear', moderator: ws.username });
+                console.log(`Mod: ${ws.username} cleared chat`);
+                break;
+
+              default:
+                ws.send(JSON.stringify({ type: 'error', message: `Unknown command: /${modCmd.command}` }));
+            }
+            return; // Don't broadcast mod commands as chat
+          }
+
+          // Check if non-mod trying to use command
+          if (modCmd) {
+            ws.send(JSON.stringify({ type: 'error', message: 'Only moderators can use commands' }));
+            return;
+          }
+
+          // Broadcast chat message to all with auth info
           broadcast({
             type: 'chat',
             username: ws.username,
             color: ws.userColor,
-            message: msg.message.substring(0, 500), // Limit message length
-            timestamp: Date.now()
+            message: chatMessage,
+            timestamp: Date.now(),
+            isAuthenticated: ws.isAuthenticated,
+            subscriptionTier: ws.subscriptionTier
           });
           break;
 
         case 'reaction':
+          // Check if banned
+          if (bannedUsers.has(ws.username.toLowerCase())) return;
           // Broadcast emoji reaction
           broadcast({
             type: 'reaction',
@@ -701,11 +1564,15 @@ wss.on('connection', (ws) => {
           break;
 
         case 'setName':
-          // Allow username change
-          const newName = msg.name.substring(0, 20).replace(/[^a-zA-Z0-9_-]/g, '');
-          if (newName.length >= 2) {
-            ws.username = newName;
-            ws.send(JSON.stringify({ type: 'nameChanged', username: newName }));
+          // Only allow name change for guests
+          if (!ws.isAuthenticated) {
+            const newName = msg.name.substring(0, 20).replace(/[^a-zA-Z0-9_-]/g, '');
+            if (newName.length >= 2) {
+              ws.username = newName;
+              ws.send(JSON.stringify({ type: 'nameChanged', username: newName }));
+            }
+          } else {
+            ws.send(JSON.stringify({ type: 'error', message: 'Authenticated users cannot change name' }));
           }
           break;
       }

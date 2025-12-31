@@ -57,7 +57,7 @@
                 </ul>
             </li>
 
-            <li><a href="#" class="login-btn disabled" title="Coming Soon">Login</a></li>
+            <li><a href="#" class="login-btn" id="authTrigger">Login</a></li>
         </ul>
 
         <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
@@ -186,5 +186,70 @@
 <!-- Built JS (Vite) -->
 <script type="module" src="/assets/dist/js/live.js"></script>
 
+<!-- Auth Modal -->
+<div class="auth-modal-overlay" id="authModal">
+  <div class="auth-modal">
+    <div class="auth-modal-header">
+      <h2 class="auth-modal-title" id="authModalTitle">Welcome Back</h2>
+      <button class="auth-modal-close" id="authModalClose">&times;</button>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Login</button>
+      <button class="auth-tab" data-tab="register">Register</button>
+    </div>
+
+    <form class="auth-form active" id="loginForm">
+      <div class="auth-field">
+        <label class="auth-label" for="loginEmail">Email or Username</label>
+        <input type="text" class="auth-input" id="loginEmail" placeholder="Enter email or username" required>
+      </div>
+      <div class="auth-field">
+        <label class="auth-label" for="loginPassword">Password</label>
+        <input type="password" class="auth-input" id="loginPassword" placeholder="Enter password" required>
+        <div class="auth-error" id="loginError"></div>
+      </div>
+      <button type="submit" class="auth-submit">Login</button>
+      <a href="#" class="auth-forgot-link" id="forgotPasswordLink">Forgot Password?</a>
+    </form>
+
+    <form class="auth-form" id="forgotForm">
+      <p style="color: #b0b0b0; margin-bottom: 1rem;">Enter your email and we'll send you a reset link.</p>
+      <div class="auth-field">
+        <label class="auth-label" for="forgotEmail">Email</label>
+        <input type="email" class="auth-input" id="forgotEmail" placeholder="Enter your email" required>
+        <div class="auth-error" id="forgotError"></div>
+        <div class="auth-success" id="forgotSuccess"></div>
+      </div>
+      <button type="submit" class="auth-submit">Send Reset Link</button>
+      <a href="#" class="auth-forgot-link" id="backToLoginLink">Back to Login</a>
+    </form>
+
+    <form class="auth-form" id="registerForm">
+      <div class="auth-field">
+        <label class="auth-label" for="registerUsername">Username</label>
+        <input type="text" class="auth-input" id="registerUsername" placeholder="3-30 characters" required minlength="3" maxlength="30">
+      </div>
+      <div class="auth-field">
+        <label class="auth-label" for="registerEmail">Email</label>
+        <input type="email" class="auth-input" id="registerEmail" placeholder="Enter your email" required>
+      </div>
+      <div class="auth-field">
+        <label class="auth-label" for="registerPassword">Password</label>
+        <input type="password" class="auth-input" id="registerPassword" placeholder="Min 8 chars, upper, lower, number" required minlength="8">
+      </div>
+      <div class="auth-field">
+        <label class="auth-label" for="registerConfirm">Confirm Password</label>
+        <input type="password" class="auth-input" id="registerConfirm" placeholder="Confirm password" required>
+        <div class="auth-error" id="registerError"></div>
+      </div>
+      <button type="submit" class="auth-submit">Create Account</button>
+    </form>
+  </div>
+</div>
+
+<!-- Elfsight Age Verification -->
+<script src="https://static.elfsight.com/platform/platform.js" async></script>
+<div class="elfsight-app-ea2f58c6-6128-4e92-b2d9-c0b5c09769c3" data-elfsight-app-lazy></div>
 </body>
 </html>

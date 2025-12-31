@@ -207,14 +207,14 @@ File: `config/sonic-s3-cdn.json`
 {
   "s3": {
     "endpoint": "https://s3.eu-central.r-cdn.com",
-    "access_key": "L81UC90ZDB5TMEAY7PUUU",
-    "secret_key": "QU9DNUI5VzVGN05FQ01IpEzDVjZEUkZURcNGSjFR",
-    "bucket": "6317",
+    "access_key": "<YOUR_S3_ACCESS_KEY>",
+    "secret_key": "<YOUR_S3_SECRET_KEY>",
+    "bucket": "<BUCKET_ID>",
     "region": "eu-central"
   },
   "cdn": {
-    "hostname": "6317.s3.de01.sonic.r-cdn.com",
-    "base_url": "https://6317.s3.de01.sonic.r-cdn.com"
+    "hostname": "<BUCKET_ID>.s3.de01.sonic.r-cdn.com",
+    "base_url": "https://<BUCKET_ID>.s3.de01.sonic.r-cdn.com"
   },
   "settings": {
     "path_style": true,
