@@ -10,6 +10,19 @@ const execAsync = promisify(exec);
 const { generateResponsiveImages, getResponsiveImageUrls } = require('./image-optimizer');
 const http = require('http');
 const WebSocket = require('ws');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const validator = require('validator');
+const rateLimit = require('express-rate-limit');
+
+// JWT Configuration - requires environment variable
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is required');
+  process.exit(1);
+}
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const BCRYPT_ROUNDS = 12;
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -135,12 +148,18 @@ async function prefetchToCDN(filename, fileType) {
   }
 }
 
-// MariaDB connection pool
+// MariaDB connection pool - requires environment variables
+const requiredDbVars = ['MARIADB_USER', 'MARIADB_PASSWORD', 'MARIADB_DATABASE'];
+const missingDbVars = requiredDbVars.filter(v => !process.env[v]);
+if (missingDbVars.length > 0) {
+  console.error(`FATAL: Missing required database environment variables: ${missingDbVars.join(', ')}`);
+  process.exit(1);
+}
 const pool = mariadb.createPool({
   host: process.env.MARIADB_HOST || 'localhost',
-  user: process.env.MARIADB_USER || 'gkeylow',
-  password: process.env.MARIADB_PASSWORD || 'REDACTED_DB_PASSWORD',
-  database: process.env.MARIADB_DATABASE || 'gallery_db',
+  user: process.env.MARIADB_USER,
+  password: process.env.MARIADB_PASSWORD,
+  database: process.env.MARIADB_DATABASE,
   connectionLimit: parseInt(process.env.MARIADB_POOL_SIZE) || 5
 });
 
@@ -163,6 +182,272 @@ app.use(fileUpload({
 
 // Serve uploaded images statically
 app.use('/uploads', express.static(PATHS.images));
+
+// Rate limiter for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts per window
+  message: { error: 'Too many login attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// JWT Auth middleware
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Invalid or expired token' });
+    }
+    req.user = user;
+    next();
+  });
+}
+
+// ============================================
+// AUTH ENDPOINTS
+// ============================================
+
+// Register new user
+app.post('/api/auth/register', authLimiter, async (req, res) => {
+  let conn;
+  try {
+    const { username, email, password } = req.body;
+
+    // Validate input
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: 'Username, email, and password are required' });
+    }
+
+    // Validate username (3-30 chars, alphanumeric + underscore)
+    const usernameClean = username.trim();
+    if (usernameClean.length < 3 || usernameClean.length > 30) {
+      return res.status(400).json({ error: 'Username must be 3-30 characters' });
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(usernameClean)) {
+      return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
+    }
+
+    // Validate email
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+
+    // Validate password (min 8 chars, 1 upper, 1 lower, 1 number)
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+      return res.status(400).json({ error: 'Password must contain uppercase, lowercase, and a number' });
+    }
+
+    conn = await pool.getConnection();
+
+    // Check if username or email already exists
+    const existing = await conn.query(
+      'SELECT id FROM users WHERE username = ? OR email = ?',
+      [usernameClean.toLowerCase(), email.toLowerCase()]
+    );
+    if (existing.length > 0) {
+      return res.status(409).json({ error: 'Username or email already registered' });
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
+    // Generate random display color
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'];
+    const displayColor = colors[Math.floor(Math.random() * colors.length)];
+
+    // Insert user
+    const result = await conn.query(
+      `INSERT INTO users (username, email, password_hash, display_color, created_at)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [usernameClean, email.toLowerCase(), passwordHash, displayColor]
+    );
+
+    const userId = Number(result.insertId);
+
+    // Generate JWT
+    const token = jwt.sign(
+      { userId, username: usernameClean },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    // Update last login
+    await conn.query('UPDATE users SET last_login_at = NOW() WHERE id = ?', [userId]);
+
+    console.log(`Auth: New user registered - ${usernameClean}`);
+
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: userId,
+        username: usernameClean,
+        email: email.toLowerCase(),
+        display_color: displayColor,
+        subscription_tier: 'free'
+      }
+    });
+
+  } catch (err) {
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Registration failed', details: err.message });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Login
+app.post('/api/auth/login', authLimiter, async (req, res) => {
+  let conn;
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    conn = await pool.getConnection();
+
+    // Find user by email or username
+    const users = await conn.query(
+      `SELECT id, username, email, password_hash, display_color, subscription_tier
+       FROM users WHERE email = ? OR username = ?`,
+      [email.toLowerCase(), email.toLowerCase()]
+    );
+
+    if (users.length === 0) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const user = users[0];
+
+    // Verify password
+    const validPassword = await bcrypt.compare(password, user.password_hash);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Generate JWT
+    const token = jwt.sign(
+      { userId: Number(user.id), username: user.username },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    // Update last login
+    await conn.query('UPDATE users SET last_login_at = NOW() WHERE id = ?', [user.id]);
+
+    console.log(`Auth: User logged in - ${user.username}`);
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: Number(user.id),
+        username: user.username,
+        email: user.email,
+        display_color: user.display_color,
+        subscription_tier: user.subscription_tier || 'free'
+      }
+    });
+
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Login failed', details: err.message });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Get current user info
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const users = await conn.query(
+      `SELECT id, username, email, display_color, subscription_tier, subscription_status,
+              subscription_expires_at, created_at, last_login_at
+       FROM users WHERE id = ?`,
+      [req.user.userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = users[0];
+    res.json({
+      id: Number(user.id),
+      username: user.username,
+      email: user.email,
+      display_color: user.display_color,
+      subscription_tier: user.subscription_tier || 'free',
+      subscription_status: user.subscription_status || 'active',
+      subscription_expires_at: user.subscription_expires_at,
+      created_at: user.created_at,
+      last_login_at: user.last_login_at
+    });
+
+  } catch (err) {
+    console.error('Get user error:', err);
+    res.status(500).json({ error: 'Failed to get user info' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Update user profile (color, username)
+app.put('/api/auth/profile', authenticateToken, async (req, res) => {
+  let conn;
+  try {
+    const { display_color } = req.body;
+    const userId = req.user.userId;
+
+    conn = await pool.getConnection();
+
+    // Validate color format
+    if (display_color && !/^#[0-9A-Fa-f]{6}$/.test(display_color)) {
+      return res.status(400).json({ error: 'Invalid color format. Use #RRGGBB' });
+    }
+
+    if (display_color) {
+      await conn.query('UPDATE users SET display_color = ? WHERE id = ?', [display_color, userId]);
+    }
+
+    // Fetch updated user
+    const users = await conn.query(
+      'SELECT id, username, email, display_color, subscription_tier FROM users WHERE id = ?',
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      user: {
+        id: Number(users[0].id),
+        username: users[0].username,
+        email: users[0].email,
+        display_color: users[0].display_color,
+        subscription_tier: users[0].subscription_tier || 'free'
+      }
+    });
+
+  } catch (err) {
+    console.error('Profile update error:', err);
+    res.status(500).json({ error: 'Failed to update profile' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
 
 // Get all gallery items (images and videos)
 app.get('/api/gallery', async (req, res) => {

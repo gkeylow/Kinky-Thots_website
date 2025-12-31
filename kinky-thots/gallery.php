@@ -3,7 +3,10 @@
 session_start();
 
 // Get password from environment variable (works with Docker and native)
-$adminPassword = getenv('GALLERY_ADMIN_PASSWORD') ?: 'changeme';
+$adminPassword = getenv('GALLERY_ADMIN_PASSWORD');
+if (!$adminPassword) {
+    die('FATAL: GALLERY_ADMIN_PASSWORD environment variable is required');
+}
 $isAuthenticated = isset($_SESSION['gallery_admin_auth']) && $_SESSION['gallery_admin_auth'] === true;
 
 // Handle login
@@ -130,9 +133,9 @@ endif;
     <meta name="copyright" content="kinky-thots"/>
     <meta name="robots" content="noindex,nofollow"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data: blob:; media-src 'self' http: https: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:; font-src 'self' https:; connect-src 'self' https: http: http://localhost:3001;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data: blob:; media-src 'self' http: https: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:; font-src 'self' https:; connect-src 'self' https: wss:;">
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
-    <title>Kinky Thots - Amatuer XXX Gallery</title>
+    <title>Kinky Thots - Amateur XXX Gallery</title>
     <!-- Built CSS (Vite + Tailwind) -->
     <link rel="stylesheet" href="/assets/dist/css/main.css">
     <link rel="stylesheet" href="/assets/dist/css/media-gallery.css">
@@ -238,5 +241,9 @@ endif;
         </div>
     </div>
 </footer>
+
+<!-- Elfsight Age Verification -->
+<script src="https://static.elfsight.com/platform/platform.js" async></script>
+<div class="elfsight-app-ea2f58c6-6128-4e92-b2d9-c0b5c09769c3" data-elfsight-app-lazy></div>
 </body>
 </html>
