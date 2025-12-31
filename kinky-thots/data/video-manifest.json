@@ -1,5 +1,5 @@
 {
-  "generated": "2025-12-30T17:31:05.737Z",
+  "generated": "2025-12-31T02:34:20.228Z",
   "cdn_base_url": "https://6318.s3.nvme.de01.sonic.r-cdn.com",
   "videos": [
     {
@@ -14,6 +14,13 @@
       "width": null,
       "height": null,
       "size_bytes": 142749328,
+      "on_cdn": true
+    },
+    {
+      "filename": "Cytherea Short.mp4",
+      "width": null,
+      "height": null,
+      "size_bytes": 0,
       "on_cdn": true
     },
     {
