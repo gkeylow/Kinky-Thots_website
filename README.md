@@ -36,37 +36,111 @@
 - **Build Tools**: Vite, Tailwind CSS, ESLint, Prettier
 - **SSL**: Certbot available in Docker for future native HTTPS (currently using localtonet)
 
-"kinky-thots/
-├── src/              # Source files (development)
-│   ├── js/           # JavaScript modules (ES6+)
-│   │   ├── main.js   # Navigation/dropdown handler
-│   │   ├── index.js  # Homepage (imports landing.css)
-│   │   ├── live.js   # Live streaming module
-│   │   ├── gallery.js # Photo gallery (imports media-gallery.css)
-│   │   ├── porn.js   # Video gallery (imports media-gallery.css)
-│   │   ├── sissylonglegs.js # Model page (imports landing.css)
-│   │   └── content.js # Content pages (imports content.css)
-│   └── css/          # Modular CSS (Dec 2024 refactor)
-│       ├── main.css  # Tailwind entry + imports layout.css
-│       ├── layout.css # Header (nav) + Footer - ALL pages
-│       ├── landing.css # Hero, About, Skills, Portfolio, Contact
-│       ├── media-gallery.css # Photo/video grid, upload, lightbox
-│       ├── content.css # Text pages (terms, etc.)
-│       ├── live.css  # Live streaming + chat
-│       └── chat.css  # Chat component styles
-├── assets/           # Public assets
-│   ├── dist/         # Built JS/CSS (from Vite)
-│   ├── thumbnails/   # Video thumbnails
-│   └── *.css/*.js    # Legacy assets (being migrated)
-├── backend/          # Node.js backend (protected)
-├── config/           # Configuration files (protected)
-├── scripts/          # Shell scripts (protected)
-│   ├── rtmp-to-hls.sh
-│   ├── stream-watcher.sh
-│   └── *.sh
-├── hls/              # HLS stream output (public)
-├── uploads/          # User uploads (protected)
-├── logs/             # Application logs (protected)
-├── data/             # Data files (protected)
-├── backups/          # Backups (protected)
-└── docs/             # Documentation (protected)"
+<div class="directory-structure">
+  <details open>
+    <summary><strong>kinky-thots/</strong></summary>
+    <ul>
+      <li>
+        <details open>
+          <summary>src/</summary>
+          <ul>
+            <li>
+              <details>
+                <summary>js/</summary>
+                <ul>
+                  <li>main.js</li>
+                  <li>index.js</li>
+                  <li>live.js</li>
+                  <li>gallery.js</li>
+                  <li>porn.js</li>
+                  <li>sissylonglegs.js</li>
+                  <li>content.js</li>
+                </ul>
+              </details>
+            </li>
+            <li>
+              <details>
+                <summary>css/</summary>
+                <ul>
+                  <li>main.css</li>
+                  <li>layout.css</li>
+                  <li>landing.css</li>
+                  <li>media-gallery.css</li>
+                  <li>content.css</li>
+                  <li>live.css</li>
+                  <li>chat.css</li>
+                </ul>
+              </details>
+            </li>
+          </ul>
+        </details>
+      </li>
+      <li>
+        <details>
+          <summary>assets/</summary>
+          <ul>
+            <li>dist/</li>
+            <li>thumbnails/</li>
+            <li>*.css/*.js</li>
+          </ul>
+        </details>
+      </li>
+      <li>backend/</li>
+      <li>config/</li>
+      <li>
+        <details>
+          <summary>scripts/</summary>
+          <ul>
+            <li>rtmp-to-hls.sh</li>
+            <li>stream-watcher.sh</li>
+          </ul>
+        </details>
+      </li>
+      <li>hls/</li>
+      <li>uploads/</li>
+      <li>logs/</li>
+      <li>data/</li>
+      <li>backups/</li>
+      <li>docs/</li>
+    </ul>
+  </details>
+</div>
+Use code with caution.
+
+Recommended CSS
+Add this to your stylesheet to create the "tree line" effect and ensure it looks like a terminal structure:
+css
+.directory-structure {
+  font-family: 'Courier New', Courier, monospace;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.directory-structure ul {
+  list-style-type: none;
+  padding-left: 20px;
+  border-left: 1px dotted #555;
+  margin: 5px 0;
+}
+
+.directory-structure summary {
+  cursor: pointer;
+  outline: none;
+  color: #4ec9b0; /* Folder color */
+}
+
+.directory-structure summary:hover {
+  color: #9cdcfe;
+}
+
+.directory-structure li {
+  padding: 2px 0;
+  color: #ce9178; /* File color */
+}
+
+/* Remove border from the root level */
+.directory-structure > details > ul {
+  border-left: none;
+}
