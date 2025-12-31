@@ -34,7 +34,7 @@ services:
     ports:
       - "3002:3001"    # Test mode: use 3002 instead of 3001
     volumes:
-      - ./uploads:/var/www/kinky-thots/uploads
+      - ./uploads:/uploads
       - ./config:/var/www/kinky-thots/config:ro
       - /media/porn/kinky-thots-shorts:/media/porn/kinky-thots-shorts
     environment:
@@ -46,6 +46,8 @@ services:
       - MARIADB_DATABASE=${MARIADB_DATABASE}
       - PUSHR_API_KEY=${PUSHR_API_KEY}
       - PUSHR_SECRET_TOKEN=${PUSHR_SECRET_TOKEN}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
     depends_on:
       db:
         condition: service_healthy

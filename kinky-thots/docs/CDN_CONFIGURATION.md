@@ -16,7 +16,7 @@ Location: `/var/www/kinky-thots/config/pushr-cdn.json`
 
 ```json
 {
-  "api_key": "REDACTED_PUSHR_API_KEY",
+  "api_key": "<YOUR_PUSHR_API_KEY>",
   "api_url": "https://www.pushrcdn.com/api/v3",
   "zones": {
     "videos": {

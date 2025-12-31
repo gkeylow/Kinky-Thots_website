@@ -1,5 +1,7 @@
 # Kinky-Thots Project Documentation
 
+> **IMPORTANT**: Read this file before starting any work. Document completed work here for future sessions.
+
 ## Tech Stack
 - **Web Server**: Apache2 with PHP (Docker: kinky-web)
 - **Backend**: Node.js WebSocket chat server on port 3001 (Docker: kinky-backend)
@@ -154,6 +156,94 @@ journalctl -u stream-watcher -u rtmp-hls -f
   # Uncomment port 443 in docker-compose.yml first
   docker exec -it kinky-web certbot --apache -d kinky-thots.com
   ```
+
+## Recent Changes (Dec 31, 2024)
+
+### User Authentication System
+- Implemented full JWT-based authentication with bcrypt password hashing
+- Created `src/js/auth.js` - AuthManager class for login/register/logout
+- Created `src/css/auth-modal.css` - Modal styles, chat badges, user menu
+- Added auth modal HTML to `live.html` with login/register forms
+- Updated `src/js/live.js` with WebSocket JWT authentication
+- Backend endpoints: `/api/auth/register`, `/api/auth/login`, `/api/auth/me`, `/api/auth/profile`
+
+### Password Reset Flow
+- Added nodemailer for email sending (requires SMTP config in .env)
+- Endpoints: `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/auth/change-password`
+- Created `reset-password.html` - Standalone password reset page
+- Uses secure SHA256-hashed tokens with 1-hour expiration
+- Added forgot password form to auth modal
+
+### Chat Moderation Tools
+- VIP tier users automatically get moderator access
+- Moderation commands: `/ban`, `/unban`, `/mute`, `/unmute`, `/slow`, `/clear`
+- Moderation state managed server-side (bannedUsers, mutedUsers, slowModeSeconds)
+- Mod action messages styled in `auth-modal.css`
+
+### Content Gating by Subscription Tier
+- Tier access levels: free (20%), basic (60%), premium (100%), vip (100%)
+- Subscription tiers configuration in `backend/server.js`
+- API endpoints: `/api/subscriptions/tiers`, `/api/content`, `/api/content/:id/access`
+- Created `subscriptions.html` - Subscription plans page
+- Created `checkout.html` - Checkout flow (PayPal placeholder)
+- Updated `porn.php` with content gating JavaScript
+- Added locked content CSS to `media-gallery.css` (blur overlay, lock icon, upgrade buttons)
+
+### Security Audit & Hardening
+- Removed hardcoded API key fallbacks from `backend/server.js`
+- JWT_SECRET now required (server fails to start without it)
+- Added JWT_SECRET and JWT_EXPIRES_IN to docker-compose.yml
+- Removed credential fallbacks - fail-fast on missing env vars
+
+### New Files Created
+- `src/js/auth.js` - Authentication manager
+- `src/css/auth-modal.css` - Auth modal and chat badge styles
+- `reset-password.html` - Password reset page
+- `subscriptions.html` - Subscription tiers page
+- `checkout.html` - Payment checkout page
+- `profile.html` - User profile and settings page
+
+### User Profile Page
+- Created `profile.html` with account info display
+- Shows: username, email, member since, last login, chat color, subscription tier/status
+- Color picker to customize chat color (uses `/api/auth/profile`)
+- Password change form (uses `/api/auth/change-password`)
+- Subscription status with upgrade CTA for non-premium users
+- Cancel subscription button for paid tiers
+- Added user dropdown menu to nav on: porn.php, subscriptions.html, checkout.html, profile.html
+- Dropdown shows: My Profile, Subscription, Logout links
+
+### PayPal Payment Integration
+- Added PayPal API configuration in `backend/server.js`
+- Environment variables: `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_MODE`, `PAYPAL_BASIC_PLAN_ID`, `PAYPAL_PREMIUM_PLAN_ID`
+- Backend endpoints:
+  - `POST /api/subscriptions/create` - Create PayPal subscription, returns approval URL
+  - `POST /api/subscriptions/activate` - Activate after PayPal approval
+  - `POST /api/subscriptions/cancel` - Cancel subscription
+  - `POST /api/paypal/webhook` - Handle PayPal webhook events
+  - `GET /api/subscriptions/status` - Get user's subscription status
+- Updated `checkout.html` with:
+  - PayPal redirect flow (user is redirected to PayPal to complete)
+  - Handles success/cancelled return from PayPal
+  - Graceful fallback when PayPal not configured
+- Webhook handles: subscription activation, renewal, cancellation, expiration, payment failure
+
+### Bug Fixes (Dec 31, 2024)
+- **Gallery uploads not displaying**: Fixed Docker volume path mismatch in `docker-compose.yml`
+  - Backend writes to `/uploads` (via `path.join(__dirname, '../uploads')`)
+  - Volume was mounted at `/var/www/kinky-thots/uploads` instead of `/uploads`
+  - Fixed line 37: changed `./uploads:/var/www/kinky-thots/uploads` to `./uploads:/uploads`
+
+### Deferred Features (For Future Implementation)
+- **Stream Notifications**: Web push notifications when stream goes live
+- **PWA Support**: Offline caching, install prompts, manifest.json
+
+### Shelved Features (For Future Implementation)
+- **Video Features**: Like/save, watch history, recommendations
+- **Admin Dashboard**: User management, content moderation, analytics
+- **Chat Enhancements**: Emojis, mentions, message reactions
+
+---
 
 ## Recent Changes (Dec 30, 2024)
 
