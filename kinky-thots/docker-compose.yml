@@ -9,12 +9,13 @@ services:
     container_name: kinky-web
     ports:
       - "80:80"
-      # - "443:443"   # Uncomment for HTTPS
+      # - "443:443"   # Uncomment for HTTPS with certbot
     volumes:
       - ./:/var/www/html:ro
       - ./uploads:/var/www/html/uploads
       - ./hls:/var/www/html/hls
       - ./logs:/var/www/html/logs
+      - letsencrypt:/etc/letsencrypt  # SSL certificates (certbot)
     environment:
       - GALLERY_ADMIN_PASSWORD=${GALLERY_ADMIN_PASSWORD}
     depends_on:
@@ -95,3 +96,4 @@ networks:
 
 volumes:
   db_data:
+  letsencrypt:  # Persists SSL certificates from certbot

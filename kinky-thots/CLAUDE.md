@@ -1,29 +1,51 @@
 # Kinky-Thots Project Documentation
 
 ## Tech Stack
-- **Web Server**: Apache2 with PHP
-- **Backend**: Node.js (WebSocket chat server on port 3001)
-- **Database**: MariaDB
-- **Streaming**: Red5 Media Server (RTMP on :1935, HTTP on :5080)
-- **Video Processing**: FFmpeg for RTMP-to-HLS transcoding
+- **Web Server**: Apache2 with PHP (Docker: kinky-web)
+- **Backend**: Node.js WebSocket chat server on port 3001 (Docker: kinky-backend)
+- **Database**: MariaDB 10.11 (Docker: kinky-db)
+- **Streaming**: nginx-rtmp (Docker: kinky-rtmp) - RTMP on :1935, auto HLS conversion
 - **CDN**: Pushr CDN with S3-compatible storage (Sonic)
-- **Build Tools**: Vite, Tailwind CSS, ESLint, Prettier (Dec 2024)
+- **Build Tools**: Vite, Tailwind CSS, ESLint, Prettier
+- **SSL**: Certbot available in Docker for future native HTTPS (currently using localtonet)
 
 ## Quick Commands
 
-### Services
+### Docker Services
 ```bash
-# Red5 RTMP Server
-sudo systemctl start|stop|status red5
+# View all containers
+docker ps
 
-# Stream Watcher (auto-starts HLS when streaming)
-sudo systemctl start|stop|status stream-watcher
+# View logs
+docker logs -f kinky-web      # Apache/PHP
+docker logs -f kinky-backend  # Node.js API/Chat
+docker logs -f kinky-rtmp     # RTMP streaming
+docker logs -f kinky-db       # MariaDB
 
-# HLS Transcoder (managed by stream-watcher)
-sudo systemctl start|stop|status rtmp-hls
+# Restart services
+docker-compose restart web
+docker-compose restart backend
+docker-compose restart rtmp
 
-# Node.js Chat Backend
-sudo systemctl start|stop|status node-backend
+# Rebuild after Dockerfile changes
+docker-compose build web && docker-compose up -d web
+```
+
+### CDN Management
+```bash
+cd /var/www/kinky-thots/backend
+
+# Test CDN connection
+npm run sonic:test
+
+# List files on CDN
+npm run sonic:list
+
+# Sync video manifest from CDN (updates porn.php)
+npm run sonic:sync-manifest
+
+# Upload file to CDN
+npm run sonic:upload -- /path/to/file.mp4
 ```
 
 ### Development
@@ -94,27 +116,76 @@ journalctl -u stream-watcher -u rtmp-hls -f
 
 ## Key Pages
 - `index.html` - Homepage
-- `live.html` - Live streaming page (uses HLS.js + Red5)
-- `porn.php` - Video gallery
-- `gallery.php` - Photo gallery
-- `sissylonglegs.html` - Model page
-- `bustersherry.html` - Model page
+- `live.html` - Live streaming page (uses HLS.js + nginx-rtmp)
+- `porn.php` - Video gallery (uses video-manifest.json from CDN)
+- `gallery.php` - Photo gallery (password protected)
+- `sissylonglegs.html` - Model page with skills hover images
+- `bustersherry.html` - Model page with skills hover images
 - `terms.html` - Terms & conditions
 
-## Streaming Architecture
+## Streaming Architecture (Docker)
 1. **OBS/Broadcaster** → `rtmp://SERVER:1935/live/stream`
-2. **Red5** receives RTMP stream
-3. **stream-watcher.sh** detects stream, starts rtmp-hls service
-4. **rtmp-to-hls.sh** converts RTMP → HLS segments
-5. **HLS output** → `/hls/playlist.m3u8`
-6. **live.html** uses HLS.js to play stream
+2. **nginx-rtmp** (kinky-rtmp container) receives RTMP and auto-converts to HLS
+3. **HLS output** → `/hls/stream.m3u8` (mounted volume)
+4. **live.html** uses HLS.js to play stream
+
+### OBS Settings
+- Server: `rtmp://YOUR_SERVER:1935/live`
+- Stream Key: `stream`
 
 ## Security
-- All sensitive directories protected via .htaccess
-- Dotfiles blocked (`.env`, `.htaccess`, etc.)
-- Package files blocked (`package.json`, `Dockerfile`)
-- Security headers enabled (X-Frame-Options, X-Content-Type-Options)
-- Directory listing disabled
+- All sensitive directories protected via .htaccess (config/, backend/, scripts/, data/, logs/)
+- Dotfiles blocked (`.env`, `.htaccess`, etc.) - returns 403
+- Package files blocked (`package.json`, `docker-compose.yml`, `Dockerfile`)
+- Security headers enabled:
+  - X-Frame-Options: SAMEORIGIN
+  - X-Content-Type-Options: nosniff
+  - X-XSS-Protection: 1; mode=block
+  - Referrer-Policy: strict-origin-when-cross-origin
+- Directory listing disabled (Options -Indexes)
+- PHP uses `htmlspecialchars()` for XSS prevention
+- No hardcoded API keys in source code (environment variables only)
+- `.env` files have 600 permissions
+
+### SSL/HTTPS
+- Currently using localtonet for HTTPS tunneling
+- Certbot installed in Docker for future native SSL:
+  ```bash
+  # Uncomment port 443 in docker-compose.yml first
+  docker exec -it kinky-web certbot --apache -d kinky-thots.com
+  ```
+
+## Recent Changes (Dec 30, 2024)
+
+### CDN Sync Feature
+- Added `sync-manifest` command to sonic-cli.js for syncing video list from CDN
+- Added `getCdnBaseUrl()` method to sonic-s3-client.js
+- porn.php now updates automatically when running `npm run sonic:sync-manifest`
+
+### Buster Skills Section
+- Added `buster-skills` class to bustersherry.html for separate hover images
+- Added Buster-specific hover image CSS in `src/css/landing.css`
+
+### Security Audit & Fixes
+- Removed hardcoded API key fallbacks from `backend/server.js`
+- Added certbot and SSL module to Docker web container
+- Added letsencrypt volume for certificate persistence
+- Conducted full security audit - all sensitive files properly protected
+
+### Documentation
+- Created `docs/SITE_ARCHITECTURE.md` with:
+  - ASCII flowcharts for site architecture
+  - Feature map and request flow diagrams
+  - Vite/Tailwind build workflow guide
+  - Comprehensive troubleshooting guide
+- Updated all docs to reflect nginx-rtmp instead of Red5
+
+### Model Pages
+- Converted sissylonglegs.php to sissylonglegs.html (removed PHP directory scanning)
+- Fixed mosaic gallery layout with proper CSS column properties
+- Added cache-busting to CSS links (`?v=20241230`)
+
+---
 
 ## Recent Changes (Dec 29, 2024) - CSS Modularization
 
@@ -168,12 +239,19 @@ Reorganized CSS into modular, reusable files:
 - Updated .htaccess with comprehensive security rules
 - Added auto-cleanup of HLS segments when stream ends (prevents stale video on live.html)
 
-## Systemd Services
-| Service | Description | Config Location |
-|---------|-------------|-----------------|
-| red5 | RTMP Media Server | /etc/systemd/system/red5.service |
-| stream-watcher | Monitors RTMP, triggers HLS | /etc/systemd/system/stream-watcher.service |
-| rtmp-hls | FFmpeg HLS transcoder | /etc/systemd/system/rtmp-hls.service |
+## Docker Containers
+| Container | Description | Ports |
+|-----------|-------------|-------|
+| kinky-web | Apache/PHP web server | 80 (443 for SSL) |
+| kinky-backend | Node.js chat/API server | 3001 |
+| kinky-rtmp | nginx-rtmp streaming | 1935 (RTMP), 8080 (HTTP) |
+| kinky-db | MariaDB database | 3306 |
+
+### Docker Volumes
+| Volume | Purpose |
+|--------|---------|
+| db_data | MariaDB persistent storage |
+| letsencrypt | SSL certificates (certbot) |
 
 ## Code Style
 - Use 4-space indentation for PHP

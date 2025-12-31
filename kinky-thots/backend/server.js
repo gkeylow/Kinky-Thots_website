@@ -31,12 +31,12 @@ const WEB_PATHS = {
   videos: '/porn/kinky-thots-shorts'
 };
 
-// PushrCDN Configuration
+// PushrCDN Configuration (all sensitive values from environment variables)
 const PUSHR_CONFIG = {
-  enabled: true,
-  apiKey: process.env.PUSHR_API_KEY || 'REDACTED_PUSHR_API_KEY',
+  enabled: !!process.env.PUSHR_API_KEY,
+  apiKey: process.env.PUSHR_API_KEY,
   apiUrl: 'https://www.pushrcdn.com/api/v3/prefetch',
-  secretToken: process.env.PUSHR_SECRET_TOKEN || 'e872d33deed25bcbcd1ddcb596dfc1872f9a6a07',
+  secretToken: process.env.PUSHR_SECRET_TOKEN,
   baseUrl: process.env.PUSHR_BASE_URL || 'https://kinky-thots.com',
   cdnUrls: {
     images: process.env.PUSHR_CDN_IMAGES || 'https://c5988z6294.r-cdn.com',

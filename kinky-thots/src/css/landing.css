@@ -329,7 +329,9 @@
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
 }
 
-/* Skill card background images - Index page */
+/* ===========================================
+   SISSY SKILLS - Hover Images
+   =========================================== */
 .skill-card:nth-child(1) .hover-image {
     background-image: url('https://i.ibb.co/Rk9H3Kdv/IMG-2258.jpg');
 }
@@ -340,6 +342,21 @@
 
 .skill-card:nth-child(3) .hover-image {
     background-image: url('https://i.ibb.co/jPnXTHSQ/IMG-8119.jpg');
+}
+
+/* ===========================================
+   BUSTER SKILLS - Hover Images
+   =========================================== */
+.buster-skills .skill-card:nth-child(1) .hover-image {
+    background-image: url('https://i.ibb.co/RG149hZW/IMG-6115.gif');
+}
+
+.buster-skills .skill-card:nth-child(2) .hover-image {
+    background-image: url('https://i.ibb.co/whPfBBmX/IMG-7238-Original.gif');
+}
+
+.buster-skills .skill-card:nth-child(3) .hover-image {
+    background-image: url('https://i.ibb.co/v4yLB0zT/IMG-4879.gif');
 }
 
 /* ===========================================
