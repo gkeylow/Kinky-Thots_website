@@ -58,3 +58,9 @@ db_data/
 hls/*.ts
 hls/*.m3u8
 porn
+
+# Claude Code
+.claude/
+
+# Generated thumbnails
+assets/thumbnails/
