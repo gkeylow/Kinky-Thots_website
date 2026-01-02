@@ -43,7 +43,7 @@ npm run sonic:test
 # List files on CDN
 npm run sonic:list
 
-# Sync video manifest from CDN (updates porn.php)
+# Sync video manifest from CDN (updates data/video-manifest.json)
 npm run sonic:sync-manifest
 
 # Upload file to CDN
@@ -119,8 +119,12 @@ journalctl -u stream-watcher -u rtmp-hls -f
 ## Key Pages
 - `index.html` - Homepage
 - `live.html` - Live streaming page (uses HLS.js + nginx-rtmp)
-- `porn.php` - Video gallery (uses video-manifest.json from CDN)
+- `free-content.php` - Free videos (< 1 min) - open to all
+- `basic-content.php` - Extended videos (1-5 min) - Basic+ subscribers
+- `premium-content.php` - Full-length videos (> 5 min) - Premium/Lifetime subscribers
 - `gallery.php` - Photo gallery (password protected)
+- `subscriptions.html` - Subscription tiers with Lifetime toggle
+- `profile.html` - User profile and settings
 - `sissylonglegs.html` - Model page with skills hover images
 - `bustersherry.html` - Model page with skills hover images
 - `terms.html` - Terms & conditions
@@ -159,6 +163,60 @@ journalctl -u stream-watcher -u rtmp-hls -f
 
 ## Recent Changes (Dec 31, 2024)
 
+### Subscription System Redesign - Duration-Based Tiers
+Replaced percentage-based content gating with duration-based access:
+
+| Tier | Price | Video Access | Duration |
+|------|-------|--------------|----------|
+| Free | $0 | Teasers | < 1 min |
+| Basic | $8/mo | Extended | 1-5 min |
+| Premium | $15/mo | Full Access | > 5 min |
+| Lifetime | $250 one-time | Full Access | > 5 min |
+
+**Backend Changes** (`backend/server.js`):
+- Updated `SUBSCRIPTION_TIERS` with `maxDuration` instead of `contentAccess` percentage
+- Added `getTierMaxDuration()` and `canAccessVideo()` helper functions
+- Lifetime tier added with `isLifetime: true` flag
+
+**New Content Pages**:
+- `free-content.php` - 14 videos under 1 minute (open access)
+- `basic-content.php` - 4 videos 1-5 minutes (locked for free users)
+- `premium-content.php` - 3 videos over 5 minutes (locked for free/basic)
+
+Each page features:
+- Duration badges (MM:SS) on each video thumbnail
+- Sort dropdown (shortest/longest/alphabetical)
+- Content tier navigation bar with lock indicators
+- Lock overlays with blur for unauthorized tiers
+- Upgrade CTAs linking to subscriptions page
+
+**Subscriptions Page** (`subscriptions.html`):
+- Redesigned with 3 tier cards side-by-side
+- Premium card has Monthly/Lifetime toggle switch
+- Shows savings calculation when Lifetime selected ("Save $430+ vs 3 years")
+- Updated FAQ for duration-based tiers
+
+**CSS Updates** (`media-gallery.css`):
+- Added `.duration-badge` - bottom-right timestamp overlay
+- Added `.duration-badge.long` - gradient for videos 10+ min
+- Added `.exclusive-badge` - top-left "Premium" label
+- Added `.user-tier-badge.lifetime` - gold gradient styling
+
+**Navigation Updated** (all pages):
+- Changed "Media" dropdown to "Content"
+- Links: Free Teasers, Extended Videos, Full Access, Photo Gallery, Live Cam
+- Added user auth dropdown with Account menu
+
+**Video Manifest** (`data/video-manifest.json`):
+- Added `duration_seconds` field to all 21 videos
+- Probed from CDN using S3 presigned URLs + ffprobe
+- Distribution: 14 free, 4 basic, 3 premium
+
+**Removed**:
+- `porn.php` and `porn.html` - deleted (replaced by content tier pages)
+
+---
+
 ### User Authentication System
 - Implemented full JWT-based authentication with bcrypt password hashing
 - Created `src/js/auth.js` - AuthManager class for login/register/logout
@@ -181,12 +239,13 @@ journalctl -u stream-watcher -u rtmp-hls -f
 - Mod action messages styled in `auth-modal.css`
 
 ### Content Gating by Subscription Tier
-- Tier access levels: free (20%), basic (60%), premium (100%), vip (100%)
-- Subscription tiers configuration in `backend/server.js`
+- **UPDATED**: Now uses duration-based access (see "Subscription System Redesign" above)
+- Tier access: free (<60s), basic (60-300s), premium (>300s), lifetime/vip (all)
+- Subscription tiers configuration in `backend/server.js` with `maxDuration` field
 - API endpoints: `/api/subscriptions/tiers`, `/api/content`, `/api/content/:id/access`
-- Created `subscriptions.html` - Subscription plans page
+- Created `subscriptions.html` - Subscription plans page with Lifetime toggle
 - Created `checkout.html` - Checkout flow (PayPal placeholder)
-- Updated `porn.php` with content gating JavaScript
+- Created 3 content pages: `free-content.php`, `basic-content.php`, `premium-content.php`
 - Added locked content CSS to `media-gallery.css` (blur overlay, lock icon, upgrade buttons)
 
 ### Security Audit & Hardening
@@ -210,7 +269,7 @@ journalctl -u stream-watcher -u rtmp-hls -f
 - Password change form (uses `/api/auth/change-password`)
 - Subscription status with upgrade CTA for non-premium users
 - Cancel subscription button for paid tiers
-- Added user dropdown menu to nav on: porn.php, subscriptions.html, checkout.html, profile.html
+- Added user dropdown menu to nav on: subscriptions.html, checkout.html, profile.html
 - Dropdown shows: My Profile, Subscription, Logout links
 
 ### PayPal Payment Integration
@@ -250,7 +309,7 @@ journalctl -u stream-watcher -u rtmp-hls -f
 ### CDN Sync Feature
 - Added `sync-manifest` command to sonic-cli.js for syncing video list from CDN
 - Added `getCdnBaseUrl()` method to sonic-s3-client.js
-- porn.php now updates automatically when running `npm run sonic:sync-manifest`
+- Content pages update automatically when running `npm run sonic:sync-manifest`
 
 ### Buster Skills Section
 - Added `buster-skills` class to bustersherry.html for separate hover images
@@ -286,7 +345,7 @@ Reorganized CSS into modular, reusable files:
 |------|---------|---------|
 | `layout.css` | Header (nav) + Footer | All pages (via main.css) |
 | `landing.css` | Hero, About, Skills, Portfolio, Contact | index, sissylonglegs, bustersherry |
-| `media-gallery.css` | Photo/video grid, upload, lightbox | gallery.php, porn.php |
+| `media-gallery.css` | Photo/video grid, upload, lightbox, duration badges | gallery.php, *-content.php |
 | `content.css` | Text content pages | terms.html |
 | `live.css` | Live streaming + chat | live.html |
 
@@ -294,11 +353,15 @@ Reorganized CSS into modular, reusable files:
 | Page | CSS Files Loaded |
 |------|------------------|
 | index.html | main.css + index.css |
-| sissylonglegs.html | main.css + index.css |
-| bustersherry.html | main.css + index.css |
+| sissylonglegs.html | main.css + index.css + media-gallery.css |
+| bustersherry.html | main.css + index.css + media-gallery.css |
 | gallery.php | main.css + media-gallery.css |
-| porn.php | main.css + media-gallery.css |
+| free-content.php | main.css + media-gallery.css |
+| basic-content.php | main.css + media-gallery.css |
+| premium-content.php | main.css + media-gallery.css |
 | live.html | main.css + live.css |
+| subscriptions.html | main.css (inline styles) |
+| profile.html | main.css (inline styles) |
 | terms.html | main.css + content.css |
 
 ### Bug Fixes (Dec 29, 2024)

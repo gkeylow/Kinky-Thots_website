@@ -80,8 +80,8 @@
 ┌───────────────┐          ┌───────────────┐          ┌───────────────┐
 │    MODELS     │          │     MEDIA     │          │     INFO      │
 ├───────────────┤          ├───────────────┤          ├───────────────┤
-│sissylonglegs  │          │  porn.php     │          │  terms.html   │
-│  .html        │          │ (Video Gallery)│         │               │
+│sissylonglegs  │          │ *-content.php │          │  terms.html   │
+│  .html        │          │ (Video Tiers) │          │               │
 ├───────────────┤          ├───────────────┤          └───────────────┘
 │bustersherry   │          │  gallery.php  │
 │  .html        │          │(Photo Gallery)│
@@ -98,7 +98,9 @@
 | `index.html` | Hero, About, Skills, Portfolio, Contact | Static |
 | `sissylonglegs.html` | Hero, Skills (hover images), Mosaic Gallery, Contact | Static + ibb.co |
 | `bustersherry.html` | Hero, Skills (hover images), Mosaic Gallery, Contact | Static + ibb.co |
-| `porn.php` | Video grid, Lightbox player, Thumbnails | `video-manifest.json` + CDN |
+| `free-content.php` | Free videos (<1 min), Lightbox player | `video-manifest.json` + CDN |
+| `basic-content.php` | Extended videos (1-5 min), Lightbox player | `video-manifest.json` + CDN |
+| `premium-content.php` | Full-length videos (>5 min), Lightbox player | `video-manifest.json` + CDN |
 | `gallery.php` | Photo mosaic grid, Lightbox | CDN images |
 | `live.html` | HLS video player, Chat, Status indicator | nginx-rtmp + WebSocket |
 | `terms.html` | Terms & Conditions | Static |
@@ -125,7 +127,7 @@ User Request                 Apache                      Response
 ```
 User Request          Apache              PHP               Database/CDN
     │                    │                 │                     │
-    │ GET /porn.php      │                 │                     │
+    │ GET /free-content  │                 │                     │
     │ ──────────────────▶│                 │                     │
     │                    │ Execute PHP     │                     │
     │                    │ ───────────────▶│                     │
@@ -258,7 +260,7 @@ npm run format
 | index.html | `src/css/landing.css` | `assets/dist/css/index.css` |
 | sissylonglegs.html | `src/css/landing.css` | `assets/dist/css/index.css` |
 | bustersherry.html | `src/css/landing.css` | `assets/dist/css/index.css` |
-| porn.php | `src/css/media-gallery.css` | `assets/dist/css/media-gallery.css` |
+| *-content.php | `src/css/media-gallery.css` | `assets/dist/css/media-gallery.css` |
 | gallery.php | `src/css/media-gallery.css` | `assets/dist/css/media-gallery.css` |
 | live.html | `src/css/live.css` | `assets/dist/css/live.css` |
 | All pages (nav/footer) | `src/css/layout.css` | `assets/dist/css/main.css` |
@@ -528,7 +530,7 @@ npm run sonic:sync-manifest
 cat /var/www/kinky-thots/data/video-manifest.json | head -50
 ```
 
-**Videos not showing on porn.php:**
+**Videos not showing on content pages:**
 1. Check if videos exist on CDN: `npm run sonic:list`
 2. Sync manifest: `npm run sonic:sync-manifest`
 3. Verify manifest updated: `cat data/video-manifest.json`
