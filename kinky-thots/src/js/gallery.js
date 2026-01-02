@@ -325,9 +325,12 @@ function setupLightbox() {
     if (!galleryData[idx]) {return;}
 
     const img = galleryData[idx];
-    const fileUrl = img.full_url
-      ? CONFIG.apiBase + img.full_url
-      : CONFIG.apiBase + CONFIG.uploadsPath + encodeURIComponent(img.filename);
+    // Prefer origin_url (local) since CDN may not have gallery uploads
+    const fileUrl = img.origin_url
+      ? CONFIG.apiBase + img.origin_url
+      : img.full_url
+        ? CONFIG.apiBase + img.full_url
+        : CONFIG.apiBase + CONFIG.uploadsPath + encodeURIComponent(img.filename);
     const isVideo =
       img.file_type === 'video' || /\.(mp4|mov|avi|mkv|webm|mpeg|flv|m4v)$/i.test(img.filename);
 
