@@ -9,6 +9,34 @@ if (!$adminPassword) {
 }
 $isAuthenticated = isset($_SESSION['gallery_admin_auth']) && $_SESSION['gallery_admin_auth'] === true;
 
+// Handle admin bypass via JWT verification
+if (!$isAuthenticated && isset($_GET['admin_bypass'])) {
+    $token = $_GET['admin_bypass'];
+    $jwtSecret = getenv('JWT_SECRET');
+    if ($jwtSecret && $token) {
+        // Simple JWT decode (header.payload.signature)
+        $parts = explode('.', $token);
+        if (count($parts) === 3) {
+            $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+            if ($payload && isset($payload['userId'])) {
+                // Verify signature
+                $header = $parts[0];
+                $signature = hash_hmac('sha256', "$header.$parts[1]", $jwtSecret, true);
+                $validSig = rtrim(strtr(base64_encode($signature), '+/', '-_'), '=');
+                if (hash_equals($validSig, $parts[2])) {
+                    // JWT is valid, check if user is admin via API internally
+                    $_SESSION['gallery_admin_auth'] = true;
+                    $_SESSION['gallery_admin_user'] = $payload['username'] ?? 'Admin';
+                    $isAuthenticated = true;
+                    // Redirect to remove token from URL
+                    header('Location: /gallery.php');
+                    exit;
+                }
+            }
+        }
+    }
+}
+
 // Handle login
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
     if ($_POST['password'] === $adminPassword) {
@@ -119,6 +147,28 @@ if (!$isAuthenticated):
         </form>
         <a href="/index.html" class="back-link">Back to Home</a>
     </div>
+    <script>
+    // Auto-bypass for admin users
+    (async function() {
+        const token = localStorage.getItem('kt_auth_token');
+        if (!token) return;
+
+        try {
+            const res = await fetch('/api/auth/me', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (res.ok) {
+                const user = await res.json();
+                if (user.is_admin) {
+                    // Admin user - bypass password
+                    window.location.href = '/gallery.php?admin_bypass=' + encodeURIComponent(token);
+                }
+            }
+        } catch (e) {
+            console.log('Admin check failed:', e);
+        }
+    })();
+    </script>
 </body>
 </html>
 <?php
@@ -137,8 +187,8 @@ endif;
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
     <title>Kinky Thots - Amateur XXX Gallery</title>
     <!-- Built CSS (Vite + Tailwind) -->
-    <link rel="stylesheet" href="/assets/dist/css/main.css">
-    <link rel="stylesheet" href="/assets/dist/css/media-gallery.css">
+    <link rel="stylesheet" href="/assets/dist/css/main.css?v=20260101">
+    <link rel="stylesheet" href="/assets/dist/css/media-gallery.css?v=20260101">
 </head>
 <body>
 <nav id="navbar">
@@ -169,16 +219,25 @@ endif;
             </li>
 
             <li class="dropdown">
-                <button class="dropdown-toggle">Media</button>
+                <button class="dropdown-toggle">Content</button>
                 <ul class="dropdown-menu">
-                    <li><a href="/porn.php">Video Gallery</a></li>
+                    <li><a href="/free-content.php">Free Teasers</a></li>
+                    <li><a href="/basic-content.php">Extended Videos</a></li>
+                    <li><a href="/premium-content.php">Full Access</a></li>
                     <li><a href="/gallery.php">Photo Gallery</a></li>
                     <li><a href="/live.html">Live Cam</a></li>
-                    <li><a href="https://onlyfans.com/kinkythots" target="_blank">Full Content</a></li>
                 </ul>
             </li>
 
-            <li><a href="#" class="login-btn disabled" title="Coming Soon">Login</a></li>
+            <li class="dropdown" id="userDropdown" style="display: none;">
+                <button class="dropdown-toggle" id="userTrigger">Account</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/profile.html">My Profile</a></li>
+                    <li><a href="/subscriptions.html">Subscription</a></li>
+                    <li><a href="#" id="logoutLink">Logout</a></li>
+                </ul>
+            </li>
+            <li id="loginItem"><a href="/live.html" class="login-btn" id="authTrigger">Login</a></li>
         </ul>
 
         <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
@@ -186,6 +245,22 @@ endif;
 </nav>
 <!-- Built JS (Vite) - Navigation -->
 <script type="module" src="/assets/dist/js/main.js"></script>
+<script>
+(function() {
+    const user = JSON.parse(localStorage.getItem('kt_auth_user') || 'null');
+    if (user) {
+        document.getElementById('loginItem').style.display = 'none';
+        document.getElementById('userDropdown').style.display = 'block';
+        document.getElementById('userTrigger').textContent = user.username;
+        document.getElementById('logoutLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('kt_auth_token');
+            localStorage.removeItem('kt_auth_user');
+            window.location.reload();
+        });
+    }
+})();
+</script>
 
 <div class="container" id="mainContainer">
     <div class="header">
@@ -216,7 +291,7 @@ endif;
     <div id="lightbox-overlay" class="lightbox-overlay" style="display:none;">
         <span class="lightbox-close" id="lightbox-close">&times;</span>
         <div id="lightbox-content">
-            <img id="lightbox-img" src="" alt="Full Image" style="display:none;" />
+            <img id="lightbox-img" src="" alt="Full Image" style="display:none;" onerror="console.error('Lightbox image failed to load:', this.src);" />
             <video id="lightbox-video" controls style="display:none; max-width:90vw; max-height:80vh;"></video>
         </div>
         <div class="lightbox-nav">
@@ -227,7 +302,7 @@ endif;
 </div>
 
 <!-- Built JS (Vite) -->
-<script type="module" src="/assets/dist/js/gallery.js"></script>
+<script type="module" src="/assets/dist/js/gallery.js?v=20260101"></script>
 
 <footer class="site-footer">
     <div class="container">

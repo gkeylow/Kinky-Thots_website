@@ -45,41 +45,60 @@ const SUBSCRIPTION_TIERS = {
   free: {
     name: 'Free',
     price: 0,
-    priceId: null, // No payment needed
-    contentAccess: 0.2, // 20% of content
-    features: ['Limited gallery access', 'Chat access', 'Stream viewing']
+    priceId: null,
+    maxDuration: 60, // Videos under 1 minute
+    features: ['Teaser videos under 1 min', 'Chat access', 'Stream viewing']
   },
   basic: {
     name: 'Basic',
-    price: 5,
+    price: 8,
     priceId: process.env.PAYPAL_BASIC_PLAN_ID,
-    contentAccess: 0.6, // 60% of content
-    features: ['Extended gallery access', 'Chat with badge', 'HD streams', 'Priority support']
+    maxDuration: 300, // Videos 1-5 minutes
+    features: ['Videos up to 5 minutes', 'HD streams', 'Chat badge', 'Priority support']
   },
   premium: {
     name: 'Premium',
-    price: 10,
+    price: 15,
     priceId: process.env.PAYPAL_PREMIUM_PLAN_ID,
-    contentAccess: 1.0, // 100% of content
-    features: ['Full gallery access', 'VIP chat badge', '4K streams', 'Exclusive content', 'Direct messaging']
+    maxDuration: Infinity, // All videos
+    features: ['All videos (5+ min)', '4K streams', 'Exclusive content', 'Direct messaging']
+  },
+  lifetime: {
+    name: 'Lifetime',
+    price: 250,
+    priceId: process.env.PAYPAL_LIFETIME_PLAN_ID,
+    maxDuration: Infinity,
+    isLifetime: true,
+    features: ['All Premium features', 'Never expires', 'Priority support']
   },
   vip: {
     name: 'VIP',
-    price: 10, // Same as premium, but manually granted
+    price: 0, // Manually granted
     priceId: null,
-    contentAccess: 1.0,
-    features: ['All Premium features', 'Moderator access', 'Early access to content']
+    maxDuration: Infinity,
+    features: ['All Premium features', 'Moderator access', 'Early access']
   }
 };
 
-// Get tier access level (0-1)
-function getTierAccessLevel(tier) {
-  return SUBSCRIPTION_TIERS[tier]?.contentAccess || 0.2;
+// Get tier max duration (in seconds)
+function getTierMaxDuration(tier) {
+  return SUBSCRIPTION_TIERS[tier]?.maxDuration || 60;
 }
 
-// Check if user can access content
+// Check if user can access video by duration
+function canAccessVideo(userTier, videoDuration) {
+  const maxDuration = getTierMaxDuration(userTier);
+  return videoDuration <= maxDuration;
+}
+
+// Legacy: Check content by index (for backward compatibility)
 function canAccessContent(userTier, contentIndex, totalContent) {
-  const accessLevel = getTierAccessLevel(userTier);
+  // Map old percentage-based to duration tiers
+  const tier = SUBSCRIPTION_TIERS[userTier];
+  if (!tier) return false;
+  if (tier.maxDuration === Infinity) return true;
+  // Free: first 20%, Basic: first 60%
+  const accessLevel = tier.maxDuration >= 300 ? 1.0 : (tier.maxDuration >= 60 ? 0.6 : 0.2);
   const accessibleCount = Math.ceil(totalContent * accessLevel);
   return contentIndex < accessibleCount;
 }
@@ -436,7 +455,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
     conn = await pool.getConnection();
     const users = await conn.query(
       `SELECT id, username, email, display_color, subscription_tier, subscription_status,
-              subscription_expires_at, created_at, last_login_at
+              subscription_expires_at, created_at, last_login_at, is_admin
        FROM users WHERE id = ?`,
       [req.user.userId]
     );
@@ -455,7 +474,8 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
       subscription_status: user.subscription_status || 'active',
       subscription_expires_at: user.subscription_expires_at,
       created_at: user.created_at,
-      last_login_at: user.last_login_at
+      last_login_at: user.last_login_at,
+      is_admin: Boolean(user.is_admin)
     });
 
   } catch (err) {

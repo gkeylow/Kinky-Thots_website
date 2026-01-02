@@ -9,12 +9,13 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data:; media-src 'self' http: https: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:; font-src 'self' https:; connect-src 'self' https: http:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data:; media-src 'self' http: https: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https: blob:; font-src 'self' https:; connect-src 'self' https: http:; frame-src https: blob:;">
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
     <title>Kinky Thots - Sissy Long Legs</title>
     <!-- Built CSS (Vite + Tailwind) -->
     <link rel="stylesheet" href="/assets/dist/css/main.css">
     <link rel="stylesheet" href="/assets/dist/css/index.css?v=20241230">
+    <link rel="stylesheet" href="/assets/dist/css/media-gallery.css">
 </head>
 <body>
 <nav id="navbar">
@@ -45,16 +46,25 @@
             </li>
 
             <li class="dropdown">
-                <button class="dropdown-toggle">Media</button>
+                <button class="dropdown-toggle">Content</button>
                 <ul class="dropdown-menu">
-                    <li><a href="/porn.php">Video Gallery</a></li>
+                    <li><a href="/free-content.php">Free Teasers</a></li>
+                    <li><a href="/basic-content.php">Extended Videos</a></li>
+                    <li><a href="/premium-content.php">Full Access</a></li>
                     <li><a href="/gallery.php">Photo Gallery</a></li>
                     <li><a href="/live.html">Live Cam</a></li>
-                    <li><a href="https://onlyfans.com/kinkythots" target="_blank">Full Content</a></li>
                 </ul>
             </li>
 
-            <li><a href="#" class="login-btn disabled" title="Coming Soon">Login</a></li>
+            <li class="dropdown" id="userDropdown" style="display: none;">
+                <button class="dropdown-toggle" id="userTrigger">Account</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/profile.html">My Profile</a></li>
+                    <li><a href="/subscriptions.html">Subscription</a></li>
+                    <li><a href="#" id="logoutLink">Logout</a></li>
+                </ul>
+            </li>
+            <li id="loginItem"><a href="/live.html" class="login-btn" id="authTrigger">Login</a></li>
         </ul>
 
         <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
@@ -62,6 +72,22 @@
 </nav>
 <!-- Built JS (Vite) - Navigation -->
 <script type="module" src="/assets/dist/js/main.js"></script>
+<script>
+(function() {
+    const user = JSON.parse(localStorage.getItem('kt_auth_user') || 'null');
+    if (user) {
+        document.getElementById('loginItem').style.display = 'none';
+        document.getElementById('userDropdown').style.display = 'block';
+        document.getElementById('userTrigger').textContent = user.username;
+        document.getElementById('logoutLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('kt_auth_token');
+            localStorage.removeItem('kt_auth_user');
+            window.location.reload();
+        });
+    }
+})();
+</script>
 
 <!-- Hero Section -->
 <section class="hero" id="home">
