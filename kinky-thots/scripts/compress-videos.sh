@@ -263,7 +263,7 @@ main() {
     if [ "$compressed" -gt 0 ]; then
         echo -e "${GREEN}Compression complete!${NC}"
         echo -e "${BLUE}Next steps:${NC}"
-        echo -e "  1. Test videos on porn.php to ensure quality"
+        echo -e "  1. Test videos on content pages to ensure quality"
         echo -e "  2. If satisfied, you can delete backups to save space"
         echo -e "  3. Run generate-thumbnails.sh if needed"
     fi

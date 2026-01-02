@@ -20,7 +20,7 @@ This document tracks performance benchmarks over time to monitor improvements an
 | Page | TTFB | Total Time | Size |
 |------|------|------------|------|
 | index.html | 0.001s | 0.001s | 10,880b |
-| porn.php | 0.001s | 0.001s | 10,285b |
+| free-content.php | 0.001s | 0.001s | 10,285b |
 | gallery.php | 0.001s | 0.001s | 8,163b |
 | live.html | 0.001s | 0.001s | 6,393b |
 | sissylonglegs.html | 0.001s | 0.001s | 11,776b |
@@ -126,7 +126,7 @@ Percentage of requests served within a certain time (ms):
 
 ### Quick Page Test
 ```bash
-for page in index.html porn.php gallery.php live.html; do
+for page in index.html free-content.php gallery.php live.html; do
   curl -so /dev/null -w "$page: %{time_total}s (TTFB: %{time_starttransfer}s)\n" http://localhost/$page
 done
 ```
@@ -174,7 +174,7 @@ curl -so /dev/null -w "CDN TTFB: %{time_starttransfer}s\n" "https://6318.s3.nvme
 | Page | TTFB | Total Time | Size |
 |------|------|------------|------|
 | index.html | 0.001s | 0.001s | 12,782b |
-| porn.php | 0.002s | 0.003s | 35,705b |
+| free-content.php | 0.002s | 0.003s | 35,705b |
 | gallery.php | 0.002s | 0.002s | 2,701b |
 | live.html | 0.001s | 0.001s | 12,314b |
 | sissylonglegs.html | 0.001s | 0.001s | 10,964b |

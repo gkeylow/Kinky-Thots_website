@@ -306,7 +306,7 @@ ffmpeg -i "$uploaded_file" \
 
 ## 🎬 Next Steps After Compression
 
-1. ✅ Test videos on porn.php
+1. ✅ Test videos on content pages
 2. ✅ Check quality on mobile devices
 3. ✅ Regenerate thumbnails if needed
 4. ✅ Monitor bandwidth usage
