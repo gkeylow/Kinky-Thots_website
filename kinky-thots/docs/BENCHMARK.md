@@ -275,6 +275,168 @@ Percentage of requests served within a certain time (ms):
 
 ---
 
+## Benchmark #3 - January 3, 2026 @ 22:16 UTC
+
+### Test Environment
+- **Server**: Apache/2.4.65 + PHP 8.4 (Docker: kinky-web)
+- **Database**: MariaDB 10.11 (Docker: kinky-db)
+- **CDN**: Pushr CDN (Sonic S3)
+- **Backend**: Node.js on port 3001 (Docker: kinky-backend)
+- **Test Tool**: Apache Bench (ab), curl
+- **Changes Since Last**: Added immutable cache headers, font/video caching, JSON compression
+
+---
+
+### Page Response Times (TTFB)
+
+| Page | TTFB | Total Time | Size |
+|------|------|------------|------|
+| index.html | 0.001s | 0.001s | 13,931b |
+| free-content.php | 0.001s | 0.002s | 21,079b |
+| basic-content.php | 0.001s | 0.001s | 14,819b |
+| premium-content.php | 0.001s | 0.001s | 16,881b |
+| gallery.php | 0.002s | 0.002s | 3,413b |
+| live.html | 0.001s | 0.001s | 13,496b |
+| sissylonglegs.html | 0.001s | 0.001s | 12,213b |
+| bustersherry.html | 0.001s | 0.001s | 12,448b |
+| terms.html | 0.001s | 0.001s | 4,999b |
+| subscriptions.html | 0.001s | 0.001s | 19,628b |
+| profile.html | 0.001s | 0.001s | 24,360b |
+
+**Result**: All pages under 2ms TTFB ✅
+
+---
+
+### Load Testing (Apache Bench)
+
+#### Light Load (100 requests, 10 concurrent)
+```
+Server Software:        Apache/2.4.65
+Document Path:          /
+Requests per second:    2167.04 [#/sec]
+Time per request:       4.615 [ms]
+Failed requests:        0
+```
+
+#### Heavy Load (1000 requests, 50 concurrent)
+```
+Server Software:        Apache/2.4.65
+Document Path:          /
+Requests per second:    1732.84 [#/sec]
+Time per request:       28.854 [ms]
+Failed requests:        0
+
+Connection Times (ms):
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.7      0       4
+Processing:     4   28   6.8     28      59
+Waiting:        1   26   6.4     27      56
+Total:          4   28   6.8     28      60
+
+Percentage of requests served within a certain time (ms):
+  50%     28
+  66%     31
+  75%     32
+  90%     35
+  95%     38
+  99%     52
+ 100%     60 (longest request)
+```
+
+#### Stress Test (5000 requests, 100 concurrent)
+```
+Server Software:        Apache/2.4.65
+Document Path:          /
+Requests per second:    1965.36 [#/sec]
+Time per request:       50.881 [ms]
+Failed requests:        0
+
+Connection Times (ms):
+              min  mean[+/-sd] median   max
+Connect:        0    0   1.0      0       9
+Processing:     3   50   9.3     50      98
+Waiting:        1   49   8.7     48      98
+Total:          6   50   9.2     50      98
+
+Percentage of requests served within a certain time (ms):
+  50%     50
+  66%     54
+  75%     56
+  90%     63
+  95%     67
+  99%     74
+ 100%     98 (longest request)
+```
+
+**Result**: ~2,000 req/sec sustained under stress with zero failures ✅
+
+---
+
+### Asset Compression (Gzip)
+
+| Asset | Uncompressed | Compressed | Reduction |
+|-------|--------------|------------|-----------|
+| assets/dist/css/main.css | 22,744b | 4,531b | 81% |
+| assets/dist/js/main.js | 2,386b | 872b | 64% |
+| assets/dist/css/media-gallery.css | 12,356b | 2,941b | 77% |
+| assets/dist/css/live.css | 16,821b | 3,913b | 77% |
+| assets/dist/js/live.js | 17,007b | 5,023b | 71% |
+
+**Result**: Average 74% compression ratio ✅
+
+---
+
+### CDN Performance (Pushr/Sonic)
+
+| Metric | Value |
+|--------|-------|
+| CDN TTFB | ~526ms |
+| Base URL | https://6318.s3.nvme.de01.sonic.r-cdn.com |
+
+**Note**: CDN latency is external and depends on geographic location.
+
+---
+
+### Service Health
+
+| Service | Container | Status | Port |
+|---------|-----------|--------|------|
+| Apache | kinky-web | ✅ Running (2d) | 80 |
+| Node.js Backend | kinky-backend | ✅ Healthy (2d) | 3002→3001 |
+| MariaDB | kinky-db | ✅ Healthy (5d) | 3306 |
+| nginx-rtmp | kinky-rtmp | ✅ Running (5d) | 1935 |
+
+---
+
+### Optimizations Applied
+
+1. **Improved Cache Headers**:
+   - Added `immutable` directive for static assets
+   - Added font caching (1 year TTL)
+   - Added video/audio caching (30 days TTL)
+   - Added AVIF image format support
+
+2. **Additional Compression**:
+   - Added JSON response compression
+   - Added SVG compression
+   - Added manifest.json compression
+
+---
+
+### Summary
+
+| Metric | Target | Actual | Status |
+|--------|--------|--------|--------|
+| TTFB | < 200ms | < 2ms | ✅ PASS |
+| Requests/sec | > 1000 | 1,965 | ✅ PASS |
+| Failed Requests | 0 | 0 | ✅ PASS |
+| Gzip Enabled | Yes | Yes | ✅ PASS |
+| 99th Percentile | < 500ms | 74ms | ✅ PASS |
+
+**Overall Score**: EXCELLENT
+
+---
+
 ## Future Benchmarks
 
 Add new benchmark entries below following the same format.
