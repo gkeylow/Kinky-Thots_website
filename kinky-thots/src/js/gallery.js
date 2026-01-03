@@ -21,7 +21,7 @@ function init() {
 
 async function loadGallery() {
   const grid = document.getElementById('gallery-grid');
-  if (!grid) return;
+  if (!grid) {return;}
 
   grid.innerHTML = '<div class="loading">Loading gallery...</div>';
 
@@ -121,7 +121,7 @@ function setupUploadForm() {
   const uploadText = document.querySelector('.upload-text');
   const preview = document.getElementById('image-preview');
 
-  if (!form || !fileInput || !uploadArea) return;
+  if (!form || !fileInput || !uploadArea) {return;}
 
   uploadArea.addEventListener('dragover', (e) => {
     e.preventDefault();
@@ -307,7 +307,7 @@ function setupLightbox() {
   const nextBtn = document.getElementById('lightbox-next');
   const grid = document.getElementById('gallery-grid');
 
-  if (!overlay || !overlayImg || !overlayVideo) return;
+  if (!overlay || !overlayImg || !overlayVideo) {return;}
 
   if (grid) {
     grid.addEventListener('click', (e) => {
@@ -398,7 +398,7 @@ function setupLightbox() {
   }, { passive: true });
 
   overlay.addEventListener('touchend', (e) => {
-    if (overlay.style.display !== 'flex') return;
+    if (overlay.style.display !== 'flex') {return;}
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;
     const diffX = touchEndX - touchStartX;
