@@ -55,7 +55,7 @@ function setupLightbox() {
     };
 
     lightbox.addEventListener('click', (e) => {
-      if (e.target === lightbox) closeLightbox();
+      if (e.target === lightbox) {closeLightbox();}
     });
     lightbox.querySelector('.lightbox-close')?.addEventListener('click', closeLightbox);
 

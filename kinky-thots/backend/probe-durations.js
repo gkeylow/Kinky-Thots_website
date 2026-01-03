@@ -2,19 +2,32 @@ const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { execSync } = require('child_process');
 const fs = require('fs');
+const path = require('path');
+
+// Load credentials from config file (same as sonic-s3-client.js)
+const configFile = path.join(__dirname, '../config/sonic-s3-cdn.json');
+if (!fs.existsSync(configFile)) {
+  console.error('ERROR: Config file not found:', configFile);
+  console.error('Please ensure config/sonic-s3-cdn.json exists with S3 credentials');
+  process.exit(1);
+}
+
+const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
 
 const s3 = new S3Client({
-  endpoint: 'https://s3.nvme.eu-central.r-cdn.com',
-  region: 'eu-central',
+  endpoint: config.s3.endpoint,
+  region: config.s3.region,
   credentials: {
-    accessKeyId: 'Z1Z2BU5WTNB6S28P6OW4M',
-    secretAccessKey: 'TrwzRLw1U8NPS0g3hDKWNkxBw7ZSw8NYRcNZNFQ1'
+    accessKeyId: config.s3.access_key,
+    secretAccessKey: config.s3.secret_key
   },
-  forcePathStyle: true
+  forcePathStyle: config.settings.path_style
 });
 
+const BUCKET = config.s3.bucket;
+
 async function getDuration(filename) {
-  const command = new GetObjectCommand({ Bucket: '6318', Key: filename });
+  const command = new GetObjectCommand({ Bucket: BUCKET, Key: filename });
   const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
 
   try {

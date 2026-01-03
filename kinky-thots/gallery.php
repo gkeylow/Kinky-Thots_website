@@ -10,6 +10,7 @@ if (!$adminPassword) {
 $isAuthenticated = isset($_SESSION['gallery_admin_auth']) && $_SESSION['gallery_admin_auth'] === true;
 
 // Handle admin bypass via JWT verification
+// Security note: Token passed via URL is visible in logs/history - only use for admin bypass
 if (!$isAuthenticated && isset($_GET['admin_bypass'])) {
     $token = $_GET['admin_bypass'];
     $jwtSecret = getenv('JWT_SECRET');
@@ -18,13 +19,14 @@ if (!$isAuthenticated && isset($_GET['admin_bypass'])) {
         $parts = explode('.', $token);
         if (count($parts) === 3) {
             $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
-            if ($payload && isset($payload['userId'])) {
+            // Must have userId AND isAdmin flag set to true
+            if ($payload && isset($payload['userId']) && !empty($payload['isAdmin'])) {
                 // Verify signature
                 $header = $parts[0];
                 $signature = hash_hmac('sha256', "$header.$parts[1]", $jwtSecret, true);
                 $validSig = rtrim(strtr(base64_encode($signature), '+/', '-_'), '=');
                 if (hash_equals($validSig, $parts[2])) {
-                    // JWT is valid, check if user is admin via API internally
+                    // JWT is valid AND user is admin
                     $_SESSION['gallery_admin_auth'] = true;
                     $_SESSION['gallery_admin_user'] = $payload['username'] ?? 'Admin';
                     $isAuthenticated = true;

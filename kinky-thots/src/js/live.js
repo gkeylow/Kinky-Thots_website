@@ -211,7 +211,7 @@ class LivePlayer {
 
   loadStream() {
     const streamUrl = CONFIG.stream.hlsUrl;
-    if (typeof Hls === 'undefined') return;
+    if (typeof Hls === 'undefined') {return;}
 
     if (Hls.isSupported()) {
       const hlsConfig = {
@@ -261,17 +261,17 @@ class LivePlayer {
     const chatStatusLabel = document.getElementById('chatStatusLabel');
 
     if (isLive) {
-      if (this.placeholder) this.placeholder.style.display = 'none';
-      if (this.video) this.video.style.display = 'block';
+      if (this.placeholder) {this.placeholder.style.display = 'none';}
+      if (this.video) {this.video.style.display = 'block';}
       chatStatusDot?.classList.replace('offline', 'live');
       chatStatusLabel?.classList.replace('offline', 'live');
-      if (chatStatusLabel) chatStatusLabel.textContent = 'LIVE';
+      if (chatStatusLabel) {chatStatusLabel.textContent = 'LIVE';}
     } else {
-      if (this.placeholder) this.placeholder.style.display = 'flex';
-      if (this.video) this.video.style.display = 'none';
+      if (this.placeholder) {this.placeholder.style.display = 'flex';}
+      if (this.video) {this.video.style.display = 'none';}
       chatStatusDot?.classList.replace('live', 'offline');
       chatStatusLabel?.classList.replace('live', 'offline');
-      if (chatStatusLabel) chatStatusLabel.textContent = 'Offline';
+      if (chatStatusLabel) {chatStatusLabel.textContent = 'Offline';}
     }
   }
 
@@ -437,7 +437,7 @@ class LiveChat {
    * Add moderation message
    */
   addModMessage(text) {
-    if (!this.messagesContainer) return;
+    if (!this.messagesContainer) {return;}
     const msgEl = document.createElement('div');
     msgEl.className = 'chat-mod-action';
     msgEl.textContent = `[MOD] ${text}`;
@@ -449,7 +449,7 @@ class LiveChat {
    * Clear all chat messages
    */
   clearChat() {
-    if (!this.messagesContainer) return;
+    if (!this.messagesContainer) {return;}
     this.messagesContainer.innerHTML = '<div class="chat-welcome">Chat was cleared</div>';
   }
 

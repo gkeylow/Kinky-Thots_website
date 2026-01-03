@@ -4,7 +4,7 @@ function initMobileNav() {
   const dropdowns = document.querySelectorAll('.dropdown');
   const navbar = document.querySelector('nav');
 
-  if (!navToggle || !navLinks) return;
+  if (!navToggle || !navLinks) {return;}
 
   // Mobile menu toggle
   navToggle.addEventListener('click', (e) => {

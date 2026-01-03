@@ -40,7 +40,7 @@ export class AuthManager {
 
     // Click outside to close
     this.modal?.addEventListener('click', (e) => {
-      if (e.target === this.modal) this.hideModal();
+      if (e.target === this.modal) {this.hideModal();}
     });
 
     // Tab switching
@@ -329,7 +329,7 @@ export class AuthManager {
    */
   updateUI() {
     const trigger = document.getElementById('authTrigger');
-    if (!trigger) return;
+    if (!trigger) {return;}
 
     if (this.isAuthenticated()) {
       trigger.textContent = this.user.username;
