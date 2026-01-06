@@ -39,6 +39,180 @@ const emailTransporter = nodemailer.createTransport({
 
 const SITE_URL = process.env.SITE_URL || 'https://kinky-thots.com';
 const SITE_NAME = 'Kinky-Thots';
+const SMTP_FROM = `"${process.env.SMTP_FROM_NAME || SITE_NAME}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'noreply@kinky-thots.com'}>`;
+
+// ============================================
+// EMAIL HELPER FUNCTIONS
+// ============================================
+
+/**
+ * Send subscription-related emails
+ * @param {string} type - Email type (welcome, receipt, renewed, cancelled, expiring, failed, lifetime)
+ * @param {object} user - User object with email, username
+ * @param {object} details - Additional details (tier, amount, date, etc.)
+ */
+async function sendSubscriptionEmail(type, user, details = {}) {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn('Email not configured - skipping', type, 'email to', user.email);
+    return false;
+  }
+
+  const templates = {
+    welcome: {
+      subject: `Welcome to ${SITE_NAME} ${details.tierName || 'Premium'}!`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f0f; padding: 30px; border-radius: 16px;">
+          <h2 style="color: #f805a7; margin-bottom: 20px;">Welcome to ${SITE_NAME}!</h2>
+          <p style="color: #fff;">Hi ${user.username},</p>
+          <p style="color: #ccc;">Thank you for subscribing to <strong style="color: #0bd0f3;">${details.tierName || 'Premium'}</strong>!</p>
+          <p style="color: #ccc;">You now have access to:</p>
+          <ul style="color: #ccc;">
+            ${(details.features || ['Premium content', 'HD streaming', 'Chat badge']).map(f => `<li>${f}</li>`).join('')}
+          </ul>
+          <p style="text-align: center; margin: 30px 0;">
+            <a href="${SITE_URL}/premium-content.php" style="background: linear-gradient(135deg, #f805a7, #0bd0f3); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; display: inline-block;">Start Watching</a>
+          </p>
+          <hr style="border: none; border-top: 1px solid #333; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">${SITE_NAME} - ${SITE_URL}</p>
+        </div>
+      `
+    },
+    receipt: {
+      subject: `Payment Receipt - ${SITE_NAME}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f0f; padding: 30px; border-radius: 16px;">
+          <h2 style="color: #f805a7; margin-bottom: 20px;">Payment Received</h2>
+          <p style="color: #fff;">Hi ${user.username},</p>
+          <p style="color: #ccc;">We've received your payment. Here are the details:</p>
+          <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="color: #ccc; margin: 5px 0;"><strong>Plan:</strong> ${details.tierName || 'Premium'}</p>
+            <p style="color: #ccc; margin: 5px 0;"><strong>Amount:</strong> $${details.amount || '0.00'}</p>
+            <p style="color: #ccc; margin: 5px 0;"><strong>Date:</strong> ${details.date || new Date().toLocaleDateString()}</p>
+            ${details.nextBilling ? `<p style="color: #ccc; margin: 5px 0;"><strong>Next billing:</strong> ${details.nextBilling}</p>` : ''}
+          </div>
+          <p style="text-align: center; margin: 30px 0;">
+            <a href="${SITE_URL}/profile.html" style="background: linear-gradient(135deg, #f805a7, #0bd0f3); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; display: inline-block;">View Account</a>
+          </p>
+          <hr style="border: none; border-top: 1px solid #333; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">${SITE_NAME} - ${SITE_URL}</p>
+        </div>
+      `
+    },
+    renewed: {
+      subject: `Subscription Renewed - ${SITE_NAME}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f0f; padding: 30px; border-radius: 16px;">
+          <h2 style="color: #f805a7; margin-bottom: 20px;">Subscription Renewed</h2>
+          <p style="color: #fff;">Hi ${user.username},</p>
+          <p style="color: #ccc;">Your ${details.tierName || 'Premium'} subscription has been renewed successfully.</p>
+          <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="color: #ccc; margin: 5px 0;"><strong>Amount charged:</strong> $${details.amount || '0.00'}</p>
+            <p style="color: #ccc; margin: 5px 0;"><strong>Next renewal:</strong> ${details.nextBilling || 'N/A'}</p>
+          </div>
+          <p style="color: #ccc;">Thank you for your continued support!</p>
+          <hr style="border: none; border-top: 1px solid #333; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">${SITE_NAME} - ${SITE_URL}</p>
+        </div>
+      `
+    },
+    cancelled: {
+      subject: `Subscription Cancelled - ${SITE_NAME}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f0f; padding: 30px; border-radius: 16px;">
+          <h2 style="color: #f805a7; margin-bottom: 20px;">Subscription Cancelled</h2>
+          <p style="color: #fff;">Hi ${user.username},</p>
+          <p style="color: #ccc;">Your subscription has been cancelled as requested.</p>
+          ${details.accessUntil ? `<p style="color: #ccc;">You'll continue to have access until <strong style="color: #0bd0f3;">${details.accessUntil}</strong>.</p>` : ''}
+          <p style="color: #ccc;">We're sorry to see you go. If you change your mind, you can resubscribe anytime.</p>
+          <p style="text-align: center; margin: 30px 0;">
+            <a href="${SITE_URL}/subscriptions.html" style="background: linear-gradient(135deg, #f805a7, #0bd0f3); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; display: inline-block;">Resubscribe</a>
+          </p>
+          <hr style="border: none; border-top: 1px solid #333; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">${SITE_NAME} - ${SITE_URL}</p>
+        </div>
+      `
+    },
+    expiring: {
+      subject: `Subscription Expiring Soon - ${SITE_NAME}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f0f; padding: 30px; border-radius: 16px;">
+          <h2 style="color: #f805a7; margin-bottom: 20px;">Subscription Expiring Soon</h2>
+          <p style="color: #fff;">Hi ${user.username},</p>
+          <p style="color: #ccc;">Your ${details.tierName || 'Premium'} subscription will expire on <strong style="color: #0bd0f3;">${details.expiresAt || 'soon'}</strong>.</p>
+          <p style="color: #ccc;">Renew now to keep your access to premium content!</p>
+          <p style="text-align: center; margin: 30px 0;">
+            <a href="${SITE_URL}/subscriptions.html" style="background: linear-gradient(135deg, #f805a7, #0bd0f3); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; display: inline-block;">Renew Now</a>
+          </p>
+          <hr style="border: none; border-top: 1px solid #333; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">${SITE_NAME} - ${SITE_URL}</p>
+        </div>
+      `
+    },
+    failed: {
+      subject: `Payment Failed - ${SITE_NAME}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f0f; padding: 30px; border-radius: 16px;">
+          <h2 style="color: #e74c3c; margin-bottom: 20px;">Payment Failed</h2>
+          <p style="color: #fff;">Hi ${user.username},</p>
+          <p style="color: #ccc;">We were unable to process your subscription payment.</p>
+          <p style="color: #ccc;">Please update your payment method to continue your access.</p>
+          <p style="text-align: center; margin: 30px 0;">
+            <a href="${SITE_URL}/profile.html" style="background: linear-gradient(135deg, #f805a7, #0bd0f3); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; display: inline-block;">Update Payment</a>
+          </p>
+          <hr style="border: none; border-top: 1px solid #333; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">${SITE_NAME} - ${SITE_URL}</p>
+        </div>
+      `
+    },
+    lifetime: {
+      subject: `Welcome to Lifetime Access - ${SITE_NAME}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f0f; padding: 30px; border-radius: 16px;">
+          <h2 style="background: linear-gradient(135deg, #FFD700, #FFA500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px;">Lifetime Access Unlocked!</h2>
+          <p style="color: #fff;">Hi ${user.username},</p>
+          <p style="color: #ccc;">Congratulations! You now have <strong style="color: #FFD700;">LIFETIME ACCESS</strong> to all premium content on ${SITE_NAME}.</p>
+          <div style="background: rgba(255,215,0,0.1); padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid rgba(255,215,0,0.3);">
+            <p style="color: #ccc; margin: 5px 0;"><strong>Amount paid:</strong> $${details.amount || '250.00'}</p>
+            <p style="color: #ccc; margin: 5px 0;"><strong>Access:</strong> Forever</p>
+          </div>
+          <p style="color: #ccc;">Your benefits include:</p>
+          <ul style="color: #ccc;">
+            <li>All videos - no restrictions</li>
+            <li>4K streaming</li>
+            <li>Exclusive content</li>
+            <li>VIP chat badge</li>
+            <li>Priority support</li>
+          </ul>
+          <p style="text-align: center; margin: 30px 0;">
+            <a href="${SITE_URL}/premium-content.php" style="background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; padding: 12px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">Start Watching</a>
+          </p>
+          <hr style="border: none; border-top: 1px solid #333; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">${SITE_NAME} - ${SITE_URL}</p>
+        </div>
+      `
+    }
+  };
+
+  const template = templates[type];
+  if (!template) {
+    console.error('Unknown email template type:', type);
+    return false;
+  }
+
+  try {
+    await emailTransporter.sendMail({
+      from: SMTP_FROM,
+      to: user.email,
+      subject: template.subject,
+      html: template.html
+    });
+    console.log(`Email sent: ${type} to ${user.email}`);
+    return true;
+  } catch (err) {
+    console.error(`Failed to send ${type} email to ${user.email}:`, err.message);
+    return false;
+  }
+}
 
 // Subscription Tiers Configuration
 const SUBSCRIPTION_TIERS = {
@@ -52,21 +226,18 @@ const SUBSCRIPTION_TIERS = {
   basic: {
     name: 'Basic',
     price: 8,
-    priceId: process.env.PAYPAL_BASIC_PLAN_ID,
     maxDuration: 300, // Videos 1-5 minutes
     features: ['Videos up to 5 minutes', 'HD streams', 'Chat badge', 'Priority support']
   },
   premium: {
     name: 'Premium',
     price: 15,
-    priceId: process.env.PAYPAL_PREMIUM_PLAN_ID,
     maxDuration: Infinity, // All videos
     features: ['All videos (5+ min)', '4K streams', 'Exclusive content', 'Direct messaging']
   },
   lifetime: {
     name: 'Lifetime',
     price: 250,
-    priceId: process.env.PAYPAL_LIFETIME_PLAN_ID,
     maxDuration: Infinity,
     isLifetime: true,
     features: ['All Premium features', 'Never expires', 'Priority support']
@@ -809,300 +980,384 @@ app.get('/api/content', async (req, res) => {
 });
 
 // ============================================
-// PAYPAL SUBSCRIPTION ENDPOINTS
+// NOWPAYMENTS CRYPTO PAYMENT ENDPOINTS
 // ============================================
 
-// PayPal API configuration
-const PAYPAL_CONFIG = {
-  clientId: process.env.PAYPAL_CLIENT_ID,
-  clientSecret: process.env.PAYPAL_CLIENT_SECRET,
-  mode: process.env.PAYPAL_MODE || 'sandbox', // 'sandbox' or 'live'
+// NOWPayments configuration
+const NOWPAYMENTS_CONFIG = {
+  apiKey: process.env.NOWPAYMENTS_API_KEY,
+  ipnSecret: process.env.NOWPAYMENTS_IPN_SECRET,
+  sandbox: process.env.NOWPAYMENTS_SANDBOX === 'true',
+  email: process.env.NOWPAYMENTS_EMAIL,
+  password: process.env.NOWPAYMENTS_PASSWORD,
+  basicPlanId: process.env.NOWPAYMENTS_BASIC_PLAN_ID,
+  premiumPlanId: process.env.NOWPAYMENTS_PREMIUM_PLAN_ID,
+  jwtToken: null,
+  jwtExpiry: null,
   get baseUrl() {
-    return this.mode === 'live'
-      ? 'https://api-m.paypal.com'
-      : 'https://api-m.sandbox.paypal.com';
+    return this.sandbox
+      ? 'https://api-sandbox.nowpayments.io'
+      : 'https://api.nowpayments.io';
   }
 };
 
-// Get PayPal access token
-async function getPayPalAccessToken() {
-  const auth = Buffer.from(`${PAYPAL_CONFIG.clientId}:${PAYPAL_CONFIG.clientSecret}`).toString('base64');
+// Get JWT token for NOWPayments subscription API
+async function getNowPaymentsJwtToken() {
+  // Return cached token if still valid (with 30s buffer)
+  if (NOWPAYMENTS_CONFIG.jwtToken && NOWPAYMENTS_CONFIG.jwtExpiry > Date.now() + 30000) {
+    return NOWPAYMENTS_CONFIG.jwtToken;
+  }
 
-  const response = await fetch(`${PAYPAL_CONFIG.baseUrl}/v1/oauth2/token`, {
+  if (!NOWPAYMENTS_CONFIG.email || !NOWPAYMENTS_CONFIG.password) {
+    throw new Error('NOWPayments email/password not configured');
+  }
+
+  const response = await fetch(`${NOWPAYMENTS_CONFIG.baseUrl}/v1/auth`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Basic ${auth}`,
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: 'grant_type=client_credentials'
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: NOWPAYMENTS_CONFIG.email,
+      password: NOWPAYMENTS_CONFIG.password
+    })
   });
 
   const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error_description || 'Failed to get PayPal access token');
+
+  if (!response.ok || !data.token) {
+    console.error('NOWPayments auth error:', data);
+    throw new Error(data.message || 'Failed to authenticate with NOWPayments');
   }
 
-  return data.access_token;
+  // Cache token (expires in 5 minutes)
+  NOWPAYMENTS_CONFIG.jwtToken = data.token;
+  NOWPAYMENTS_CONFIG.jwtExpiry = Date.now() + 4 * 60 * 1000; // 4 min to be safe
+
+  return data.token;
 }
 
-// Create PayPal subscription
-app.post('/api/subscriptions/create', authenticateToken, async (req, res) => {
+// Verify IPN signature from NOWPayments webhook
+function verifyIpnSignature(payload, signature) {
+  if (!NOWPAYMENTS_CONFIG.ipnSecret) {
+    console.warn('NOWPAYMENTS_IPN_SECRET not set - skipping verification');
+    return true;
+  }
+  const hmac = crypto.createHmac('sha512', NOWPAYMENTS_CONFIG.ipnSecret);
+  const sortedPayload = JSON.stringify(payload, Object.keys(payload).sort());
+  hmac.update(sortedPayload);
+  const calculatedSignature = hmac.digest('hex');
+  return calculatedSignature === signature;
+}
+
+// Check NOWPayments API status
+app.get('/api/payments/status', async (req, res) => {
+  try {
+    const response = await fetch(`${NOWPAYMENTS_CONFIG.baseUrl}/v1/status`);
+    const data = await response.json();
+    res.json({
+      configured: !!NOWPAYMENTS_CONFIG.apiKey,
+      sandbox: NOWPAYMENTS_CONFIG.sandbox,
+      apiStatus: data
+    });
+  } catch (err) {
+    res.json({ configured: !!NOWPAYMENTS_CONFIG.apiKey, error: err.message });
+  }
+});
+
+// Get available cryptocurrencies
+app.get('/api/payments/currencies', async (req, res) => {
+  try {
+    const response = await fetch(`${NOWPAYMENTS_CONFIG.baseUrl}/v1/currencies`, {
+      headers: { 'x-api-key': NOWPAYMENTS_CONFIG.apiKey }
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch currencies' });
+  }
+});
+
+// Create payment for subscription checkout
+// - Basic/Premium: Uses recurring subscription API (requires JWT)
+// - Lifetime: Uses one-time invoice API
+app.post('/api/subscriptions/checkout', authenticateToken, async (req, res) => {
   const { tier } = req.body;
 
-  if (!PAYPAL_CONFIG.clientId || !PAYPAL_CONFIG.clientSecret) {
-    return res.status(503).json({ error: 'PayPal is not configured' });
+  if (!NOWPAYMENTS_CONFIG.apiKey) {
+    return res.status(503).json({ error: 'Payment system not configured' });
   }
 
   const tierConfig = SUBSCRIPTION_TIERS[tier];
-  if (!tierConfig || !tierConfig.priceId) {
+  if (!tierConfig || tierConfig.price === 0) {
     return res.status(400).json({ error: 'Invalid subscription tier' });
   }
 
   try {
-    const accessToken = await getPayPalAccessToken();
+    const isLifetime = tier === 'lifetime';
+    const isRecurring = tier === 'basic' || tier === 'premium';
+    let paymentUrl, paymentId;
 
-    // Create subscription
-    const response = await fetch(`${PAYPAL_CONFIG.baseUrl}/v1/billing/subscriptions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'PayPal-Request-Id': `sub-${req.user.userId}-${Date.now()}`
-      },
-      body: JSON.stringify({
-        plan_id: tierConfig.priceId,
-        subscriber: {
-          email_address: req.user.email
-        },
-        application_context: {
-          brand_name: 'Kinky-Thots',
-          locale: 'en-US',
-          shipping_preference: 'NO_SHIPPING',
-          user_action: 'SUBSCRIBE_NOW',
-          return_url: `${SITE_URL}/checkout.html?success=true&tier=${tier}`,
-          cancel_url: `${SITE_URL}/checkout.html?cancelled=true&tier=${tier}`
-        }
-      })
-    });
+    if (isRecurring) {
+      // Use subscription API for recurring payments (Basic/Premium)
+      const planId = tier === 'basic'
+        ? NOWPAYMENTS_CONFIG.basicPlanId
+        : NOWPAYMENTS_CONFIG.premiumPlanId;
 
-    const subscription = await response.json();
-
-    if (!response.ok) {
-      console.error('PayPal subscription error:', subscription);
-      return res.status(500).json({ error: 'Failed to create subscription' });
-    }
-
-    // Find approval URL
-    const approvalUrl = subscription.links?.find(link => link.rel === 'approve')?.href;
-
-    res.json({
-      subscriptionId: subscription.id,
-      approvalUrl,
-      status: subscription.status
-    });
-
-  } catch (err) {
-    console.error('PayPal error:', err);
-    res.status(500).json({ error: 'PayPal service error' });
-  }
-});
-
-// Activate subscription after PayPal approval
-app.post('/api/subscriptions/activate', authenticateToken, async (req, res) => {
-  const { subscriptionId, tier } = req.body;
-
-  if (!subscriptionId || !tier) {
-    return res.status(400).json({ error: 'Missing subscriptionId or tier' });
-  }
-
-  let conn;
-  try {
-    const accessToken = await getPayPalAccessToken();
-
-    // Get subscription details from PayPal
-    const response = await fetch(`${PAYPAL_CONFIG.baseUrl}/v1/billing/subscriptions/${subscriptionId}`, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+      if (!planId) {
+        return res.status(503).json({
+          error: 'Subscription plans not configured. Please contact support.'
+        });
       }
-    });
 
-    const subscription = await response.json();
+      // Get JWT token for subscription API
+      const jwtToken = await getNowPaymentsJwtToken();
 
-    if (!response.ok || subscription.status !== 'ACTIVE') {
-      return res.status(400).json({ error: 'Subscription not active', status: subscription.status });
-    }
+      // Get user email for subscription
+      let conn;
+      let userEmail;
+      try {
+        conn = await pool.getConnection();
+        const rows = await conn.query('SELECT email FROM users WHERE id = ?', [req.user.userId]);
+        userEmail = rows[0]?.email;
+      } finally {
+        if (conn) conn.release();
+      }
 
-    // Calculate expiration (1 month from now for monthly subscriptions)
-    const expiresAt = new Date();
-    expiresAt.setMonth(expiresAt.getMonth() + 1);
+      if (!userEmail) {
+        return res.status(400).json({ error: 'User email not found' });
+      }
 
-    // Update user subscription in database
-    conn = await pool.getConnection();
-    await conn.query(
-      `UPDATE users SET
-        subscription_tier = ?,
-        subscription_status = 'active',
-        subscription_expires_at = ?,
-        payment_customer_id = ?,
-        payment_provider = 'paypal'
-      WHERE id = ?`,
-      [tier, expiresAt, subscriptionId, req.user.userId]
-    );
+      // Create subscription
+      const subscriptionData = {
+        subscription_plan_id: planId,
+        email: userEmail
+      };
 
-    // Get updated user
-    const users = await conn.query(
-      `SELECT id, username, email, display_color, subscription_tier, subscription_status, subscription_expires_at
-       FROM users WHERE id = ?`,
-      [req.user.userId]
-    );
-
-    res.json({
-      success: true,
-      message: 'Subscription activated',
-      user: users[0]
-    });
-
-  } catch (err) {
-    console.error('Activation error:', err);
-    res.status(500).json({ error: 'Failed to activate subscription' });
-  } finally {
-    if (conn) conn.release();
-  }
-});
-
-// Cancel subscription
-app.post('/api/subscriptions/cancel', authenticateToken, async (req, res) => {
-  let conn;
-  try {
-    conn = await pool.getConnection();
-
-    // Get user's subscription ID
-    const users = await conn.query(
-      'SELECT payment_customer_id, payment_provider FROM users WHERE id = ?',
-      [req.user.userId]
-    );
-
-    if (users.length === 0 || !users[0].payment_customer_id) {
-      return res.status(400).json({ error: 'No active subscription found' });
-    }
-
-    const subscriptionId = users[0].payment_customer_id;
-
-    // Cancel on PayPal
-    if (users[0].payment_provider === 'paypal') {
-      const accessToken = await getPayPalAccessToken();
-
-      const response = await fetch(`${PAYPAL_CONFIG.baseUrl}/v1/billing/subscriptions/${subscriptionId}/cancel`, {
+      const response = await fetch(`${NOWPAYMENTS_CONFIG.baseUrl}/v1/subscriptions`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${jwtToken}`,
+          'x-api-key': NOWPAYMENTS_CONFIG.apiKey,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          reason: 'Customer requested cancellation'
-        })
+        body: JSON.stringify(subscriptionData)
       });
 
-      if (!response.ok && response.status !== 204) {
-        const error = await response.json();
-        console.error('PayPal cancel error:', error);
-        return res.status(500).json({ error: 'Failed to cancel on PayPal' });
+      const subscription = await response.json();
+      console.log('NOWPayments subscription response:', JSON.stringify(subscription, null, 2));
+
+      if (!response.ok) {
+        console.error('NOWPayments subscription error:', subscription);
+        return res.status(500).json({
+          error: subscription.message || 'Failed to create subscription'
+        });
+      }
+
+      // NOWPayments returns result as array
+      const resultArray = subscription.result || [subscription];
+      const result = Array.isArray(resultArray) ? resultArray[0] : resultArray;
+
+      if (!result || !result.id) {
+        console.error('Invalid subscription response:', subscription);
+        return res.status(500).json({ error: 'Invalid subscription response' });
+      }
+
+      paymentId = result.id;
+      // Build the payment link - NOWPayments subscription payments go to their hosted page
+      paymentUrl = `https://nowpayments.io/payment/?id=${result.id}`;
+
+      // Store subscription ID
+      let conn2;
+      try {
+        conn2 = await pool.getConnection();
+        await conn2.query(
+          `UPDATE users SET
+            payment_customer_id = ?,
+            payment_provider = 'nowpayments'
+          WHERE id = ?`,
+          [paymentId, req.user.userId]
+        );
+      } finally {
+        if (conn2) conn2.release();
+      }
+
+    } else {
+      // Use invoice API for one-time payments (Lifetime)
+      const invoiceData = {
+        price_amount: tierConfig.price,
+        price_currency: 'usd',
+        ipn_callback_url: `${SITE_URL}/api/nowpayments/webhook`,
+        order_id: `${tier}-${req.user.userId}-${Date.now()}`,
+        order_description: `${tierConfig.name} Lifetime Access - ${SITE_NAME}`,
+        success_url: `${SITE_URL}/checkout.html?status=success&tier=${tier}`,
+        cancel_url: `${SITE_URL}/checkout.html?status=failed&tier=${tier}`,
+        is_fixed_rate: true,
+        is_fee_paid_by_user: false
+      };
+
+      const response = await fetch(`${NOWPAYMENTS_CONFIG.baseUrl}/v1/invoice`, {
+        method: 'POST',
+        headers: {
+          'x-api-key': NOWPAYMENTS_CONFIG.apiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(invoiceData)
+      });
+
+      const invoice = await response.json();
+
+      if (!response.ok) {
+        console.error('NOWPayments invoice error:', invoice);
+        return res.status(500).json({
+          error: invoice.message || 'Failed to create invoice'
+        });
+      }
+
+      paymentId = invoice.id;
+      paymentUrl = invoice.invoice_url;
+
+      // Store invoice ID
+      let conn;
+      try {
+        conn = await pool.getConnection();
+        await conn.query(
+          `UPDATE users SET
+            payment_customer_id = ?,
+            payment_provider = 'nowpayments'
+          WHERE id = ?`,
+          [invoice.id, req.user.userId]
+        );
+      } finally {
+        if (conn) conn.release();
       }
     }
 
-    // Update database - keep tier until expiration
-    await conn.query(
-      `UPDATE users SET subscription_status = 'cancelled' WHERE id = ?`,
-      [req.user.userId]
-    );
-
-    res.json({ success: true, message: 'Subscription cancelled. Access continues until expiration.' });
+    res.json({
+      paymentId,
+      invoiceUrl: paymentUrl,
+      tier,
+      isRecurring
+    });
 
   } catch (err) {
-    console.error('Cancel error:', err);
-    res.status(500).json({ error: 'Failed to cancel subscription' });
-  } finally {
-    if (conn) conn.release();
+    console.error('NOWPayments error:', err);
+    res.status(500).json({ error: err.message || 'Payment service error' });
   }
 });
 
-// PayPal webhook handler with signature verification
-app.post('/api/paypal/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  // Verify PayPal webhook signature for security
-  const webhookId = process.env.PAYPAL_WEBHOOK_ID;
-  if (webhookId) {
-    const transmissionId = req.headers['paypal-transmission-id'];
-    const transmissionTime = req.headers['paypal-transmission-time'];
-    const certUrl = req.headers['paypal-cert-url'];
-    const transmissionSig = req.headers['paypal-transmission-sig'];
-    const authAlgo = req.headers['paypal-auth-algo'];
+// NOWPayments IPN (Instant Payment Notification) webhook
+app.post('/api/nowpayments/webhook', express.json(), async (req, res) => {
+  const signature = req.headers['x-nowpayments-sig'];
+  const payload = req.body;
 
-    if (!transmissionId || !transmissionTime || !transmissionSig) {
-      console.error('PayPal webhook: Missing required headers');
-      return res.status(401).json({ error: 'Missing webhook signature headers' });
-    }
-
-    // Build expected signature string
-    const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-    const expectedSignature = `${transmissionId}|${transmissionTime}|${webhookId}|${require('crypto').createHash('sha256').update(rawBody).digest('hex')}`;
-
-    // Note: Full verification requires fetching PayPal's cert from certUrl and verifying
-    // For now, we log the signature components for debugging
-    console.log('PayPal webhook signature check:', { transmissionId, authAlgo, webhookId: webhookId.substring(0, 8) + '...' });
-  } else {
-    console.warn('PayPal webhook: PAYPAL_WEBHOOK_ID not set - signature verification skipped');
+  // Verify signature
+  if (!verifyIpnSignature(payload, signature)) {
+    console.error('NOWPayments webhook: Invalid signature');
+    return res.status(401).json({ error: 'Invalid signature' });
   }
 
-  const event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-
-  console.log('PayPal webhook event:', event.event_type);
+  console.log('NOWPayments webhook:', payload.payment_status, payload.order_id);
 
   let conn;
   try {
     conn = await pool.getConnection();
 
-    switch (event.event_type) {
-      case 'BILLING.SUBSCRIPTION.ACTIVATED':
-      case 'BILLING.SUBSCRIPTION.RENEWED':
-        // Subscription was activated or renewed
-        const subId = event.resource.id;
-        const expiresAt = new Date();
-        expiresAt.setMonth(expiresAt.getMonth() + 1);
+    // Parse order_id: "tier-userId-timestamp"
+    const orderParts = payload.order_id?.split('-') || [];
+    const tier = orderParts[0];
+    const oderId = payload.order_id;
 
-        await conn.query(
-          `UPDATE users SET
-            subscription_status = 'active',
-            subscription_expires_at = ?
-          WHERE payment_customer_id = ?`,
-          [expiresAt, subId]
-        );
+    // Get user by payment_customer_id (invoice ID)
+    const users = await conn.query(
+      'SELECT id, username, email, subscription_tier FROM users WHERE payment_customer_id = ?',
+      [payload.invoice_id || payload.payment_id]
+    );
+
+    const user = users[0];
+
+    switch (payload.payment_status) {
+      case 'waiting':
+        // Payment created, waiting for crypto
+        console.log('Payment waiting:', payload.order_id);
         break;
 
-      case 'BILLING.SUBSCRIPTION.CANCELLED':
-      case 'BILLING.SUBSCRIPTION.EXPIRED':
-        // Subscription was cancelled or expired
-        await conn.query(
-          `UPDATE users SET subscription_status = 'expired' WHERE payment_customer_id = ?`,
-          [event.resource.id]
-        );
+      case 'confirming':
+        // Payment received, confirming on blockchain
+        console.log('Payment confirming:', payload.order_id);
         break;
 
-      case 'BILLING.SUBSCRIPTION.SUSPENDED':
-        // Payment failed
-        await conn.query(
-          `UPDATE users SET subscription_status = 'pending' WHERE payment_customer_id = ?`,
-          [event.resource.id]
-        );
+      case 'confirmed':
+      case 'finished':
+        // Payment complete - activate subscription
+        if (user) {
+          const tierConfig = SUBSCRIPTION_TIERS[tier];
+          const isLifetime = tier === 'lifetime';
+
+          // Calculate expiration
+          const expiresAt = isLifetime ? null : new Date();
+          if (!isLifetime) {
+            expiresAt.setMonth(expiresAt.getMonth() + 1);
+          }
+
+          await conn.query(
+            `UPDATE users SET
+              subscription_tier = ?,
+              subscription_status = 'active',
+              subscription_expires_at = ?,
+              payment_provider = 'nowpayments'
+            WHERE id = ?`,
+            [tier, expiresAt, user.id]
+          );
+
+          // Send welcome email
+          if (isLifetime) {
+            await sendSubscriptionEmail('lifetime', user, {
+              amount: payload.price_amount || tierConfig?.price,
+              tierName: 'Lifetime',
+              features: tierConfig?.features || []
+            });
+          } else {
+            await sendSubscriptionEmail('welcome', user, {
+              tierName: tierConfig?.name || tier,
+              features: tierConfig?.features || []
+            });
+            await sendSubscriptionEmail('receipt', user, {
+              tierName: tierConfig?.name || tier,
+              amount: payload.price_amount || tierConfig?.price?.toFixed(2),
+              date: new Date().toLocaleDateString(),
+              nextBilling: expiresAt?.toLocaleDateString() || 'N/A'
+            });
+          }
+
+          console.log(`Subscription activated: ${user.username} -> ${tier}`);
+        }
         break;
 
-      case 'PAYMENT.SALE.COMPLETED':
-        // Successful payment
-        console.log('Payment completed:', event.resource.id);
+      case 'partially_paid':
+        console.log('Partial payment:', payload.order_id, payload.actually_paid);
+        break;
+
+      case 'failed':
+      case 'expired':
+        // Payment failed or expired
+        if (user) {
+          await sendSubscriptionEmail('failed', user, {});
+        }
+        console.log('Payment failed/expired:', payload.order_id);
+        break;
+
+      case 'refunded':
+        // Refund processed
+        if (user) {
+          await conn.query(
+            `UPDATE users SET subscription_status = 'cancelled' WHERE id = ?`,
+            [user.id]
+          );
+        }
+        console.log('Payment refunded:', payload.order_id);
         break;
 
       default:
-        console.log('Unhandled webhook event:', event.event_type);
+        console.log('Unknown payment status:', payload.payment_status);
     }
 
     res.status(200).json({ received: true });
@@ -1110,6 +1365,40 @@ app.post('/api/paypal/webhook', express.raw({ type: 'application/json' }), async
   } catch (err) {
     console.error('Webhook error:', err);
     res.status(500).json({ error: 'Webhook processing failed' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Cancel subscription (database only - user manages billing via NOWPayments)
+app.post('/api/subscriptions/cancel', authenticateToken, async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    // Update database - keep tier until expiration
+    await conn.query(
+      `UPDATE users SET subscription_status = 'cancelled' WHERE id = ?`,
+      [req.user.userId]
+    );
+
+    // Get user for email
+    const users = await conn.query(
+      'SELECT id, username, email, subscription_tier, subscription_expires_at FROM users WHERE id = ?',
+      [req.user.userId]
+    );
+
+    if (users[0]) {
+      await sendSubscriptionEmail('cancelled', users[0], {
+        accessUntil: users[0].subscription_expires_at ? new Date(users[0].subscription_expires_at).toLocaleDateString() : null
+      });
+    }
+
+    res.json({ success: true, message: 'Subscription cancelled. Access continues until expiration.' });
+
+  } catch (err) {
+    console.error('Cancel error:', err);
+    res.status(500).json({ error: 'Failed to cancel subscription' });
   } finally {
     if (conn) conn.release();
   }
