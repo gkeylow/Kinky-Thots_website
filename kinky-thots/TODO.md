@@ -1,155 +1,162 @@
 # Kinky-Thots Implementation TODO
 
-## ✅ COMPLETED (Dec 31, 2024)
+## ✅ COMPLETED (Jan 5, 2026)
 
-### User Authentication System
-- [x] Database: `users` table created in `kinky_thots` database
-- [x] Dependencies: `bcrypt`, `jsonwebtoken`, `validator`, `express-rate-limit` installed
-- [x] Environment: `JWT_SECRET` and `JWT_EXPIRES_IN` added to `.env`
-- [x] Backend Auth Endpoints added to `server.js`:
-  - `POST /api/auth/register` - Create account
-  - `POST /api/auth/login` - Login, returns JWT
-  - `GET /api/auth/me` - Get current user (requires JWT)
-  - `PUT /api/auth/profile` - Update display color
-- [x] WebSocket JWT auth in `server.js` - Authenticated users get their saved username/color
-- [x] Created `src/css/auth-modal.css` - Modal styles + chat badges
-- [x] Created `src/js/auth.js` - AuthManager class for login/register
-- [x] Updated `live.html` - Added auth modal HTML + enabled login button
-- [x] Updated `src/js/live.js` - Integrated auth with WebSocket chat
-- [x] Updated `docker-compose.yml` - Added JWT_SECRET/JWT_EXPIRES_IN env vars
-
-### Password Reset Flow
-- [x] Added nodemailer dependency
-- [x] Email transporter configuration in server.js
-- [x] Endpoints: `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/auth/change-password`
-- [x] Created `reset-password.html` page
-- [x] Added forgot password form to auth modal
-- [x] Updated `src/js/auth.js` with forgot password handlers
-
-### Chat Moderation Tools
-- [x] Added moderation state (bannedUsers, mutedUsers, slowModeSeconds)
-- [x] Implemented `isModerator()` and `parseModCommand()` functions
-- [x] Commands: `/ban`, `/unban`, `/mute`, `/unmute`, `/slow`, `/clear`
-- [x] VIP tier users get moderator access
-- [x] Updated `src/js/live.js` to handle modAction and banned message types
-- [x] Added CSS for mod action messages in `auth-modal.css`
-
-### Content Gating by Subscription Tier
-- [x] Added `SUBSCRIPTION_TIERS` configuration to server.js
-- [x] Created API endpoints: `/api/subscriptions/tiers`, `/api/content`, `/api/content/:id/access`
-- [x] Created `subscriptions.html` page with tier pricing display
-- [x] Created `checkout.html` page (PayPal placeholder)
-- [x] Updated `porn.php` with content gating JavaScript
-- [x] Added locked content CSS (blur, lock icon, upgrade buttons) to `media-gallery.css`
-
-### Security Hardening
-- [x] Removed hardcoded API key fallbacks from server.js
-- [x] JWT_SECRET now required - fail-fast on missing env vars
-- [x] Added env vars to docker-compose.yml
-
-### User Profile Page
-- [x] Created `profile.html` page
-- [x] Shows user info: username, email, tier, member since, last login
-- [x] Chat color customization with color picker
-- [x] Password change form
-- [x] Subscription status with upgrade CTA
-- [x] Cancel subscription button for paid tiers
-- [x] User dropdown menu in nav (Profile, Subscription, Logout)
-
-### PayPal Payment Integration
-- [x] PayPal API configuration in server.js
-- [x] Environment variables setup (PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, etc.)
-- [x] Subscription creation endpoint (`/api/subscriptions/create`)
-- [x] Subscription activation endpoint (`/api/subscriptions/activate`)
-- [x] Subscription cancellation endpoint (`/api/subscriptions/cancel`)
-- [x] PayPal webhook handler (`/api/paypal/webhook`)
-- [x] Updated checkout.html with PayPal redirect flow
-- [x] Graceful fallback when PayPal not configured
+### NOWPayments Crypto Integration
+- [x] Removed PayPal integration (policy violation for adult content)
+- [x] Added NOWPayments API configuration
+- [x] JWT authentication for subscription API
+- [x] Created subscription plans in NOWPayments dashboard:
+  - Basic (kinky_thot_basic): `1682032527` - $8/31 days
+  - Premium (kinky_thot_premium): `381801900` - $15/31 days
+- [x] Configured redirect URLs (success/failed/partial)
+- [x] Updated checkout.html with crypto payment UI
+- [x] Added partial payment handling page
+- [x] Backend endpoints:
+  - `GET /api/payments/status` - Check API connection
+  - `GET /api/payments/currencies` - List 227+ cryptocurrencies
+  - `POST /api/subscriptions/checkout` - Create subscription/invoice
+  - `POST /api/nowpayments/webhook` - Handle IPN callbacks
 
 ---
 
 ## 🔄 IN PROGRESS
 
-(none currently)
+### NOWPayments - Finish Testing
+- [ ] Test full payment flow end-to-end (user pays → webhook activates subscription)
+- [ ] Verify webhook IPN signature validation in production
+- [ ] Test subscription renewal flow (auto-charge after 31 days)
+- [ ] Add Lifetime plan (currently using 3-year workaround - NOWPayments doesn't support true one-time)
 
 ---
 
-## 📋 DEFERRED FOR FUTURE IMPLEMENTATION
+## 📋 HIGH PRIORITY
 
-### Stream Notifications (Deferred)
-- [ ] Add web-push dependency (already in package.json)
-- [ ] Create VAPID keys for push notifications
-- [ ] Implement service worker for push notifications
-- [ ] Add notification permission prompt on live.html
-- [ ] Create endpoint to store push subscriptions
-- [ ] Send push notification when stream goes live
+### Email Migration - Google Workspace to Self-Hosted SMTP
+Research and implement self-hosted email server in Docker to replace Google Workspace.
 
-### PWA Support (Deferred)
-- [ ] Create `manifest.json` with app metadata
-- [ ] Add PWA meta tags to all pages
-- [ ] Create service worker for offline caching
-- [ ] Add install prompt for mobile users
-- [ ] Cache static assets and pages for offline access
+**Options to Research:**
+- [ ] **Mailcow** - Full-featured, Docker-native, includes Roundcube/SOGo webmail
+- [ ] **docker-mailserver** - Lightweight, production-ready, well-documented
+- [ ] **Postal** - High-volume sending, good for transactional email
+- [ ] **iRedMail** - Feature-rich, supports multiple domains
+- [ ] **Mailu** - Lightweight alternative to Mailcow
 
-> **Note**: Stream Notifications and PWA Support have been deferred to a future session. Priority was given to core user authentication, subscription, and payment features.
+**Migration Tasks:**
+- [ ] Choose SMTP solution based on research
+- [ ] Set up DNS records (MX, SPF, DKIM, DMARC)
+- [ ] Configure SSL certificates for mail server
+- [ ] Set up Docker container for mail server
+- [ ] Create mailboxes (admin@kinky-thots.com)
+- [ ] Migrate existing emails from Google Workspace
+- [ ] Update application SMTP settings in `.env`
+- [ ] Test transactional emails (password reset, subscription confirmations)
 
----
-
-## 🗄️ SHELVED (Future Implementation)
-
-### Video Features
-- Like/favorite system
-- Save to watch later
-- Watch history tracking
-- Video recommendations based on views
-
-### Admin Dashboard
-- User management (ban, tier changes)
-- Content management (upload, organize)
-- Analytics (views, signups, revenue)
-- Real-time chat moderation panel
-
-### Chat Enhancements
-- Custom emoji support
-- @mentions with notifications
-- Message reactions
-- Animated stickers/GIFs
-
----
-
-## Database Schema Reference
-
-```sql
--- Users table (already created)
-CREATE TABLE users (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(30) NOT NULL UNIQUE,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    display_color VARCHAR(7) DEFAULT '#0bd0f3',
-    subscription_tier ENUM('free', 'basic', 'premium', 'vip') DEFAULT 'free',
-    subscription_status ENUM('active', 'expired', 'cancelled', 'pending') DEFAULT 'active',
-    subscription_expires_at TIMESTAMP NULL,
-    payment_customer_id VARCHAR(255) NULL,
-    payment_provider VARCHAR(50) NULL,
-    email_verified BOOLEAN DEFAULT FALSE,
-    email_verification_token VARCHAR(255) NULL,
-    password_reset_token VARCHAR(255) NULL,
-    password_reset_expires TIMESTAMP NULL,
-    last_login_at TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+**Current Email Setup:**
+```
+Provider: Google Workspace
+SMTP: smtp.gmail.com:587
+Email: admin@kinky-thots.com
 ```
 
 ---
 
-## Key Files Reference
+## 📋 MEDIUM PRIORITY
 
+### Payment System Enhancements
+- [ ] Payment history page for users
+- [ ] Email notifications on successful payment
+- [ ] Email reminders before subscription expires
+- [ ] Admin dashboard for viewing payments/subscriptions
+- [ ] Handle subscription cancellation properly
+
+### Content Management
+- [ ] Video upload admin interface
+- [ ] Automatic thumbnail generation on upload
+- [ ] Content scheduling (publish date)
+
+---
+
+## 📋 LOW PRIORITY / DEFERRED
+
+### Stream Notifications
+- [ ] Web push notifications when stream goes live
+- [ ] Service worker for push notifications
+- [ ] Notification permission prompt
+
+### PWA Support
+- [ ] manifest.json with app metadata
+- [ ] Service worker for offline caching
+- [ ] Install prompt for mobile users
+
+### Video Features
+- [ ] Like/favorite system
+- [ ] Watch history tracking
+- [ ] Video recommendations
+
+### Chat Enhancements
+- [ ] Custom emoji support
+- [ ] @mentions with notifications
+- [ ] Message reactions
+
+### Admin Dashboard
+- [ ] User management (ban, tier changes)
+- [ ] Content management
+- [ ] Analytics (views, signups, revenue)
+
+---
+
+## ✅ COMPLETED (Dec 31, 2024)
+
+### User Authentication System
+- [x] Database: `users` table created
+- [x] JWT-based auth with bcrypt password hashing
+- [x] Backend endpoints: register, login, profile
+- [x] WebSocket JWT auth for chat
+- [x] Auth modal in live.html
+
+### Password Reset Flow
+- [x] Nodemailer email transporter
+- [x] Forgot/reset password endpoints
+- [x] reset-password.html page
+
+### Chat Moderation Tools
+- [x] Mod commands: /ban, /unban, /mute, /unmute, /slow, /clear
+- [x] VIP tier gets moderator access
+
+### Content Gating by Subscription Tier
+- [x] Duration-based tiers (free <1min, basic 1-5min, premium >5min)
+- [x] Content pages: free-content.php, basic-content.php, premium-content.php
+- [x] subscriptions.html with tier display
+
+### User Profile Page
+- [x] profile.html with account info
+- [x] Chat color customization
+- [x] Password change form
+
+---
+
+## Reference
+
+### NOWPayments Configuration
+```bash
+# .env
+NOWPAYMENTS_API_KEY=DNF2V49-EF7MTCW-JHHWBNN-3T1AGQZ
+NOWPAYMENTS_IPN_SECRET=rnuWG3MSWP3wn5j3asK1N0I39cCWOrRc
+NOWPAYMENTS_EMAIL=admin@kinky-thots.com
+NOWPAYMENTS_BASIC_PLAN_ID=1682032527
+NOWPAYMENTS_PREMIUM_PLAN_ID=381801900
+```
+
+### NOWPayments Webhook URL
+```
+https://kinky-thots.com/api/nowpayments/webhook
+```
+
+### Key Files
 | Feature | Files |
 |---------|-------|
-| Auth | `src/js/auth.js`, `src/css/auth-modal.css`, `live.html` |
-| Backend | `backend/server.js`, `backend/package.json` |
-| Subscriptions | `subscriptions.html`, `checkout.html` |
-| Content Gating | `porn.php`, `src/css/media-gallery.css` |
-| Password Reset | `reset-password.html` |
+| Payments | `backend/server.js`, `checkout.html` |
+| Auth | `src/js/auth.js`, `live.html` |
+| Subscriptions | `subscriptions.html`, `profile.html` |
+| Content | `free-content.php`, `basic-content.php`, `premium-content.php` |
