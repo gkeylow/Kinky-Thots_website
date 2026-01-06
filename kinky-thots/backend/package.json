@@ -1,4 +1,7 @@
 {
+  "name": "kinky-thots-backend",
+  "version": "1.6.0",
+  "description": "Kinky-Thots Node.js backend API",
   "scripts": {
     "test": "jest --runInBand",
     "sonic:test": "node sonic-cli.js test",
@@ -6,7 +9,8 @@
     "sonic:list": "node sonic-cli.js list",
     "sonic:info": "node sonic-cli.js info",
     "sonic:delete": "node sonic-cli.js delete",
-    "sonic:sync-manifest": "node sonic-cli.js sync-manifest"
+    "sonic:sync-manifest": "node sonic-cli.js sync-manifest",
+    "cron:reminders": "node cron/subscription-reminders.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.445.0",
