@@ -116,13 +116,14 @@
         .login-required a:hover {
             text-decoration: underline;
         }
-        .paypal-button-container {
+        .payment-container {
             min-height: 150px;
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-direction: column;
         }
-        .paypal-loading {
+        .payment-loading {
             color: #888;
             text-align: center;
         }
@@ -179,6 +180,20 @@
         .success-message p {
             color: #ccc;
             margin-bottom: 1.5rem;
+        }
+        .crypto-payment {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(11, 208, 243, 0.05);
+            border: 1px solid rgba(11, 208, 243, 0.2);
+            border-radius: 12px;
+        }
+        .crypto-icons span {
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        .crypto-icons span:hover {
+            opacity: 1;
         }
         @media (max-width: 480px) {
             .checkout-container { margin-top: 80px; }
@@ -255,8 +270,8 @@
                 <p>You must be logged in to subscribe</p>
                 <a href="/live.html" id="loginLink">Click here to login</a>
             </div>
-            <div id="paypalContainer" class="paypal-button-container">
-                <div class="paypal-loading">Loading payment options...</div>
+            <div id="paymentContainer" class="payment-container">
+                <div class="payment-loading">Loading payment options...</div>
             </div>
         </div>
 
@@ -269,6 +284,21 @@
             <h2>Subscription Activated!</h2>
             <p>Thank you for subscribing. Your account has been upgraded and you now have access to exclusive content.</p>
             <a href="/free-content.php" class="checkout-btn">Browse Content</a>
+        </div>
+    </div>
+
+    <!-- Partial payment state (hidden by default) -->
+    <div id="partialState" class="checkout-card" style="display: none;">
+        <div class="partial-message">
+            <h2 style="color: #f39c12;">Partial Payment Received</h2>
+            <p>We received a partial payment for your subscription. This can happen if:</p>
+            <ul style="text-align: left; color: #888; margin: 1rem 0; padding-left: 1.5rem;">
+                <li>Network fees reduced the amount received</li>
+                <li>The crypto amount sent was slightly less than required</li>
+            </ul>
+            <p style="margin-top: 1rem;">Please contact us to resolve this issue:</p>
+            <a href="mailto:admin@kinky-thots.com" class="checkout-btn" style="background: linear-gradient(135deg, #f39c12, #e67e22);">Contact Support</a>
+            <a href="/subscriptions.html" class="back-link" style="margin-top: 1rem;">Try Again</a>
         </div>
     </div>
 </main>
@@ -293,9 +323,12 @@
     // Get params from URL
     const urlParams = new URLSearchParams(window.location.search);
     const selectedTier = urlParams.get('tier') || 'basic';
-    const isSuccess = urlParams.get('success') === 'true';
-    const isCancelled = urlParams.get('cancelled') === 'true';
-    const subscriptionId = urlParams.get('subscription_id');
+    const isSuccess = urlParams.get('status') === 'success';
+    const isFailed = urlParams.get('status') === 'failed';
+    const isPartial = urlParams.get('status') === 'partial';
+
+    // Determine if this is a one-time payment (lifetime) or subscription
+    const isOneTimePayment = selectedTier === 'lifetime';
 
     let tierData = null;
 
@@ -303,20 +336,25 @@
         const user = JSON.parse(localStorage.getItem(AUTH_USER_KEY) || 'null');
         const token = localStorage.getItem(AUTH_TOKEN_KEY);
 
-        // Handle PayPal return
-        if (isSuccess && subscriptionId) {
-            await handlePayPalReturn(token, subscriptionId);
+        // Handle payment return status
+        if (isSuccess) {
+            showSuccess();
             return;
         }
 
-        if (isCancelled) {
-            showError('Payment was cancelled. You can try again when ready.');
+        if (isFailed) {
+            showError('Payment was not completed. Please try again.');
+        }
+
+        if (isPartial) {
+            showPartialPayment();
+            return;
         }
 
         // Check login status
         if (!user || !token) {
             document.getElementById('loginRequired').style.display = 'block';
-            document.getElementById('paypalContainer').innerHTML = '';
+            document.getElementById('paymentContainer').innerHTML = '';
             return;
         }
 
@@ -333,69 +371,44 @@
 
             // Check if already subscribed to this tier or higher
             if (user.subscription_tier === selectedTier ||
+                user.subscription_tier === 'lifetime' ||
                 (user.subscription_tier === 'premium' && selectedTier === 'basic') ||
                 user.subscription_tier === 'vip') {
                 showError('You already have this subscription or better');
-                document.getElementById('paypalContainer').innerHTML =
+                document.getElementById('paymentContainer').innerHTML =
                     '<a href="/profile.html" class="checkout-btn">View Your Profile</a>';
                 return;
             }
 
             renderOrderSummary(tierData);
-            initPayPal(tierData, token);
+            initPayment(tierData, token);
         } catch (err) {
             showError('Failed to load subscription data');
         }
     }
 
-    async function handlePayPalReturn(token, subId) {
-        const container = document.getElementById('paypalContainer');
-        container.innerHTML = '<div class="paypal-loading">Activating your subscription...</div>';
-
-        try {
-            const response = await fetch('/api/subscriptions/activate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    subscriptionId: subId,
-                    tier: selectedTier
-                })
-            });
-
-            const data = await response.json();
-
-            if (response.ok && data.success) {
-                // Update local storage with new user data
-                localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
-                showSuccess();
-            } else {
-                showError(data.error || 'Failed to activate subscription');
-                container.innerHTML = `
-                    <a href="/subscriptions.html" class="checkout-btn">Try Again</a>
-                `;
-            }
-        } catch (err) {
-            showError('Network error. Please contact support.');
-        }
-    }
-
     function renderOrderSummary(tier) {
         const container = document.getElementById('orderSummary');
+        const isLifetime = selectedTier === 'lifetime';
+        const priceDisplay = isLifetime
+            ? `$${tier.price}<span> one-time</span>`
+            : `$${tier.price}<span>/mo</span>`;
+        const tierLabel = isLifetime ? 'Lifetime Access' : `${tier.name} Subscription`;
+        const accessDesc = isLifetime ? 'Forever access to all content' : 'Full premium content access';
+
         container.innerHTML = `
             <h2>Order Summary</h2>
             <div class="order-item">
                 <div>
-                    <div class="order-item-name">${tier.name} Subscription</div>
-                    <div class="order-item-desc">${tier.contentAccess}% content access</div>
+                    <div class="order-item-name">${tierLabel}</div>
+                    <div class="order-item-desc">${accessDesc}</div>
                 </div>
-                <div class="order-item-price">$${tier.price}<span>/mo</span></div>
+                <div class="order-item-price">${priceDisplay}</div>
             </div>
             <ul class="features-list">
                 ${tier.features.map(f => `<li>${f}</li>`).join('')}
             </ul>
+            ${isLifetime ? '<p style="color: #FFD700; text-align: center; margin-top: 1rem; font-size: 0.9rem;">&#11088; No recurring charges - pay once, access forever!</p>' : ''}
         `;
     }
 
@@ -410,26 +423,42 @@
         document.getElementById('successState').style.display = 'block';
     }
 
-    async function initPayPal(tier, token) {
-        const container = document.getElementById('paypalContainer');
+    function showPartialPayment() {
+        document.querySelector('.checkout-card').style.display = 'none';
+        document.getElementById('partialState').style.display = 'block';
+    }
 
-        // Show subscribe button
+    async function initPayment(tier, token) {
+        const container = document.getElementById('paymentContainer');
+        const isLifetime = selectedTier === 'lifetime';
+
+        // Show crypto payment button
         container.innerHTML = `
-            <button class="checkout-btn" id="subscribeBtn">
-                Subscribe with PayPal - $${tier.price}/month
-            </button>
-            <p style="text-align: center; margin-top: 1rem; font-size: 0.85rem; color: #888;">
-                You'll be redirected to PayPal to complete your subscription
-            </p>
+            <div class="crypto-payment">
+                <div class="crypto-icons" style="display: flex; justify-content: center; gap: 15px; margin-bottom: 1.5rem;">
+                    <span style="font-size: 2rem;">₿</span>
+                    <span style="font-size: 2rem;">Ξ</span>
+                    <span style="font-size: 2rem; color: #26A17B;">₮</span>
+                </div>
+                <p style="color: #888; margin-bottom: 1rem; font-size: 0.9rem;">
+                    Pay securely with Bitcoin, Ethereum, USDT, or 300+ other cryptocurrencies
+                </p>
+                <button id="payWithCryptoBtn" class="checkout-btn">
+                    Pay with Crypto - $${tier.price}${isLifetime ? '' : '/mo'}
+                </button>
+                <p style="color: #666; margin-top: 1rem; font-size: 0.8rem;">
+                    Powered by NOWPayments • Secure & Anonymous
+                </p>
+            </div>
         `;
 
-        document.getElementById('subscribeBtn').addEventListener('click', async () => {
-            const btn = document.getElementById('subscribeBtn');
+        document.getElementById('payWithCryptoBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('payWithCryptoBtn');
             btn.disabled = true;
-            btn.textContent = 'Connecting to PayPal...';
+            btn.textContent = 'Creating payment...';
 
             try {
-                const response = await fetch('/api/subscriptions/create', {
+                const response = await fetch('/api/subscriptions/checkout', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -440,44 +469,23 @@
 
                 const data = await response.json();
 
-                if (response.ok && data.approvalUrl) {
-                    // Store subscription ID for return
-                    sessionStorage.setItem('pending_subscription', data.subscriptionId);
-                    // Redirect to PayPal
-                    window.location.href = data.approvalUrl;
-                } else if (response.status === 503) {
-                    // PayPal not configured
-                    showError('PayPal is not yet configured. Please contact support to subscribe.');
-                    container.innerHTML = `
-                        <div style="text-align: center; color: #888;">
-                            <p>Contact us to subscribe:</p>
-                            <a href="mailto:support@kinky-thots.com" style="color: #0bd0f3;">support@kinky-thots.com</a>
-                        </div>
-                    `;
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to create payment');
+                }
+
+                // Redirect to NOWPayments invoice page
+                if (data.invoiceUrl) {
+                    window.location.href = data.invoiceUrl;
                 } else {
-                    showError(data.error || 'Failed to create subscription');
-                    btn.disabled = false;
-                    btn.textContent = `Subscribe with PayPal - $${tier.price}/month`;
+                    throw new Error('No payment URL received');
                 }
             } catch (err) {
-                showError('Network error. Please try again.');
+                showError(err.message);
                 btn.disabled = false;
-                btn.textContent = `Subscribe with PayPal - $${tier.price}/month`;
+                btn.textContent = `Pay with Crypto - $${tier.price}${isLifetime ? '' : '/mo'}`;
             }
         });
     }
-
-    // Check for pending subscription on page load (after PayPal redirect)
-    (function checkPendingSubscription() {
-        const pendingSubId = sessionStorage.getItem('pending_subscription');
-        if (pendingSubId && isSuccess && !subscriptionId) {
-            // Add subscription_id to URL for activation
-            const newUrl = new URL(window.location.href);
-            newUrl.searchParams.set('subscription_id', pendingSubId);
-            sessionStorage.removeItem('pending_subscription');
-            window.location.href = newUrl.toString();
-        }
-    })();
 
     init();
 </script>

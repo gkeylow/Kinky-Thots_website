@@ -2,6 +2,28 @@
 
 > **IMPORTANT**: Read this file before starting any work. Document completed work here for future sessions.
 
+## Current Version: 1.5.1
+
+See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
+
+### Version History (Summary)
+| Version | Date | Highlights |
+|---------|------|------------|
+| 1.5.1 | Jan 3, 2026 | Cleanup unused files, CDN cache cleanup |
+| 1.5.0 | Jan 3, 2026 | Benchmark #3, cache optimizations, immutable headers |
+| 1.4.1 | Jan 1, 2026 | Security fixes, credential fallback removal |
+| 1.4.0 | Dec 31, 2024 | Duration-based subscription tiers, content pages |
+| 1.3.0 | Dec 31, 2024 | User auth, subscriptions, payment integration |
+| 1.6.0 | Jan 5, 2026 | Migrated from PayPal to NOWPayments (crypto) |
+| 1.2.0 | Dec 30, 2024 | Security hardening, Docker SSL, CDN sync |
+| 1.1.0 | Dec 29, 2024 | Vite build system, CSS architecture refactor |
+| 1.0.0 | Dec 28, 2024 | Docker Compose setup, initial deployment |
+
+### Versioning Policy
+- **MAJOR** (X.0.0): Breaking changes, major rewrites
+- **MINOR** (1.X.0): New features, significant additions
+- **PATCH** (1.0.X): Bug fixes, cleanup, minor optimizations
+
 ## Tech Stack
 - **Web Server**: Apache2 with PHP (Docker: kinky-web)
 - **Backend**: Node.js WebSocket chat server on port 3001 (Docker: kinky-backend)
@@ -272,20 +294,36 @@ Each page features:
 - Added user dropdown menu to nav on: subscriptions.html, checkout.html, profile.html
 - Dropdown shows: My Profile, Subscription, Logout links
 
-### PayPal Payment Integration
-- Added PayPal API configuration in `backend/server.js`
-- Environment variables: `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_MODE`, `PAYPAL_BASIC_PLAN_ID`, `PAYPAL_PREMIUM_PLAN_ID`
+### NOWPayments Crypto Payment Integration
+**Note**: PayPal was removed due to policy restrictions on adult content. NOWPayments provides crypto payments with explicit adult industry support.
+
+- Added NOWPayments API configuration in `backend/server.js`
+- Environment variables:
+  - `NOWPAYMENTS_API_KEY` - API key from NOWPayments dashboard
+  - `NOWPAYMENTS_IPN_SECRET` - IPN secret for webhook verification
+  - `NOWPAYMENTS_SANDBOX` - Set to 'true' for sandbox mode
+  - `NOWPAYMENTS_EMAIL` - Account email for JWT auth
+  - `NOWPAYMENTS_PASSWORD` - Account password for JWT auth
+  - `NOWPAYMENTS_BASIC_PLAN_ID` - Basic subscription plan ID (1682032527)
+  - `NOWPAYMENTS_PREMIUM_PLAN_ID` - Premium subscription plan ID (381801900)
 - Backend endpoints:
-  - `POST /api/subscriptions/create` - Create PayPal subscription, returns approval URL
-  - `POST /api/subscriptions/activate` - Activate after PayPal approval
+  - `GET /api/payments/status` - Check NOWPayments API connection
+  - `GET /api/payments/currencies` - List available cryptocurrencies (227+)
+  - `POST /api/subscriptions/checkout` - Create subscription/invoice, returns payment URL
+  - `POST /api/nowpayments/webhook` - Handle IPN callbacks
   - `POST /api/subscriptions/cancel` - Cancel subscription
-  - `POST /api/paypal/webhook` - Handle PayPal webhook events
-  - `GET /api/subscriptions/status` - Get user's subscription status
+- **Recurring Subscriptions** (Jan 5, 2026):
+  - Basic ($8/31 days) and Premium ($15/31 days) use NOWPayments Subscription API
+  - JWT authentication for subscription creation (token cached 4 min)
+  - Lifetime uses 3-year plan (NOWPayments doesn't support true one-time)
+  - Plan redirect URLs configured in NOWPayments dashboard
 - Updated `checkout.html` with:
-  - PayPal redirect flow (user is redirected to PayPal to complete)
-  - Handles success/cancelled return from PayPal
-  - Graceful fallback when PayPal not configured
-- Webhook handles: subscription activation, renewal, cancellation, expiration, payment failure
+  - Crypto payment UI (BTC, ETH, USDT icons)
+  - "Pay with Crypto" button
+  - Redirect to NOWPayments payment page
+  - Handles success/failed/partial return from payment
+- Webhook handles: waiting, confirming, confirmed, finished, failed, expired, refunded
+- IPN signature verification using HMAC-SHA512
 
 ### Bug Fixes (Dec 31, 2024)
 - **Gallery uploads not displaying**: Fixed Docker volume path mismatch in `docker-compose.yml`
