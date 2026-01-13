@@ -35,7 +35,6 @@ services:
     volumes:
       - ./uploads:/uploads
       - ./config:/var/www/kinky-thots/config:ro
-      - ./backend/cron:/app/cron:ro
       - /media/porn/kinky-thots-shorts:/media/porn/kinky-thots-shorts
     environment:
       - NODE_ENV=production
@@ -48,7 +47,12 @@ services:
       - PUSHR_SECRET_TOKEN=${PUSHR_SECRET_TOKEN}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
-      # NOWPayments (Crypto)
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
       - NOWPAYMENTS_API_KEY=${NOWPAYMENTS_API_KEY}
       - NOWPAYMENTS_IPN_SECRET=${NOWPAYMENTS_IPN_SECRET}
       - NOWPAYMENTS_SANDBOX=${NOWPAYMENTS_SANDBOX}
@@ -56,13 +60,6 @@ services:
       - NOWPAYMENTS_PASSWORD=${NOWPAYMENTS_PASSWORD}
       - NOWPAYMENTS_BASIC_PLAN_ID=${NOWPAYMENTS_BASIC_PLAN_ID}
       - NOWPAYMENTS_PREMIUM_PLAN_ID=${NOWPAYMENTS_PREMIUM_PLAN_ID}
-      # Email
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASS=${SMTP_PASS}
-      - SMTP_FROM_NAME=${SMTP_FROM_NAME}
-      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
     depends_on:
       db:
         condition: service_healthy
@@ -81,36 +78,6 @@ services:
       - "8081:8080"
     volumes:
       - ./hls:/tmp/hls
-    networks:
-      - kinky-network
-    restart: unless-stopped
-
-  # Docker Mailserver
-  mailserver:
-    image: ghcr.io/docker-mailserver/docker-mailserver:latest
-    container_name: kinky-mail
-    hostname: mail.kinky-thots.com
-    ports:
-      - "25:25"      # SMTP (receiving)
-      - "465:465"    # SMTPS (submission - implicit TLS)
-      - "587:587"    # SMTP (submission - explicit TLS)
-      - "993:993"    # IMAPS (reading email)
-    volumes:
-      - ./docker-data/dms/mail-data/:/var/mail/
-      - ./docker-data/dms/mail-state/:/var/mail-state/
-      - ./docker-data/dms/mail-logs/:/var/log/mail/
-      - ./docker-data/dms/config/:/tmp/docker-mailserver/
-      - /etc/localtime:/etc/localtime:ro
-      - letsencrypt:/etc/letsencrypt:ro
-    environment:
-      - ENABLE_RSPAMD=1
-      - ENABLE_CLAMAV=1
-      - ENABLE_FAIL2BAN=1
-      - SSL_TYPE=self-signed
-      - PERMIT_DOCKER=network
-      - POSTMASTER_ADDRESS=admin@kinky-thots.com
-    cap_add:
-      - NET_ADMIN
     networks:
       - kinky-network
     restart: unless-stopped
