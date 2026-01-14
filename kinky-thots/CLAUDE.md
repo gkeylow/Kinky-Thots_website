@@ -2,13 +2,14 @@
 
 > **IMPORTANT**: Read this file before starting any work. Document completed work here for future sessions.
 
-## Current Version: 1.7.0
+## Current Version: 1.7.1
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 
 ### Version History (Summary)
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.7.1 | Jan 14, 2026 | Login page, lightbox fix, checkout redirect fix |
 | 1.7.0 | Jan 14, 2026 | Linode reverse proxy, WireGuard VPN, removed localtonet |
 | 1.6.0 | Jan 5, 2026 | Migrated from PayPal to NOWPayments (crypto) |
 | 1.5.1 | Jan 3, 2026 | Cleanup unused files, CDN cache cleanup |
@@ -27,12 +28,12 @@ See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 
 ## Tech Stack
 - **Web Server**: Apache2 with PHP (Docker: kinky-web)
-- **Backend**: Node.js WebSocket chat server on port 3001 (Docker: kinky-backend)
+- **Backend**: Node.js WebSocket chat server on port 3002 (Docker: kinky-backend)
 - **Database**: MariaDB 10.11 (Docker: kinky-db)
 - **Streaming**: nginx-rtmp (Docker: kinky-rtmp) - RTMP on :1935, auto HLS conversion
 - **CDN**: Pushr CDN with S3-compatible storage (Sonic)
 - **Build Tools**: Vite, Tailwind CSS, ESLint, Prettier
-- **SSL**: Certbot available in Docker for future native HTTPS (currently using localtonet)
+- **SSL**: Let's Encrypt via Linode reverse proxy (nginx + certbot)
 
 ## CDN Configuration (Pushr/Sonic)
 
@@ -166,12 +167,14 @@ journalctl -u stream-watcher -u rtmp-hls -f
 
 ## Key Pages
 - `index.html` - Homepage
+- `login.html` - Standalone login/register page with redirect support
 - `live.html` - Live streaming page (uses HLS.js + nginx-rtmp)
 - `free-content.php` - Free videos (< 1 min) - open to all
 - `basic-content.php` - Extended videos (1-5 min) - Basic+ subscribers
 - `premium-content.php` - Full-length videos (> 5 min) - Premium/Lifetime subscribers
 - `gallery.php` - Photo gallery (password protected)
 - `subscriptions.html` - Subscription tiers with Lifetime toggle
+- `checkout.html` - Payment checkout with crypto (NOWPayments)
 - `profile.html` - User profile and settings
 - `sissylonglegs.html` - Model page with skills hover images
 - `bustersherry.html` - Model page with skills hover images
@@ -259,6 +262,25 @@ Replaced localtonet with self-hosted Linode reverse proxy:
 ### Mail Server Credentials
 - Webui: https://mail.kinky-thots.com (admin / REDACTED_OLD_MAIL_PASSWORD)
 - IMAP/SMTP: admin@kinky-thots.com (same password)
+
+### Bug Fixes (Jan 14, 2026)
+
+**Lightbox Image Error**:
+- Fixed "Lightbox image failed to load: gallery.php" error
+- Cause: Empty `src=""` attribute caused browser to load page URL as image
+- Fix: Removed `src` attribute from lightbox img element in `gallery.php`
+- Updated cache busting versions for `gallery.js` and `media-gallery.css`
+
+**Checkout Login Redirect**:
+- Fixed login link on checkout page redirecting to `live.html` instead of login page
+- Checkout now links to `/login.html?redirect={checkout_url}`
+- After login/register, user is redirected back to checkout with tier preserved
+
+**New Login Page** (`login.html`):
+- Standalone login/register page (previously only modal on live.html)
+- Supports `?redirect=` parameter for post-login navigation
+- Tab-based UI for Login, Register, and Forgot Password forms
+- Both login and register now honor redirect parameter
 
 ---
 
@@ -513,7 +535,7 @@ Reorganized CSS into modular, reusable files:
 | Container | Description | Ports |
 |-----------|-------------|-------|
 | kinky-web | Apache/PHP web server | 80 (443 for SSL) |
-| kinky-backend | Node.js chat/API server | 3001 |
+| kinky-backend | Node.js chat/API server | 3002 |
 | kinky-rtmp | nginx-rtmp streaming | 1935 (RTMP), 8080 (HTTP) |
 | kinky-db | MariaDB database | 3306 |
 
