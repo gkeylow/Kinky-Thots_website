@@ -2,19 +2,20 @@
 
 > **IMPORTANT**: Read this file before starting any work. Document completed work here for future sessions.
 
-## Current Version: 1.5.1
+## Current Version: 1.7.0
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 
 ### Version History (Summary)
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.7.0 | Jan 14, 2026 | Linode reverse proxy, WireGuard VPN, removed localtonet |
+| 1.6.0 | Jan 5, 2026 | Migrated from PayPal to NOWPayments (crypto) |
 | 1.5.1 | Jan 3, 2026 | Cleanup unused files, CDN cache cleanup |
 | 1.5.0 | Jan 3, 2026 | Benchmark #3, cache optimizations, immutable headers |
 | 1.4.1 | Jan 1, 2026 | Security fixes, credential fallback removal |
 | 1.4.0 | Dec 31, 2024 | Duration-based subscription tiers, content pages |
 | 1.3.0 | Dec 31, 2024 | User auth, subscriptions, payment integration |
-| 1.6.0 | Jan 5, 2026 | Migrated from PayPal to NOWPayments (crypto) |
 | 1.2.0 | Dec 30, 2024 | Security hardening, Docker SSL, CDN sync |
 | 1.1.0 | Dec 29, 2024 | Vite build system, CSS architecture refactor |
 | 1.0.0 | Dec 28, 2024 | Docker Compose setup, initial deployment |
@@ -32,6 +33,31 @@ See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 - **CDN**: Pushr CDN with S3-compatible storage (Sonic)
 - **Build Tools**: Vite, Tailwind CSS, ESLint, Prettier
 - **SSL**: Certbot available in Docker for future native HTTPS (currently using localtonet)
+
+## CDN Configuration (Pushr/Sonic)
+
+### Pull Zones
+| Name | ID | URL |
+|------|----|----|
+| images | 6292 | c5988z6292.r-cdn.com |
+| videos | 6293 | c5988z6293.r-cdn.com |
+
+### Push Zones
+| Name | ID | URL | Endpoint | Bucket |
+|------|----|----|----------|--------|
+| my-images | 6294 | c5988z6294.r-cdn.com | https://s3.eu-central.r-cdn.com | 6406 |
+| xxx-videos | 6318 | (Sonic S3) | https://s3.nvme.eu-central.r-cdn.com | 6318 |
+
+### Push Zone Credentials
+```
+# my-images (6294)
+Access Key: F7CLSY3KHFVQJYCOLYUNN
+Secret Key: hDg5U1VPw1JHRkM1M1Q3VlU4M1mcTFEzUbbDVE45
+
+# xxx-videos (6318) - Current video storage
+Access Key: Z1Z2BU5WTNB6S28P6OW4M
+Secret Key: TrwzRLw1U8NPS0g3hDKWNkxBw7ZSw8NYRcNZNFQ1
+```
 
 ## Quick Commands
 
@@ -175,13 +201,66 @@ journalctl -u stream-watcher -u rtmp-hls -f
 - No hardcoded API keys in source code (environment variables only)
 - `.env` files have 600 permissions
 
-### SSL/HTTPS
-- Currently using localtonet for HTTPS tunneling
-- Certbot installed in Docker for future native SSL:
-  ```bash
-  # Uncomment port 443 in docker-compose.yml first
-  docker exec -it kinky-web certbot --apache -d kinky-thots.com
-  ```
+### SSL/HTTPS & Reverse Proxy
+- **Linode Reverse Proxy** (45.33.100.131) handles all incoming traffic
+- **WireGuard VPN** tunnel connects Linode to home server (CG-NAT bypass)
+- **Let's Encrypt SSL** for all domains:
+  - kinky-thots.com (redirects to .xxx)
+  - kinky-thots.xxx (primary domain)
+  - mail.kinky-thots.com (mail webui)
+
+### Network Architecture
+```
+Internet → Linode (nginx) → WireGuard VPN → Home Server (Docker)
+                ↓
+         SSL Termination
+```
+
+| Component | IP/Address |
+|-----------|------------|
+| Linode Public IP | 45.33.100.131 |
+| Linode VPN IP | 10.100.0.1 |
+| Home Server VPN IP | 10.100.0.2 |
+| WireGuard Port | 51820/udp |
+
+## Recent Changes (Jan 14, 2026)
+
+### Linode Reverse Proxy Migration
+Replaced localtonet with self-hosted Linode reverse proxy:
+
+- **WireGuard VPN**: Secure tunnel from Linode to home server (bypasses CG-NAT)
+- **nginx on Linode**: Handles SSL termination and proxies to home server
+- **Let's Encrypt**: SSL certificates for all domains (auto-renewal via certbot)
+- **Cost Savings**: ~$10-15/mo (localtonet) → ~$5/mo (Linode Nanode)
+
+**Files Created**:
+- `docs/DNS-RECORDS.md` - DNS configuration for both domains
+- `/etc/wireguard/wg0.conf` - WireGuard client config (home server)
+
+**Services on Linode** (45.33.100.131):
+- nginx reverse proxy (ports 80, 443)
+- WireGuard server (port 51820/udp)
+- Mail server (docker-mailserver)
+- Mail webui (Flask/gunicorn on port 8080)
+
+**Domains Configured**:
+| Domain | Purpose |
+|--------|---------|
+| kinky-thots.xxx | Primary website |
+| kinky-thots.com | Redirects to .xxx |
+| mail.kinky-thots.com | Mail server webui |
+
+### Mail Server SSL Fix
+- Updated docker-mailserver from self-signed to Let's Encrypt certificates
+- Changed `SSL_TYPE=self-signed` to `SSL_TYPE=letsencrypt` in docker-compose.yml
+- Mounted `/etc/letsencrypt` volume for certificate access
+- IMAP/SMTP now use trusted SSL (no security warnings)
+
+### Mail Server Credentials
+- Webui: https://mail.kinky-thots.com (admin / REDACTED_OLD_MAIL_PASSWORD)
+- IMAP/SMTP: admin@kinky-thots.com (same password)
+
+---
 
 ## Recent Changes (Dec 31, 2024)
 
