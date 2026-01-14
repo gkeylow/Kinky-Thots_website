@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="author" content="kinky-thots"/>
+    <meta name="copyright" content="kinky-thots"/>
+    <meta name="robots" content="noindex,nofollow"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
+    <title>Login - Kinky Thots</title>
+    <link rel="stylesheet" href="/assets/dist/css/main.css?v=202601120941">
+    <style>
+        /* Login page specific styles */
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .login-main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            margin-top: 80px;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h1 {
+            color: #f805a7;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-header p {
+            color: #b0b0b0;
+            font-size: 1.1rem;
+        }
+
+        /* Auth modal embedded styles */
+        .auth-modal {
+            background: #222;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #333;
+        }
+
+        .auth-tab {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .auth-tab.active {
+            color: #f805a7;
+            border-bottom-color: #f805a7;
+        }
+
+        .auth-tab:hover {
+            color: #fff;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .auth-field {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .auth-label {
+            display: block;
+            color: #f5f5f5;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+
+        .auth-input {
+            width: 100%;
+            max-width: 320px;
+            padding: 0.875rem 1rem;
+            background: #181818;
+            border: 2px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            display: block;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: #f805a7;
+        }
+
+        /* Fix browser autofill dark theme */
+        .auth-input:-webkit-autofill,
+        .auth-input:-webkit-autofill:hover,
+        .auth-input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 1000px #181818 inset !important;
+            -webkit-text-fill-color: #fff !important;
+            caret-color: #fff;
+        }
+
+        .auth-submit {
+            width: 100%;
+            max-width: 320px;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 1rem auto 0;
+            display: block;
+        }
+
+        .auth-submit:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(248, 5, 167, 0.4);
+        }
+
+        .auth-forgot-link {
+            display: block;
+            text-align: center;
+            color: #0bd0f3;
+            text-decoration: none;
+            margin-top: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .auth-forgot-link:hover {
+            text-decoration: underline;
+        }
+
+        .auth-error {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+
+        .auth-success {
+            color: #2ecc71;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #333;
+        }
+
+        .auth-footer p {
+            color: #888;
+            font-size: 0.95rem;
+        }
+
+        .auth-footer a {
+            color: #f805a7;
+            text-decoration: none;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .login-header h1 {
+                font-size: 2rem;
+            }
+
+            .auth-modal {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<!-- Navigation -->
+<nav id="navbar">
+    <div class="nav-container">
+        <div class="logo">
+            <a href="/index.html">Kinky-Thots<img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></a>
+        </div>
+
+        <ul class="nav-links">
+            <li><a href="/index.html">Home</a></li>
+
+            <li class="dropdown">
+                <button class="dropdown-toggle">About</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/index.html#about">About Us</a></li>
+                    <li><a href="/index.html#skills">Our Skills</a></li>
+                    <li><a href="/index.html#portfolio">Portfolio</a></li>
+                    <li><a href="/index.html#contact">Contact</a></li>
+                </ul>
+            </li>
+
+            <li class="dropdown">
+                <button class="dropdown-toggle">Models</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/sissylonglegs.html">Sissy Long Legs</a></li>
+                    <li><a href="/bustersherry.html">Buster Sherry</a></li>
+                </ul>
+            </li>
+
+            <li class="dropdown">
+                <button class="dropdown-toggle">Content</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/free-content.php">Free Teasers</a></li>
+                    <li><a href="/basic-content.php">Extended Videos</a></li>
+                    <li><a href="/premium-content.php">Full Access</a></li>
+                    <li><a href="/gallery.php">Photo Gallery</a></li>
+                    <li><a href="/live.html">Live Cam</a></li>
+                </ul>
+            </li>
+
+            <li class="dropdown" id="userDropdown">
+                <button class="dropdown-toggle" id="userTrigger">Account</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/profile.html">My Profile</a></li>
+                    <li><a href="/profile.html#security">Security</a></li>
+                    <li><a href="/subscriptions.html">Subscription</a></li>
+                    <li><a href="#" id="logoutLink">Logout</a></li>
+                </ul>
+            </li>
+            <li id="loginItem"><a href="/login.html" class="login-btn">Login</a></li>
+        </ul>
+
+        <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="login-main">
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Welcome!</h1>
+            <p>Login or create an account to access exclusive content</p>
+        </div>
+
+        <div class="auth-modal">
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">Login</button>
+                <button class="auth-tab" data-tab="register">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form class="auth-form active" id="loginForm">
+                <div class="auth-field">
+                    <label class="auth-label" for="loginEmail">Email or Username</label>
+                    <input type="text" class="auth-input" id="loginEmail" placeholder="Enter email or username" required autofocus>
+                </div>
+                <div class="auth-field">
+                    <label class="auth-label" for="loginPassword">Password</label>
+                    <input type="password" class="auth-input" id="loginPassword" placeholder="Enter password" required>
+                    <div class="auth-error" id="loginError"></div>
+                </div>
+                <button type="submit" class="auth-submit">Login</button>
+                <a href="#" class="auth-forgot-link" id="forgotPasswordLink">Forgot Password?</a>
+            </form>
+
+            <!-- Forgot Password Form -->
+            <form class="auth-form" id="forgotForm">
+                <p style="color: #b0b0b0; margin-bottom: 1rem;">Enter your email and we'll send you a reset link.</p>
+                <div class="auth-field">
+                    <label class="auth-label" for="forgotEmail">Email</label>
+                    <input type="email" class="auth-input" id="forgotEmail" placeholder="Enter your email" required>
+                    <div class="auth-error" id="forgotError"></div>
+                    <div class="auth-success" id="forgotSuccess"></div>
+                </div>
+                <button type="submit" class="auth-submit">Send Reset Link</button>
+                <a href="#" class="auth-forgot-link" id="backToLoginLink">Back to Login</a>
+            </form>
+
+            <!-- Register Form -->
+            <form class="auth-form" id="registerForm">
+                <div class="auth-field">
+                    <label class="auth-label" for="registerUsername">Username</label>
+                    <input type="text" class="auth-input" id="registerUsername" placeholder="3-30 characters" required minlength="3" maxlength="30">
+                </div>
+                <div class="auth-field">
+                    <label class="auth-label" for="registerEmail">Email</label>
+                    <input type="email" class="auth-input" id="registerEmail" placeholder="Enter your email" required>
+                </div>
+                <div class="auth-field">
+                    <label class="auth-label" for="registerPassword">Password</label>
+                    <input type="password" class="auth-input" id="registerPassword" placeholder="Min 8 chars, upper, lower, number" required minlength="8">
+                </div>
+                <div class="auth-field">
+                    <label class="auth-label" for="registerConfirm">Confirm Password</label>
+                    <input type="password" class="auth-input" id="registerConfirm" placeholder="Confirm password" required>
+                    <div class="auth-error" id="registerError"></div>
+                </div>
+                <button type="submit" class="auth-submit">Create Account</button>
+            </form>
+
+            <div class="auth-footer">
+                <p>By continuing, you agree to our <a href="/terms.html">Terms & Conditions</a></p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-left">
+                <p>&copy; 2025 <a href="/index.html">Kinky-Thots</a> <img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="25px"> All rights reserved.</p>
+            </div>
+            <div class="footer-right">
+                <a href="/terms.html" class="footer-link">Terms & Conditions</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- Built JS -->
+<script type="module" src="/assets/dist/js/main.js"></script>
+<script>
+// Auth functionality for login page
+(function() {
+    console.log('[Login] Script starting...');
+    const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3002' : '';
+    console.log('[Login] API_URL:', API_URL || '(relative)');
+
+    // Check if already logged in
+    const token = localStorage.getItem('kt_auth_token');
+    const user = JSON.parse(localStorage.getItem('kt_auth_user') || 'null');
+
+    if (token && user) {
+        console.log('[Login] Already logged in as:', user.username, '- redirecting...');
+        // Already logged in, redirect to profile or intended page
+        const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/profile.html';
+        window.location.replace(redirectUrl); // Use replace to avoid back-button loop
+        return;
+    }
+
+    // Clear any stale partial auth data
+    if (token && !user) {
+        console.log('[Login] Clearing stale token');
+        localStorage.removeItem('kt_auth_token');
+    }
+    if (!token && user) {
+        console.log('[Login] Clearing stale user data');
+        localStorage.removeItem('kt_auth_user');
+    }
+
+    // Tab switching
+    const tabs = document.querySelectorAll('.auth-tab');
+    const forms = document.querySelectorAll('.auth-form');
+    console.log('[Login] Found tabs:', tabs.length, 'forms:', forms.length);
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            console.log('[Login] Tab clicked:', tab.dataset.tab);
+            const targetTab = tab.dataset.tab;
+
+            tabs.forEach(t => t.classList.remove('active'));
+            forms.forEach(f => f.classList.remove('active'));
+
+            tab.classList.add('active');
+            document.getElementById(`${targetTab}Form`).classList.add('active');
+        });
+    });
+
+    // Forgot password links
+    document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
+        e.preventDefault();
+        forms.forEach(f => f.classList.remove('active'));
+        document.getElementById('forgotForm').classList.add('active');
+    });
+
+    document.getElementById('backToLoginLink').addEventListener('click', (e) => {
+        e.preventDefault();
+        forms.forEach(f => f.classList.remove('active'));
+        document.getElementById('loginForm').classList.add('active');
+    });
+
+    // Login form submission
+    const loginBtn = document.querySelector('#loginForm .auth-submit');
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        console.log('[Login] Form submitted');
+        const emailOrUsername = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        const errorDiv = document.getElementById('loginError');
+
+        // Show loading state
+        const originalText = loginBtn.textContent;
+        loginBtn.textContent = 'Logging in...';
+        loginBtn.disabled = true;
+        errorDiv.style.display = 'none';
+
+        console.log('[Login] Attempting login for:', emailOrUsername);
+        try {
+            const res = await fetch(`${API_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: emailOrUsername, password })
+            });
+
+            console.log('[Login] Response status:', res.status);
+            const data = await res.json();
+            console.log('[Login] Response data:', data);
+
+            if (!res.ok) {
+                errorDiv.textContent = data.error || 'Login failed';
+                errorDiv.style.display = 'block';
+                loginBtn.textContent = originalText;
+                loginBtn.disabled = false;
+                return;
+            }
+
+            localStorage.setItem('kt_auth_token', data.token);
+            localStorage.setItem('kt_auth_user', JSON.stringify(data.user));
+
+            // Redirect to profile or intended page
+            const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/profile.html';
+            window.location.href = redirectUrl;
+        } catch (err) {
+            console.error('[Login] Error:', err);
+            errorDiv.textContent = 'Connection error. Please try again.';
+            errorDiv.style.display = 'block';
+            loginBtn.textContent = originalText;
+            loginBtn.disabled = false;
+        }
+    });
+
+    // Register form submission
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('registerUsername').value;
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+        const confirm = document.getElementById('registerConfirm').value;
+        const errorDiv = document.getElementById('registerError');
+
+        if (password !== confirm) {
+            errorDiv.textContent = 'Passwords do not match';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/api/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, email, password })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                errorDiv.textContent = data.error || 'Registration failed';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            localStorage.setItem('kt_auth_token', data.token);
+            localStorage.setItem('kt_auth_user', JSON.stringify(data.user));
+
+            // Redirect to profile or intended page
+            const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/profile.html';
+            window.location.href = redirectUrl;
+        } catch (err) {
+            errorDiv.textContent = 'Connection error. Please try again.';
+            errorDiv.style.display = 'block';
+        }
+    });
+
+    // Forgot password form submission
+    document.getElementById('forgotForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('forgotEmail').value;
+        const errorDiv = document.getElementById('forgotError');
+        const successDiv = document.getElementById('forgotSuccess');
+
+        try {
+            const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                errorDiv.textContent = data.error || 'Request failed';
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+                return;
+            }
+
+            successDiv.textContent = 'Password reset link sent to your email!';
+            successDiv.style.display = 'block';
+            errorDiv.style.display = 'none';
+            document.getElementById('forgotForm').reset();
+        } catch (err) {
+            errorDiv.textContent = 'Connection error. Please try again.';
+            errorDiv.style.display = 'block';
+            successDiv.style.display = 'none';
+        }
+    });
+
+    // Set logged-out class for nav (logged-in users are redirected above)
+    document.body.classList.add('logged-out');
+})();
+</script>
+
+<!-- Elfsight Age Verification -->
+<script src="https://static.elfsight.com/platform/platform.js" async></script>
+<div class="elfsight-app-ea2f58c6-6128-4e92-b2d9-c0b5c09769c3" data-elfsight-app-lazy></div>
+</body>
+</html>

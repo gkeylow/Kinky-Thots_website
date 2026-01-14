@@ -189,8 +189,8 @@ endif;
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
     <title>Kinky Thots - Amateur XXX Gallery</title>
     <!-- Built CSS (Vite + Tailwind) -->
-    <link rel="stylesheet" href="/assets/dist/css/main.css?v=20260101">
-    <link rel="stylesheet" href="/assets/dist/css/media-gallery.css?v=20260101">
+    <link rel="stylesheet" href="/assets/dist/css/main.css?v=202601120941">
+    <link rel="stylesheet" href="/assets/dist/css/media-gallery.css?v=20260114">
 </head>
 <body>
 <nav id="navbar">
@@ -231,15 +231,16 @@ endif;
                 </ul>
             </li>
 
-            <li class="dropdown" id="userDropdown" style="display: none;">
+            <li class="dropdown" id="userDropdown">
                 <button class="dropdown-toggle" id="userTrigger">Account</button>
                 <ul class="dropdown-menu">
                     <li><a href="/profile.html">My Profile</a></li>
+                    <li><a href="/profile.html#security">Security</a></li>
                     <li><a href="/subscriptions.html">Subscription</a></li>
                     <li><a href="#" id="logoutLink">Logout</a></li>
                 </ul>
             </li>
-            <li id="loginItem"><a href="/live.html" class="login-btn" id="authTrigger">Login</a></li>
+            <li id="loginItem"><a href="/login.html" class="login-btn" id="authTrigger">Login</a></li>
         </ul>
 
         <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
@@ -249,10 +250,11 @@ endif;
 <script type="module" src="/assets/dist/js/main.js"></script>
 <script>
 (function() {
+    const token = localStorage.getItem('kt_auth_token');
     const user = JSON.parse(localStorage.getItem('kt_auth_user') || 'null');
-    if (user) {
-        document.getElementById('loginItem').style.display = 'none';
-        document.getElementById('userDropdown').style.display = 'block';
+
+    if (token && user) {
+        document.body.classList.add('logged-in');
         document.getElementById('userTrigger').textContent = user.username;
         document.getElementById('logoutLink').addEventListener('click', (e) => {
             e.preventDefault();
@@ -260,6 +262,10 @@ endif;
             localStorage.removeItem('kt_auth_user');
             window.location.reload();
         });
+    } else {
+        document.body.classList.add('logged-out');
+        if (token && !user) localStorage.removeItem('kt_auth_token');
+        if (!token && user) localStorage.removeItem('kt_auth_user');
     }
 })();
 </script>
@@ -293,7 +299,7 @@ endif;
     <div id="lightbox-overlay" class="lightbox-overlay" style="display:none;">
         <span class="lightbox-close" id="lightbox-close">&times;</span>
         <div id="lightbox-content">
-            <img id="lightbox-img" src="" alt="Full Image" style="display:none;" onerror="console.error('Lightbox image failed to load:', this.src);" />
+            <img id="lightbox-img" alt="Full Image" style="display:none;" onerror="console.error('Lightbox image failed to load:', this.src);" />
             <video id="lightbox-video" controls style="display:none; max-width:90vw; max-height:80vh;"></video>
         </div>
         <div class="lightbox-nav">
@@ -304,7 +310,7 @@ endif;
 </div>
 
 <!-- Built JS (Vite) -->
-<script type="module" src="/assets/dist/js/gallery.js?v=20260101"></script>
+<script type="module" src="/assets/dist/js/gallery.js?v=20260114"></script>
 
 <footer class="site-footer">
     <div class="container">
