@@ -437,6 +437,583 @@ Percentage of requests served within a certain time (ms):
 
 ---
 
+## Benchmark #4 - January 7, 2026 @ 21:50 UTC
+
+### Test Environment
+- **Server**: Apache/2.4.65 + PHP 8.4 (Native)
+- **Database**: MariaDB 11.8.5 (Native)
+- **CDN**: Pushr CDN (Sonic S3)
+- **Backend**: Node.js on port 3002→3001 (Docker: kinky-backend)
+- **Test Tool**: Apache Bench (ab), curl
+- **Changes Since Last**: Removed Docker Compose setup, migrated to native Apache/MariaDB, added video durations to manifest, cleanup of legacy files
+
+---
+
+### Page Response Times (TTFB)
+
+| Page | TTFB | Total Time | Size |
+|------|------|------------|------|
+| index.html | 0.000595s | 0.000642s | 13,931b |
+| live.html | 0.000536s | 0.000591s | 13,496b |
+| subscriptions.html | 0.000491s | 0.000539s | 19,628b |
+| profile.html | 0.000587s | 0.000623s | 24,360b |
+| checkout.html | 0.000555s | 0.000608s | 17,690b |
+| bustersherry.html | 0.000465s | 0.000511s | 12,448b |
+| sissylonglegs.html | 0.000492s | 0.000526s | 12,213b |
+| terms.html | 0.000577s | 0.000611s | 4,999b |
+| reset-password.html | 0.017754s | 0.017809s | 6,706b |
+
+**Result**: All pages under 1ms TTFB (except reset-password: ~18ms) ✅
+
+---
+
+### Load Testing (Apache Bench)
+
+#### Light Load (100 requests, 10 concurrent)
+```
+Server Software:        Apache/2.4.65
+Document Path:          /
+Requests per second:    4803.54 [#/sec]
+Time per request:       2.082 [ms]
+Failed requests:        0
+```
+
+#### Heavy Load (1000 requests, 50 concurrent)
+```
+Server Software:        Apache/2.4.65
+Document Path:          /
+Requests per second:    7576.56 [#/sec]
+Time per request:       6.599 [ms]
+Failed requests:        0
+
+Connection Times (ms):
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.3      0       1
+Processing:     1    6   1.2      6      10
+Waiting:        0    6   1.2      6      10
+Total:          3    6   1.1      6      10
+
+Percentage of requests served within a certain time (ms):
+  50%      6
+  66%      7
+  75%      7
+  80%      7
+  90%      8
+  95%      8
+  98%      9
+  99%      9
+ 100%     10 (longest request)
+```
+
+#### Stress Test (5000 requests, 100 concurrent)
+```
+Server Software:        Apache/2.4.65
+Document Path:          /
+Requests per second:    6534.36 [#/sec]
+Time per request:       15.304 [ms]
+Failed requests:        0
+
+Connection Times (ms):
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.4      0       3
+Processing:     2   15   3.6     14      27
+Waiting:        0   15   3.6     13      27
+Total:          5   15   3.5     14      28
+
+Percentage of requests served within a certain time (ms):
+  50%     14
+  66%     16
+  75%     18
+  80%     18
+  90%     20
+  95%     22
+  98%     24
+  99%     25
+ 100%     28 (longest request)
+```
+
+**Result**: 6,534-7,576 req/sec sustained with zero failures ✅
+
+---
+
+### Asset Compression (Gzip)
+
+**Status**: ⚠️ CSS/JS Compression Disabled
+
+| Asset | Uncompressed | Compressed | Status |
+|-------|--------------|------------|--------|
+| assets/dist/css/main.css | 22,744b | Not compressed | ⚠️ |
+| assets/dist/css/media-gallery.css | 12,356b | Not compressed | ⚠️ |
+| assets/dist/css/live.css | 16,821b | Not compressed | ⚠️ |
+| assets/dist/js/main.js | 2,386b | Not compressed | ⚠️ |
+| assets/dist/js/live.js | 17,007b | Not compressed | ⚠️ |
+
+**Note**: Gzip compression is only configured for JSON/SVG but not CSS/JS files. This is a regression from previous benchmarks. Compression should be re-enabled to improve performance.
+
+---
+
+### CDN Performance (Pushr/Sonic)
+
+| Metric | Value |
+|--------|-------|
+| CDN TTFB | ~373ms |
+| Video Count | 21 |
+| Videos with Duration | 20/21 |
+| Base URL | https://6318.s3.nvme.de01.sonic.r-cdn.com |
+
+**Result**: 29% improvement in CDN latency vs Benchmark #3 (373ms vs 526ms) ✅
+
+---
+
+### Service Health
+
+| Service | Type | Status | Port |
+|---------|------|--------|------|
+| Apache | Native | ✅ Running (14h) | 80 |
+| Node.js Backend | Docker | ✅ Healthy (14h) | 3002→3001 |
+| MariaDB | Native | ✅ Running (14h) | 3306 |
+| nginx-rtmp | Docker | ✅ Running (14h) | 1935, 8081 |
+
+---
+
+### Architecture Changes
+
+1. **Docker to Native Migration**:
+   - Migrated from Docker Compose to native Apache/MariaDB
+   - Backend remains containerized for isolation
+   - Improved performance and reduced overhead
+
+2. **File Structure Reorganization**:
+   - Moved all project files to dot-prefixed directories (.backend/, .config/, etc.)
+   - Cleaner public web root
+   - Improved security
+
+3. **Video Manifest Enhancement**:
+   - Added duration metadata to 20/21 videos
+   - Improved gallery user experience
+   - One corrupted video detected (Cytherea Short.mp4)
+
+---
+
+### Summary
+
+| Metric | Target | Actual | Status |
+|--------|--------|--------|--------|
+| TTFB | < 200ms | < 1ms | ✅ PASS |
+| Requests/sec | > 1000 | 6,534-7,576 | ✅ PASS |
+| Failed Requests | 0 | 0 | ✅ PASS |
+| Gzip Enabled | Yes | Partial | ⚠️ NEEDS ATTENTION |
+| 99th Percentile | < 500ms | 9-25ms | ✅ PASS |
+
+**Overall Score**: VERY GOOD
+**Performance**: 157% improvement in req/sec vs Benchmark #3 (6,534 vs 2,940)
+**Recommendation**: Re-enable CSS/JS gzip compression for optimal performance
+
+---
+
+## Benchmark #5 - January 8, 2026 @ 06:30 UTC
+
+### Test Environment
+- **Server**: Apache/2.4.65 + PHP (Docker: kinky-web)
+- **Database**: MariaDB 10.11 (Docker: kinky-db)
+- **CDN**: Pushr CDN (Sonic S3)
+- **Backend**: Node.js on port 3002→3001 (Docker: kinky-backend)
+- **Test Tool**: Apache Bench (ab), curl
+- **Changes Since Last**: Fixed compression, restored full containerized stack, fixed gallery/login issues
+
+---
+
+### Page Response Times (TTFB)
+
+| Page | TTFB | Total Time | Size |
+|------|------|------------|------|
+| index.html | 0.000886s | 0.000951s | 13,931b |
+| live.html | 0.000744s | 0.000796s | 13,496b |
+| subscriptions.html | 0.000988s | 0.001034s | 19,628b |
+| profile.html | 0.000770s | 0.000813s | 24,360b |
+| checkout.html | 0.000834s | 0.000891s | 17,690b |
+| bustersherry.html | 0.000814s | 0.000864s | 12,448b |
+| sissylonglegs.html | 0.000919s | 0.000987s | 12,213b |
+| terms.html | 0.000833s | 0.000890s | 4,999b |
+| reset-password.html | 0.000760s | 0.000803s | 6,706b |
+
+**Result**: All pages under 1ms TTFB ✅
+
+---
+
+### Load Testing (Apache Bench)
+
+#### Light Load (100 requests, 10 concurrent)
+```
+Server Software:        Apache/2.4.65
+Document Path:          /
+Requests per second:    3116.72 [#/sec]
+Time per request:       3.209 [ms]
+Failed requests:        0
+```
+
+#### Heavy Load (1000 requests, 50 concurrent)
+```
+Server Software:        Apache/2.4.65
+Document Path:          /
+Requests per second:    2673.92 [#/sec]
+Time per request:       18.699 [ms]
+Failed requests:        0
+
+Connection Times (ms):
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.3      0       2
+Processing:     4   18   4.6     17      47
+Waiting:        1   18   4.6     17      46
+Total:          4   18   4.8     17      47
+
+Percentage of requests served within a certain time (ms):
+  50%     17
+  66%     18
+  75%     19
+  80%     19
+  90%     20
+  95%     29
+  98%     38
+  99%     40
+ 100%     47 (longest request)
+```
+
+#### Stress Test (5000 requests, 100 concurrent)
+```
+Server Software:        Apache/2.4.65
+Document Path:          /
+Requests per second:    2804.28 [#/sec]
+Time per request:       35.660 [ms]
+Failed requests:        0
+
+Connection Times (ms):
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.5      0       5
+Processing:     7   35   4.5     35      64
+Waiting:        1   35   4.4     34      54
+Total:          7   35   4.5     35      65
+
+Percentage of requests served within a certain time (ms):
+  50%     35
+  66%     37
+  75%     38
+  80%     38
+  90%     40
+  95%     43
+  98%     48
+  99%     50
+ 100%     65 (longest request)
+```
+
+**Result**: 2,674-3,117 req/sec sustained with zero failures ✅
+
+---
+
+### Asset Compression (Gzip)
+
+**Status**: ✅ Fully Operational
+
+| Asset | Uncompressed | Compressed | Reduction |
+|-------|--------------|------------|-----------|
+| assets/dist/css/main.css | 22,744b | 4,531b | 80% |
+| assets/dist/css/media-gallery.css | 12,356b | 2,941b | 76% |
+| assets/dist/css/live.css | 16,821b | 3,913b | 76% |
+| assets/dist/css/content.css | 1,540b | 591b | 61% |
+| assets/dist/js/main.js | 2,386b | 872b | 63% |
+| assets/dist/js/live.js | 17,007b | 5,023b | 70% |
+| assets/dist/js/gallery.js | 7,422b | 2,689b | 63% |
+
+**Result**: Average 70% compression ratio ✅
+
+---
+
+### CDN Performance (Pushr/Sonic)
+
+| Metric | Value |
+|--------|-------|
+| CDN TTFB | ~553ms |
+| Video Count | 21 |
+| Videos with Duration | 20/21 |
+| Base URL | https://6318.s3.nvme.de01.sonic.r-cdn.com |
+
+---
+
+### Service Health
+
+| Service | Container | Status | Port |
+|---------|-----------|--------|------|
+| Apache | kinky-web | ✅ Healthy (4m) | 80 |
+| Node.js Backend | kinky-backend | ✅ Healthy (3m) | 3002→3001 |
+| MariaDB | kinky-db | ✅ Healthy (4m) | 3306 |
+| nginx-rtmp | kinky-rtmp | ✅ Running (4m) | 1935, 8081 |
+
+---
+
+### Issues Fixed Since Benchmark #4
+
+1. **CSS/JS Compression Re-enabled**:
+   - Added full DEFLATE configuration in .htaccess
+   - Restored 70-80% compression ratios
+   - Saves ~50KB per page load
+
+2. **Gallery Access Restored**:
+   - Added Apache SetEnv for GALLERY_ADMIN_PASSWORD
+   - Gallery page now loads correctly
+   - Admin login working
+
+3. **Database Connection Fixed**:
+   - Restored full containerized stack from Benchmark #3
+   - Backend now connects to containerized MariaDB
+   - All services in Docker network
+
+4. **Login/Registration Working**:
+   - User registration functional
+   - Login authentication working
+   - JWT tokens being issued correctly
+
+---
+
+### Architecture
+
+**Current Setup**: Full Docker Compose Stack
+- All services containerized (web, backend, db, rtmp)
+- Docker network for inter-service communication
+- Native Apache/MariaDB stopped
+- Backend connects to `kinky-db` container
+
+**Benefits**:
+- Consistent environment
+- Easy deployment
+- Service isolation
+- Health checks working
+
+---
+
+### Summary
+
+| Metric | Target | Actual | Status |
+|--------|--------|--------|--------|
+| TTFB | < 200ms | < 1ms | ✅ PASS |
+| Requests/sec | > 1000 | 2,674-3,117 | ✅ PASS |
+| Failed Requests | 0 | 0 | ✅ PASS |
+| Gzip Enabled | Yes | Yes | ✅ PASS |
+| 99th Percentile | < 500ms | 40-50ms | ✅ PASS |
+
+**Overall Score**: EXCELLENT
+**Performance vs Benchmark #3**: Similar (2,804 vs 1,965 req/sec - 43% improvement)
+**Performance vs Benchmark #4**: Slower but stable (2,804 vs 6,534 req/sec)
+
+**Note**: Benchmark #4 had artificially high performance due to native Apache, but was non-functional (database errors, login failures). Benchmark #5 represents stable, working performance with all features operational.
+
+---
+
+## Benchmark #6 - January 14, 2026 @ 02:15 UTC
+
+### Test Environment
+- **Server**: Apache/2.4.65 + PHP (Docker: kinky-web)
+- **Database**: MariaDB (Docker: kinky-db)
+- **CDN**: Pushr CDN (Sonic S3)
+- **Backend**: Node.js on port 3002→3001 (Docker: kinky-backend)
+- **Proxy**: Linode nginx reverse proxy + WireGuard VPN tunnel
+- **Test Tool**: Apache Bench (ab), curl
+- **Changes Since Last**: Migrated from localtonet to Linode reverse proxy with WireGuard VPN
+
+---
+
+### Network Architecture
+
+```
+Internet → Linode (45.33.100.131) → WireGuard VPN → Home Server (CG-NAT)
+```
+
+| Component | Details |
+|-----------|---------|
+| Linode IP | 45.33.100.131 |
+| VPN Subnet | 10.100.0.0/24 |
+| Tunnel Latency | ~65ms RTT |
+| SSL | Let's Encrypt (kinky-thots.com + kinky-thots.xxx) |
+
+---
+
+### Page Response Times
+
+#### Via Linode Proxy (Real-World)
+
+| Page | TTFB | Total Time | Size |
+|------|------|------------|------|
+| index.html | 0.487s | 0.487s | 14,222b |
+| live.html | 0.486s | 0.486s | 13,751b |
+| subscriptions.html | 0.495s | 0.501s | 19,874b |
+| profile.html | 0.529s | 0.587s | 39,268b |
+| checkout.html | 0.543s | 0.543s | 17,936b |
+| bustersherry.html | 0.303s | 0.303s | 12,694b |
+| sissylonglegs.html | 0.445s | 0.446s | 12,459b |
+| terms.html | 0.646s | 0.646s | 5,261b |
+
+**Note**: TTFB includes WireGuard tunnel latency (~65ms RTT × 2 hops + SSL handshake)
+
+#### Direct/Local (Baseline)
+
+| Page | TTFB | Total Time | Size |
+|------|------|------------|------|
+| index.html | 0.001s | 0.001s | 14,222b |
+| live.html | 0.001s | 0.001s | 13,751b |
+| subscriptions.html | 0.001s | 0.001s | 19,874b |
+| profile.html | 0.001s | 0.001s | 39,268b |
+| checkout.html | 0.001s | 0.001s | 17,936b |
+
+**Result**: Local TTFB < 2ms, Proxy adds ~300-650ms (expected for VPN tunnel) ✅
+
+---
+
+### Load Testing (Apache Bench - Local)
+
+#### Light Load (100 requests, 10 concurrent)
+```
+Server Software:        Apache/2.4.65
+Document Path:          /
+Requests per second:    1448.65 [#/sec]
+Time per request:       6.903 [ms]
+Failed requests:        0
+```
+
+#### Heavy Load (1000 requests, 50 concurrent)
+```
+Server Software:        Apache/2.4.65
+Document Path:          /
+Requests per second:    1529.35 [#/sec]
+Time per request:       32.694 [ms]
+Failed requests:        0
+
+Connection Times (ms):
+              min  mean[+/-sd] median   max
+Connect:        0    1   1.1      0      10
+Processing:     5   31   7.7     30      73
+Waiting:        1   30   7.4     28      66
+Total:          5   32   7.9     30      74
+
+Percentage of requests served within a certain time (ms):
+  50%     30
+  66%     32
+  75%     34
+  90%     40
+  95%     50
+  99%     63
+ 100%     74 (longest request)
+```
+
+#### Stress Test (5000 requests, 100 concurrent)
+```
+Server Software:        Apache/2.4.65
+Document Path:          /
+Requests per second:    2026.99 [#/sec]
+Time per request:       49.334 [ms]
+Failed requests:        0
+
+Connection Times (ms):
+              min  mean[+/-sd] median   max
+Connect:        0    0   1.1      0      11
+Processing:    14   49   7.3     48      86
+Waiting:        1   47   6.9     46      79
+Total:         14   49   7.3     48      86
+
+Percentage of requests served within a certain time (ms):
+  50%     48
+  66%     51
+  75%     54
+  90%     59
+  95%     62
+  99%     69
+ 100%     86 (longest request)
+```
+
+**Result**: ~2,000 req/sec sustained with zero failures ✅
+
+---
+
+### Asset Compression (Gzip)
+
+| Asset | Uncompressed | Compressed | Reduction |
+|-------|--------------|------------|-----------|
+| assets/dist/css/main.css | 7,135b | 2,051b | 72% |
+| assets/dist/css/media-gallery.css | 12,356b | 2,941b | 77% |
+| assets/dist/css/live.css | 16,821b | 3,913b | 77% |
+| assets/dist/js/main.js | 2,386b | 872b | 64% |
+| assets/dist/js/live.js | 17,007b | 5,023b | 71% |
+
+**Result**: Average 72% compression ratio ✅
+
+---
+
+### CDN Performance (Pushr/Sonic)
+
+| Metric | Value |
+|--------|-------|
+| CDN TTFB | ~739ms |
+| Base URL | https://6318.s3.nvme.de01.sonic.r-cdn.com |
+
+---
+
+### Service Health
+
+| Service | Container | Status | Port |
+|---------|-----------|--------|------|
+| Apache | kinky-web | ✅ Running (5h) | 80 |
+| Node.js Backend | kinky-backend | ✅ Healthy (5h) | 3002→3001 |
+| WireGuard | wg0 | ✅ Connected | 51820 |
+| Linode nginx | N/A | ✅ Running | 80, 443 |
+
+### WireGuard Tunnel Status
+
+| Metric | Value |
+|--------|-------|
+| Interface | wg0 |
+| Endpoint | 45.33.100.131:51820 |
+| Last Handshake | < 2 min ago |
+| Data Transferred | 174 KiB rx / 547 KiB tx |
+
+---
+
+### Infrastructure Changes
+
+1. **Replaced localtonet with Linode Proxy**:
+   - Eliminated third-party dependency
+   - Cost reduced from ~$10-15/mo to ~$5/mo
+   - Full control over infrastructure
+   - Native SSL via Let's Encrypt
+
+2. **WireGuard VPN Tunnel**:
+   - Secure connection through CG-NAT
+   - Split tunnel (only proxy traffic through VPN)
+   - Persistent keepalive for NAT traversal
+   - ~65ms RTT latency
+
+3. **Dual Domain SSL**:
+   - kinky-thots.com → redirects to .xxx
+   - kinky-thots.xxx → primary domain
+   - Auto-renewal via certbot
+
+---
+
+### Summary
+
+| Metric | Target | Actual | Status |
+|--------|--------|--------|--------|
+| TTFB (local) | < 200ms | < 2ms | ✅ PASS |
+| TTFB (proxy) | < 1000ms | 300-650ms | ✅ PASS |
+| Requests/sec | > 1000 | 2,027 | ✅ PASS |
+| Failed Requests | 0 | 0 | ✅ PASS |
+| Gzip Enabled | Yes | Yes | ✅ PASS |
+| 99th Percentile | < 500ms | 69ms | ✅ PASS |
+| WireGuard Tunnel | Connected | Connected | ✅ PASS |
+| SSL Certificates | Valid | Valid | ✅ PASS |
+
+**Overall Score**: EXCELLENT
+**Infrastructure**: Successfully migrated from localtonet to self-hosted Linode proxy
+
+---
+
 ## Future Benchmarks
 
 Add new benchmark entries below following the same format.
