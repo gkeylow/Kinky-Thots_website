@@ -59,6 +59,10 @@ ServerSignature Off
 
 RewriteEngine On
 
+# Redirect kinky-thots.com to kinky-thots.xxx (primary domain)
+RewriteCond %{HTTP_HOST} ^(www\.)?kinky-thots\.com$ [NC]
+RewriteRule ^(.*)$ https://kinky-thots.xxx/$1 [R=301,L]
+
 # Redirect old gallery.html to gallery.php
 RewriteCond %{REQUEST_URI} ^/gallery\.html$ [NC]
 RewriteRule ^(.*)$ /gallery.php [R=301,L]
@@ -76,9 +80,19 @@ RewriteRule ^(.*)$ /gallery.php [R=302,L]
 # =============================================
 
 <IfModule mod_deflate.c>
-    # Add JSON and manifest compression
+    # Compress text, HTML, CSS, JavaScript
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+
+    # Compress JSON, XML, and SVG
     AddOutputFilterByType DEFLATE application/json
     AddOutputFilterByType DEFLATE application/manifest+json
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE text/xml
     AddOutputFilterByType DEFLATE image/svg+xml
 </IfModule>
 
