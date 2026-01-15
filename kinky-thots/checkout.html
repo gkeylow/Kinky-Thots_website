@@ -333,8 +333,8 @@
     const isFailed = urlParams.get('status') === 'failed';
     const isPartial = urlParams.get('status') === 'partial';
 
-    // Determine if this is a one-time payment (lifetime) or subscription
-    const isOneTimePayment = selectedTier === 'lifetime';
+    // Determine if this is a one-time payment (yearly) or subscription
+    const isOneTimePayment = selectedTier === 'yearly';
 
     let tierData = null;
 
@@ -381,7 +381,7 @@
 
             // Check if already subscribed to this tier or higher
             if (user.subscription_tier === selectedTier ||
-                user.subscription_tier === 'lifetime' ||
+                user.subscription_tier === 'yearly' ||
                 (user.subscription_tier === 'premium' && selectedTier === 'basic') ||
                 user.subscription_tier === 'vip') {
                 showError('You already have this subscription or better');
@@ -399,12 +399,12 @@
 
     function renderOrderSummary(tier) {
         const container = document.getElementById('orderSummary');
-        const isLifetime = selectedTier === 'lifetime';
-        const priceDisplay = isLifetime
-            ? `$${tier.price}<span> one-time</span>`
+        const isYearly = selectedTier === 'yearly';
+        const priceDisplay = isYearly
+            ? `$${tier.price}<span>/year</span>`
             : `$${tier.price}<span>/mo</span>`;
-        const tierLabel = isLifetime ? 'Lifetime Access' : `${tier.name} Subscription`;
-        const accessDesc = isLifetime ? 'Forever access to all content' : 'Full premium content access';
+        const tierLabel = isYearly ? 'Yearly Premium' : `${tier.name} Subscription`;
+        const accessDesc = isYearly ? '12 months of full premium access' : 'Full premium content access';
 
         container.innerHTML = `
             <h2>Order Summary</h2>
@@ -418,7 +418,7 @@
             <ul class="features-list">
                 ${tier.features.map(f => `<li>${f}</li>`).join('')}
             </ul>
-            ${isLifetime ? '<p style="color: #FFD700; text-align: center; margin-top: 1rem; font-size: 0.9rem;">&#11088; No recurring charges - pay once, access forever!</p>' : ''}
+            ${isYearly ? '<p style="color: #FFD700; text-align: center; margin-top: 1rem; font-size: 0.9rem;">&#11088; Save $60 vs monthly - one payment for 12 months!</p>' : ''}
         `;
     }
 
@@ -440,7 +440,8 @@
 
     async function initPayment(tier, token) {
         const container = document.getElementById('paymentContainer');
-        const isLifetime = selectedTier === 'lifetime';
+        const isYearly = selectedTier === 'yearly';
+        const priceLabel = isYearly ? '/year' : '/mo';
 
         // Show crypto payment button
         container.innerHTML = `
@@ -454,7 +455,7 @@
                     Pay securely with Bitcoin, Ethereum, USDT, or 300+ other cryptocurrencies
                 </p>
                 <button id="payWithCryptoBtn" class="checkout-btn">
-                    Pay with Crypto - $${tier.price}${isLifetime ? '' : '/mo'}
+                    Pay with Crypto - $${tier.price}${priceLabel}
                 </button>
                 <p style="color: #666; margin-top: 1rem; font-size: 0.8rem;">
                     Powered by NOWPayments • Secure & Anonymous
@@ -492,7 +493,7 @@
             } catch (err) {
                 showError(err.message);
                 btn.disabled = false;
-                btn.textContent = `Pay with Crypto - $${tier.price}${isLifetime ? '' : '/mo'}`;
+                btn.textContent = `Pay with Crypto - $${tier.price}${priceLabel}`;
             }
         });
     }

@@ -165,16 +165,16 @@ async function sendSubscriptionEmail(type, user, details = {}) {
         </div>
       `
     },
-    lifetime: {
-      subject: `Welcome to Lifetime Access - ${SITE_NAME}`,
+    yearly: {
+      subject: `Welcome to Yearly Premium - ${SITE_NAME}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f0f; padding: 30px; border-radius: 16px;">
-          <h2 style="background: linear-gradient(135deg, #FFD700, #FFA500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px;">Lifetime Access Unlocked!</h2>
+          <h2 style="background: linear-gradient(135deg, #FFD700, #FFA500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px;">Yearly Premium Unlocked!</h2>
           <p style="color: #fff;">Hi ${user.username},</p>
-          <p style="color: #ccc;">Congratulations! You now have <strong style="color: #FFD700;">LIFETIME ACCESS</strong> to all premium content on ${SITE_NAME}.</p>
+          <p style="color: #ccc;">Congratulations! You now have <strong style="color: #FFD700;">12 MONTHS</strong> of premium access on ${SITE_NAME}.</p>
           <div style="background: rgba(255,215,0,0.1); padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid rgba(255,215,0,0.3);">
-            <p style="color: #ccc; margin: 5px 0;"><strong>Amount paid:</strong> $${details.amount || '250.00'}</p>
-            <p style="color: #ccc; margin: 5px 0;"><strong>Access:</strong> Forever</p>
+            <p style="color: #ccc; margin: 5px 0;"><strong>Amount paid:</strong> $${details.amount || '120.00'}</p>
+            <p style="color: #ccc; margin: 5px 0;"><strong>Access expires:</strong> ${details.expiresAt || '1 year from now'}</p>
           </div>
           <p style="color: #ccc;">Your benefits include:</p>
           <ul style="color: #ccc;">
@@ -236,12 +236,13 @@ const SUBSCRIPTION_TIERS = {
     maxDuration: Infinity, // All videos
     features: ['All videos (5+ min)', '4K streams', 'Exclusive content', 'Direct messaging']
   },
-  lifetime: {
-    name: 'Lifetime',
-    price: 250,
+  yearly: {
+    name: 'Yearly',
+    price: 120,
     maxDuration: Infinity,
-    isLifetime: true,
-    features: ['All Premium features', 'Never expires', 'Priority support']
+    isYearly: true,
+    durationDays: 365,
+    features: ['All Premium features', '12 months access', 'Save $60 vs monthly']
   },
   vip: {
     name: 'VIP',
@@ -1219,6 +1220,7 @@ const NOWPAYMENTS_CONFIG = {
   password: process.env.NOWPAYMENTS_PASSWORD,
   basicPlanId: process.env.NOWPAYMENTS_BASIC_PLAN_ID,
   premiumPlanId: process.env.NOWPAYMENTS_PREMIUM_PLAN_ID,
+  yearlyPlanId: process.env.NOWPAYMENTS_YEARLY_PLAN_ID,
   jwtToken: null,
   jwtExpiry: null,
   get baseUrl() {
@@ -1319,15 +1321,17 @@ app.post('/api/subscriptions/checkout', authenticateToken, async (req, res) => {
   }
 
   try {
-    const isLifetime = tier === 'lifetime';
-    const isRecurring = tier === 'basic' || tier === 'premium';
+    const isYearly = tier === 'yearly';
+    const isSubscription = tier === 'basic' || tier === 'premium' || tier === 'yearly';
     let paymentUrl, paymentId;
 
-    if (isRecurring) {
-      // Use subscription API for recurring payments (Basic/Premium)
+    if (isSubscription) {
+      // Use subscription API for all subscription tiers (Basic/Premium/Yearly)
       const planId = tier === 'basic'
         ? NOWPAYMENTS_CONFIG.basicPlanId
-        : NOWPAYMENTS_CONFIG.premiumPlanId;
+        : tier === 'premium'
+          ? NOWPAYMENTS_CONFIG.premiumPlanId
+          : NOWPAYMENTS_CONFIG.yearlyPlanId;
 
       if (!planId) {
         return res.status(503).json({
@@ -1353,38 +1357,107 @@ app.post('/api/subscriptions/checkout', authenticateToken, async (req, res) => {
         return res.status(400).json({ error: 'User email not found' });
       }
 
-      // Create subscription
-      const subscriptionData = {
-        subscription_plan_id: planId,
-        email: userEmail
-      };
+      // Check for existing pending subscription first
+      const existingResponse = await fetch(
+        `${NOWPAYMENTS_CONFIG.baseUrl}/v1/subscriptions?email=${encodeURIComponent(userEmail)}&plan_id=${planId}&limit=10`,
+        {
+          headers: {
+            'Authorization': `Bearer ${jwtToken}`,
+            'x-api-key': NOWPAYMENTS_CONFIG.apiKey
+          }
+        }
+      );
 
-      const response = await fetch(`${NOWPAYMENTS_CONFIG.baseUrl}/v1/subscriptions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${jwtToken}`,
-          'x-api-key': NOWPAYMENTS_CONFIG.apiKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(subscriptionData)
-      });
+      let result = null;
 
-      const subscription = await response.json();
-      console.log('NOWPayments subscription response:', JSON.stringify(subscription, null, 2));
+      if (existingResponse.ok) {
+        const existingData = await existingResponse.json();
+        const subscriptions = existingData.result || existingData || [];
 
-      if (!response.ok) {
-        console.error('NOWPayments subscription error:', subscription);
-        return res.status(500).json({
-          error: subscription.message || 'Failed to create subscription'
-        });
+        // Find a pending subscription for this plan
+        const pending = subscriptions.find(s =>
+          s.subscription_plan_id === planId &&
+          s.status === 'WAITING_PAY' &&
+          s.subscriber?.email === userEmail
+        );
+
+        if (pending) {
+          console.log('Found existing pending subscription:', pending.id);
+          result = pending;
+        }
       }
 
-      // NOWPayments returns result as array
-      const resultArray = subscription.result || [subscription];
-      const result = Array.isArray(resultArray) ? resultArray[0] : resultArray;
+      // Create new subscription if no pending one exists
+      if (!result) {
+        const subscriptionData = {
+          subscription_plan_id: planId,
+          email: userEmail
+        };
+
+        const response = await fetch(`${NOWPAYMENTS_CONFIG.baseUrl}/v1/subscriptions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${jwtToken}`,
+            'x-api-key': NOWPAYMENTS_CONFIG.apiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(subscriptionData)
+        });
+
+        const subscription = await response.json();
+        console.log('NOWPayments subscription response:', JSON.stringify(subscription, null, 2));
+
+        if (!response.ok) {
+          // If already subscribed, try to get the existing subscription
+          if (subscription.message && subscription.message.includes('already subscribed')) {
+            console.log('Email already subscribed, fetching existing subscription...');
+
+            // List all subscriptions and find the matching one
+            const listResponse = await fetch(
+              `${NOWPAYMENTS_CONFIG.baseUrl}/v1/subscriptions?limit=100`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${jwtToken}`,
+                  'x-api-key': NOWPAYMENTS_CONFIG.apiKey
+                }
+              }
+            );
+
+            if (listResponse.ok) {
+              const listData = await listResponse.json();
+              const allSubs = listData.result || listData || [];
+
+              // Find subscription matching this email and plan
+              const existing = allSubs.find(s =>
+                s.subscription_plan_id == planId &&
+                s.subscriber?.email === userEmail
+              );
+
+              if (existing) {
+                console.log('Found existing subscription:', existing.id, 'status:', existing.status);
+                result = existing;
+              }
+            }
+
+            if (!result) {
+              console.error('Could not find existing subscription');
+              return res.status(500).json({ error: 'Subscription exists but could not be retrieved' });
+            }
+          } else {
+            console.error('NOWPayments subscription error:', subscription);
+            return res.status(500).json({
+              error: subscription.message || 'Failed to create subscription'
+            });
+          }
+        } else {
+          // NOWPayments returns result as array
+          const resultArray = subscription.result || [subscription];
+          result = Array.isArray(resultArray) ? resultArray[0] : resultArray;
+        }
+      }
 
       if (!result || !result.id) {
-        console.error('Invalid subscription response:', subscription);
+        console.error('Invalid subscription response:', result);
         return res.status(500).json({ error: 'Invalid subscription response' });
       }
 
@@ -1462,7 +1535,7 @@ app.post('/api/subscriptions/checkout', authenticateToken, async (req, res) => {
       paymentId,
       invoiceUrl: paymentUrl,
       tier,
-      isRecurring
+      isSubscription
     });
 
   } catch (err) {
@@ -1517,12 +1590,14 @@ app.post('/api/nowpayments/webhook', express.json(), async (req, res) => {
         // Payment complete - activate subscription
         if (user) {
           const tierConfig = SUBSCRIPTION_TIERS[tier];
-          const isLifetime = tier === 'lifetime';
+          const isYearly = tier === 'yearly';
 
           // Calculate expiration
-          const expiresAt = isLifetime ? null : new Date();
-          if (!isLifetime) {
-            expiresAt.setMonth(expiresAt.getMonth() + 1);
+          const expiresAt = new Date();
+          if (isYearly) {
+            expiresAt.setDate(expiresAt.getDate() + 365); // 1 year
+          } else {
+            expiresAt.setMonth(expiresAt.getMonth() + 1); // 1 month
           }
 
           await conn.query(
@@ -1536,10 +1611,11 @@ app.post('/api/nowpayments/webhook', express.json(), async (req, res) => {
           );
 
           // Send welcome email
-          if (isLifetime) {
-            await sendSubscriptionEmail('lifetime', user, {
+          if (isYearly) {
+            await sendSubscriptionEmail('yearly', user, {
               amount: payload.price_amount || tierConfig?.price,
-              tierName: 'Lifetime',
+              tierName: 'Yearly Premium',
+              expiresAt: expiresAt.toLocaleDateString(),
               features: tierConfig?.features || []
             });
           } else {
