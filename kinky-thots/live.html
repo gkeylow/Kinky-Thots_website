@@ -170,6 +170,7 @@
                         <span class="status-dot offline" id="chatStatusDot"></span>
                         <span class="status-label" id="chatStatusLabel">Offline</span>
                     </div>
+                    <button class="tip-btn" id="tipBtn" title="Send a tip">💰 Tip</button>
                     <span class="chat-viewers" id="chatViewers">0 watching</span>
                 </div>
                 <div class="chat-messages" id="chatMessages">
@@ -196,6 +197,24 @@
 
     <!-- Floating Emoji Container -->
     <div id="floatingEmojis" class="floating-emojis"></div>
+
+    <!-- Tip Modal -->
+    <div class="tip-modal" id="tipModal">
+        <div class="tip-modal-content">
+            <button class="tip-modal-close" id="tipModalClose">&times;</button>
+            <h3>Send a Tip</h3>
+            <p>Support the stream with crypto!</p>
+            <iframe
+                src="https://nowpayments.io/embeds/donation-widget?api_key=227cc9af-e05b-46a6-a096-e66717e299ac"
+                width="286"
+                height="384"
+                frameborder="0"
+                scrolling="yes"
+                style="border-radius: 12px;">
+                Can't load widget
+            </iframe>
+        </div>
+    </div>
 </main>
 
 <!-- Footer -->
@@ -282,5 +301,28 @@
 <!-- Elfsight Age Verification -->
 <script src="https://static.elfsight.com/platform/platform.js" async></script>
 <div class="elfsight-app-ea2f58c6-6128-4e92-b2d9-c0b5c09769c3" data-elfsight-app-lazy></div>
+
+<!-- Tip Modal Script -->
+<script>
+(function() {
+  const tipBtn = document.getElementById('tipBtn');
+  const tipModal = document.getElementById('tipModal');
+  const tipModalClose = document.getElementById('tipModalClose');
+
+  tipBtn.addEventListener('click', () => {
+    tipModal.classList.add('active');
+  });
+
+  tipModalClose.addEventListener('click', () => {
+    tipModal.classList.remove('active');
+  });
+
+  tipModal.addEventListener('click', (e) => {
+    if (e.target === tipModal) {
+      tipModal.classList.remove('active');
+    }
+  });
+})();
+</script>
 </body>
 </html>
