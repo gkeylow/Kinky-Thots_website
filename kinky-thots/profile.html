@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex,nofollow">
     <title>My Profile - Kinky Thots</title>
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
-    <link rel="stylesheet" href="/assets/dist/css/main.css">
+    <link rel="stylesheet" href="/assets/dist/css/main.css?v=202601120941">
     <style>
         .profile-container {
             max-width: 800px;
@@ -96,6 +96,141 @@
             height: 24px;
             border-radius: 50%;
             border: 2px solid rgba(255,255,255,0.2);
+        }
+        /* Avatar styles */
+        .avatar-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .avatar-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin-bottom: 1rem;
+        }
+        .avatar-image {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid rgba(11, 208, 243, 0.5);
+            background: #1a1a1a;
+        }
+        .avatar-placeholder {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #333, #222);
+            border: 3px solid rgba(11, 208, 243, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #666;
+        }
+        .avatar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+            cursor: pointer;
+        }
+        .avatar-container:hover .avatar-overlay {
+            opacity: 1;
+        }
+        .avatar-overlay-text {
+            color: #fff;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+        .avatar-upload-input {
+            display: none;
+        }
+        .avatar-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .avatar-btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .avatar-btn-upload {
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            border: none;
+            color: #fff;
+        }
+        .avatar-btn-delete {
+            background: transparent;
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+        }
+        .avatar-btn-delete:hover {
+            background: rgba(231, 76, 60, 0.1);
+        }
+        /* Bio styles */
+        .bio-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(11, 208, 243, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        .bio-textarea:focus {
+            outline: none;
+            border-color: #0bd0f3;
+        }
+        .bio-counter {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+        .bio-counter.warning {
+            color: #f39c12;
+        }
+        .bio-counter.error {
+            color: #e74c3c;
+        }
+        /* Security section styles */
+        .security-section {
+            margin-bottom: 1.5rem;
+        }
+        .security-section h3 {
+            color: #0bd0f3;
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+        }
+        .current-email {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        .current-email span {
+            color: #fff;
+        }
+        .security-divider {
+            border: none;
+            border-top: 1px solid rgba(11, 208, 243, 0.2);
+            margin: 2rem 0;
         }
         .profile-form {
             margin-top: 1rem;
@@ -249,15 +384,16 @@
                     <li><a href="/live.html">Live Cam</a></li>
                 </ul>
             </li>
-            <li class="dropdown" id="userDropdown" style="display: none;">
+            <li class="dropdown" id="userDropdown">
                 <button class="dropdown-toggle" id="userTrigger">Account</button>
                 <ul class="dropdown-menu">
                     <li><a href="/profile.html">My Profile</a></li>
+                    <li><a href="/profile.html#security">Security</a></li>
                     <li><a href="/subscriptions.html">Subscription</a></li>
                     <li><a href="#" id="logoutLink">Logout</a></li>
                 </ul>
             </li>
-            <li id="loginItem"><a href="/live.html" class="login-btn" id="authTrigger">Login</a></li>
+            <li id="loginItem"><a href="/login.html" class="login-btn" id="authTrigger">Login</a></li>
         </ul>
         <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
     </div>
@@ -265,10 +401,11 @@
 <script type="module" src="/assets/dist/js/main.js"></script>
 <script>
 (function() {
+    const token = localStorage.getItem('kt_auth_token');
     const user = JSON.parse(localStorage.getItem('kt_auth_user') || 'null');
-    if (user) {
-        document.getElementById('loginItem').style.display = 'none';
-        document.getElementById('userDropdown').style.display = 'block';
+
+    if (token && user) {
+        document.body.classList.add('logged-in');
         document.getElementById('userTrigger').textContent = user.username;
         document.getElementById('logoutLink').addEventListener('click', (e) => {
             e.preventDefault();
@@ -276,6 +413,10 @@
             localStorage.removeItem('kt_auth_user');
             window.location.href = '/index.html';
         });
+    } else {
+        document.body.classList.add('logged-out');
+        if (token && !user) localStorage.removeItem('kt_auth_token');
+        if (!token && user) localStorage.removeItem('kt_auth_user');
     }
 })();
 </script>
@@ -289,13 +430,31 @@
     <div id="notLoggedIn" class="profile-card not-logged-in" style="display: none;">
         <h2>Please Log In</h2>
         <p>You need to be logged in to view your profile.</p>
-        <a href="/live.html" class="btn">Go to Login</a>
+        <a href="/login.html" class="btn">Go to Login</a>
     </div>
 
     <!-- Profile content (shown when logged in) -->
     <div id="profileContent" style="display: none;">
         <!-- Alerts -->
         <div id="alertContainer"></div>
+
+        <!-- Avatar Section -->
+        <div class="profile-card">
+            <div class="avatar-section">
+                <div class="avatar-container">
+                    <div class="avatar-placeholder" id="avatarPlaceholder">?</div>
+                    <img src="" alt="Profile Picture" class="avatar-image" id="avatarImage" style="display: none;">
+                    <label class="avatar-overlay" for="avatarInput">
+                        <span class="avatar-overlay-text">Change<br>Photo</span>
+                    </label>
+                    <input type="file" id="avatarInput" class="avatar-upload-input" accept="image/jpeg,image/png,image/gif,image/webp">
+                </div>
+                <div class="avatar-actions">
+                    <label for="avatarInput" class="avatar-btn avatar-btn-upload">Upload Photo</label>
+                    <button type="button" class="avatar-btn avatar-btn-delete" id="deleteAvatarBtn" style="display: none;">Remove</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Account Info -->
         <div class="profile-card">
@@ -323,6 +482,19 @@
                     <span id="profileColor">-</span>
                 </span>
             </div>
+        </div>
+
+        <!-- Bio Section -->
+        <div class="profile-card">
+            <h2>About Me</h2>
+            <form id="bioForm" class="profile-form">
+                <div class="form-group">
+                    <label class="form-label" for="bioText">Bio</label>
+                    <textarea class="bio-textarea" id="bioText" placeholder="Tell others about yourself..." maxlength="500"></textarea>
+                    <div class="bio-counter"><span id="bioCount">0</span>/500</div>
+                </div>
+                <button type="submit" class="btn" id="bioSubmit">Save Bio</button>
+            </form>
         </div>
 
         <!-- Subscription -->
@@ -363,25 +535,49 @@
             </form>
         </div>
 
-        <!-- Change Password -->
-        <div class="profile-card">
-            <h2>Change Password</h2>
-            <form id="passwordForm" class="profile-form">
-                <div class="form-group">
-                    <label class="form-label" for="currentPassword">Current Password</label>
-                    <input type="password" class="form-input" id="currentPassword" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="newPassword">New Password</label>
-                    <input type="password" class="form-input" id="newPassword" required minlength="8"
-                           placeholder="Min 8 chars, uppercase, lowercase, number">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" for="confirmPassword">Confirm New Password</label>
-                    <input type="password" class="form-input" id="confirmPassword" required>
-                </div>
-                <button type="submit" class="btn" id="passwordSubmit">Change Password</button>
-            </form>
+        <!-- Security Section -->
+        <div class="profile-card" id="security">
+            <h2>Security</h2>
+
+            <!-- Change Email -->
+            <div class="security-section">
+                <h3>Change Email</h3>
+                <p class="current-email">Current email: <span id="currentEmailDisplay">-</span></p>
+                <form id="emailForm" class="profile-form">
+                    <div class="form-group">
+                        <label class="form-label" for="newEmail">New Email</label>
+                        <input type="email" class="form-input" id="newEmail" required placeholder="Enter new email">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="emailPassword">Current Password</label>
+                        <input type="password" class="form-input" id="emailPassword" required placeholder="Verify with your password">
+                    </div>
+                    <button type="submit" class="btn" id="emailSubmit">Update Email</button>
+                </form>
+            </div>
+
+            <hr class="security-divider">
+
+            <!-- Change Password -->
+            <div class="security-section">
+                <h3>Change Password</h3>
+                <form id="passwordForm" class="profile-form">
+                    <div class="form-group">
+                        <label class="form-label" for="currentPassword">Current Password</label>
+                        <input type="password" class="form-input" id="currentPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="newPassword">New Password</label>
+                        <input type="password" class="form-input" id="newPassword" required minlength="8"
+                               placeholder="Min 8 chars, uppercase, lowercase, number">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="confirmPassword">Confirm New Password</label>
+                        <input type="password" class="form-input" id="confirmPassword" required>
+                    </div>
+                    <button type="submit" class="btn" id="passwordSubmit">Change Password</button>
+                </form>
+            </div>
         </div>
 
         <!-- Logout -->
@@ -504,6 +700,17 @@
             document.getElementById('colorSwatch').style.backgroundColor = currentUser.display_color || '#0bd0f3';
             document.getElementById('newColor').value = currentUser.display_color || '#0bd0f3';
 
+            // Display current email in security section
+            document.getElementById('currentEmailDisplay').textContent = currentUser.email;
+
+            // Display avatar
+            updateAvatarDisplay(currentUser.avatar_url, currentUser.username);
+
+            // Display bio
+            const bioText = document.getElementById('bioText');
+            bioText.value = currentUser.bio || '';
+            updateBioCounter();
+
             // Subscription info
             const tier = currentUser.subscription_tier || 'free';
             const tierBadge = document.getElementById('profileTier');
@@ -575,6 +782,60 @@
         } finally {
             btn.disabled = false;
             btn.textContent = 'Update Color';
+        }
+    });
+
+    // Email change form handler
+    document.getElementById('emailForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('emailSubmit');
+        const newEmail = document.getElementById('newEmail').value;
+        const password = document.getElementById('emailPassword').value;
+
+        // Basic email validation
+        if (!newEmail || !newEmail.includes('@')) {
+            showAlert('Please enter a valid email address', 'error');
+            return;
+        }
+
+        if (newEmail === currentUser.email) {
+            showAlert('New email is the same as current email', 'error');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Updating...';
+
+        try {
+            const response = await fetch('/api/auth/change-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getToken()}`
+                },
+                body: JSON.stringify({
+                    newEmail,
+                    password
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                currentUser.email = newEmail;
+                setUser(currentUser);
+                document.getElementById('profileEmail').textContent = newEmail;
+                document.getElementById('currentEmailDisplay').textContent = newEmail;
+                showAlert('Email updated successfully!');
+                document.getElementById('emailForm').reset();
+            } else {
+                showAlert(data.error || 'Failed to update email', 'error');
+            }
+        } catch (err) {
+            showAlert('Network error. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Update Email';
         }
     });
 
@@ -671,6 +932,163 @@
     document.getElementById('logoutBtn').addEventListener('click', () => {
         if (confirm('Are you sure you want to log out?')) {
             logout();
+        }
+    });
+
+    // Avatar helper function
+    function updateAvatarDisplay(avatarUrl, username) {
+        const avatarImage = document.getElementById('avatarImage');
+        const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+        const deleteBtn = document.getElementById('deleteAvatarBtn');
+
+        if (avatarUrl) {
+            avatarImage.src = avatarUrl;
+            avatarImage.style.display = 'block';
+            avatarPlaceholder.style.display = 'none';
+            deleteBtn.style.display = 'inline-block';
+        } else {
+            avatarImage.style.display = 'none';
+            avatarPlaceholder.style.display = 'flex';
+            avatarPlaceholder.textContent = username ? username.charAt(0).toUpperCase() : '?';
+            deleteBtn.style.display = 'none';
+        }
+    }
+
+    // Bio counter helper
+    function updateBioCounter() {
+        const bioText = document.getElementById('bioText');
+        const bioCount = document.getElementById('bioCount');
+        const counter = bioText.parentElement.querySelector('.bio-counter');
+        const length = bioText.value.length;
+
+        bioCount.textContent = length;
+        counter.classList.remove('warning', 'error');
+        if (length > 450) counter.classList.add('warning');
+        if (length >= 500) counter.classList.add('error');
+    }
+
+    // Bio text input handler
+    document.getElementById('bioText').addEventListener('input', updateBioCounter);
+
+    // Avatar upload handler
+    document.getElementById('avatarInput').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            showAlert('Invalid file type. Use JPG, PNG, GIF, or WebP', 'error');
+            return;
+        }
+
+        // Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            showAlert('File too large. Maximum size is 5MB', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        const uploadBtn = document.querySelector('.avatar-btn-upload');
+        const originalText = uploadBtn.textContent;
+        uploadBtn.textContent = 'Uploading...';
+
+        try {
+            const response = await fetch('/api/auth/avatar', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${getToken()}`
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                currentUser.avatar_url = data.avatar_url;
+                setUser(currentUser);
+                updateAvatarDisplay(data.avatar_url, currentUser.username);
+                showAlert('Profile picture updated!');
+            } else {
+                showAlert(data.error || 'Failed to upload avatar', 'error');
+            }
+        } catch (err) {
+            showAlert('Network error. Please try again.', 'error');
+        } finally {
+            uploadBtn.textContent = originalText;
+            e.target.value = ''; // Reset file input
+        }
+    });
+
+    // Delete avatar handler
+    document.getElementById('deleteAvatarBtn').addEventListener('click', async () => {
+        if (!confirm('Remove your profile picture?')) return;
+
+        const btn = document.getElementById('deleteAvatarBtn');
+        btn.disabled = true;
+        btn.textContent = 'Removing...';
+
+        try {
+            const response = await fetch('/api/auth/avatar', {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${getToken()}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                currentUser.avatar_url = null;
+                setUser(currentUser);
+                updateAvatarDisplay(null, currentUser.username);
+                showAlert('Profile picture removed');
+            } else {
+                showAlert(data.error || 'Failed to remove avatar', 'error');
+            }
+        } catch (err) {
+            showAlert('Network error. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Remove';
+        }
+    });
+
+    // Bio form handler
+    document.getElementById('bioForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('bioSubmit');
+        const bioText = document.getElementById('bioText').value;
+
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        try {
+            const response = await fetch('/api/auth/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getToken()}`
+                },
+                body: JSON.stringify({ bio: bioText })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                currentUser.bio = bioText;
+                setUser(currentUser);
+                showAlert('Bio updated successfully!');
+            } else {
+                showAlert(data.error || 'Failed to update bio', 'error');
+            }
+        } catch (err) {
+            showAlert('Network error. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Save Bio';
         }
     });
 

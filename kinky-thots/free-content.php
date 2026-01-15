@@ -2,8 +2,9 @@
 // Free Content - Videos under 1 minute
 // Duration-based content tier: Free (< 60 seconds)
 
+require_once __DIR__ . '/includes/s3-helper.php';
+
 $manifestFile = __DIR__ . '/data/video-manifest.json';
-$cdnBaseUrl = 'https://6318.s3.nvme.de01.sonic.r-cdn.com';
 $thumbnailDir = '/assets/thumbnails/';
 $thumbnailPath = __DIR__ . '/assets/thumbnails/';
 
@@ -11,7 +12,6 @@ $thumbnailPath = __DIR__ . '/assets/thumbnails/';
 $videos = [];
 if (file_exists($manifestFile)) {
     $manifest = json_decode(file_get_contents($manifestFile), true);
-    $cdnBaseUrl = $manifest['cdn_base_url'] ?? $cdnBaseUrl;
 
     foreach ($manifest['videos'] ?? [] as $video) {
         $duration = $video['duration_seconds'] ?? 60;
@@ -22,7 +22,7 @@ if (file_exists($manifestFile)) {
 
             $videos[] = [
                 'filename' => $filename,
-                'url' => $cdnBaseUrl . '/' . rawurlencode($filename),
+                'url' => getCdnUrl($filename), // CDN pull zone URL
                 'thumbnailUrl' => file_exists($thumbnailPath . $thumbFilename)
                     ? $thumbnailDir . rawurlencode($thumbFilename)
                     : null,
@@ -52,9 +52,12 @@ function formatDuration($seconds) {
     <meta name="robots" content="noindex, nofollow">
     <title>Free Teasers - Kinky Thots</title>
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
-    <link rel="stylesheet" href="/assets/dist/css/main.css">
+    <link rel="stylesheet" href="/assets/dist/css/main.css?v=202601120941">
     <link rel="stylesheet" href="/assets/dist/css/media-gallery.css">
     <style>
+        .container {
+            padding-top: 100px;
+        }
         .tier-header {
             text-align: center;
             padding: 2rem 1rem;
@@ -198,15 +201,16 @@ function formatDuration($seconds) {
                     <li><a href="/bustersherry.html">Buster Sherry</a></li>
                 </ul>
             </li>
-            <li class="dropdown" id="userDropdown" style="display: none;">
+            <li class="dropdown" id="userDropdown">
                 <button class="dropdown-toggle" id="userTrigger">Account</button>
                 <ul class="dropdown-menu">
                     <li><a href="/profile.html">My Profile</a></li>
+                    <li><a href="/profile.html#security">Security</a></li>
                     <li><a href="/subscriptions.html">Subscription</a></li>
                     <li><a href="#" id="logoutLink">Logout</a></li>
                 </ul>
             </li>
-            <li id="loginItem"><a href="/live.html" class="login-btn" id="authTrigger">Login</a></li>
+            <li id="loginItem"><a href="/login.html" class="login-btn" id="authTrigger">Login</a></li>
         </ul>
         <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
     </div>
@@ -214,10 +218,11 @@ function formatDuration($seconds) {
 <script type="module" src="/assets/dist/js/main.js"></script>
 <script>
 (function() {
+    const token = localStorage.getItem('kt_auth_token');
     const user = JSON.parse(localStorage.getItem('kt_auth_user') || 'null');
-    if (user) {
-        document.getElementById('loginItem').style.display = 'none';
-        document.getElementById('userDropdown').style.display = 'block';
+
+    if (token && user) {
+        document.body.classList.add('logged-in');
         document.getElementById('userTrigger').textContent = user.username;
         document.getElementById('logoutLink').addEventListener('click', (e) => {
             e.preventDefault();
@@ -225,6 +230,10 @@ function formatDuration($seconds) {
             localStorage.removeItem('kt_auth_user');
             window.location.reload();
         });
+    } else {
+        document.body.classList.add('logged-out');
+        if (token && !user) localStorage.removeItem('kt_auth_token');
+        if (!token && user) localStorage.removeItem('kt_auth_user');
     }
 })();
 </script>

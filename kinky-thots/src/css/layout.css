@@ -5,6 +5,30 @@
    NAVIGATION
    =========================================== */
 
+/* Auth state navigation - class-based visibility */
+/* Hide both by default until JS determines auth state */
+#loginItem,
+#userDropdown {
+    display: none !important;
+}
+
+/* When body has auth-ready class, show appropriate element */
+body.logged-out #loginItem {
+    display: flex !important;
+}
+
+body.logged-in #userDropdown {
+    display: flex !important;
+}
+
+body.logged-in #loginItem {
+    display: none !important;
+}
+
+body.logged-out #userDropdown {
+    display: none !important;
+}
+
 nav {
     position: fixed;
     top: 0;
@@ -330,6 +354,23 @@ nav.scrolled {
         margin: 0.5rem 1rem;
         text-align: center;
         width: calc(100% - 2rem);
+    }
+
+    /* Mobile auth visibility - ensure login shows when logged out */
+    body.logged-out #loginItem {
+        display: block !important;
+    }
+
+    body.logged-in #loginItem {
+        display: none !important;
+    }
+
+    body.logged-out #userDropdown {
+        display: none !important;
+    }
+
+    body.logged-in #userDropdown {
+        display: block !important;
     }
 
     .footer-content {
