@@ -13,7 +13,7 @@
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
     <title>Kinky Thots - Sissy Long Legs</title>
     <!-- Built CSS (Vite + Tailwind) -->
-    <link rel="stylesheet" href="/assets/dist/css/main.css">
+    <link rel="stylesheet" href="/assets/dist/css/main.css?v=202601120941">
     <link rel="stylesheet" href="/assets/dist/css/index.css?v=20241230">
     <link rel="stylesheet" href="/assets/dist/css/media-gallery.css">
 </head>
@@ -56,15 +56,16 @@
                 </ul>
             </li>
 
-            <li class="dropdown" id="userDropdown" style="display: none;">
+            <li class="dropdown" id="userDropdown">
                 <button class="dropdown-toggle" id="userTrigger">Account</button>
                 <ul class="dropdown-menu">
                     <li><a href="/profile.html">My Profile</a></li>
+                    <li><a href="/profile.html#security">Security</a></li>
                     <li><a href="/subscriptions.html">Subscription</a></li>
                     <li><a href="#" id="logoutLink">Logout</a></li>
                 </ul>
             </li>
-            <li id="loginItem"><a href="/live.html" class="login-btn" id="authTrigger">Login</a></li>
+            <li id="loginItem"><a href="/login.html" class="login-btn" id="authTrigger">Login</a></li>
         </ul>
 
         <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
@@ -74,10 +75,11 @@
 <script type="module" src="/assets/dist/js/main.js"></script>
 <script>
 (function() {
+    const token = localStorage.getItem('kt_auth_token');
     const user = JSON.parse(localStorage.getItem('kt_auth_user') || 'null');
-    if (user) {
-        document.getElementById('loginItem').style.display = 'none';
-        document.getElementById('userDropdown').style.display = 'block';
+
+    if (token && user) {
+        document.body.classList.add('logged-in');
         document.getElementById('userTrigger').textContent = user.username;
         document.getElementById('logoutLink').addEventListener('click', (e) => {
             e.preventDefault();
@@ -85,6 +87,10 @@
             localStorage.removeItem('kt_auth_user');
             window.location.reload();
         });
+    } else {
+        document.body.classList.add('logged-out');
+        if (token && !user) localStorage.removeItem('kt_auth_token');
+        if (!token && user) localStorage.removeItem('kt_auth_user');
     }
 })();
 </script>
@@ -219,7 +225,7 @@
             <a href="https://sharesome.com/KinkyThots" target="_blank" class="cta-button secondary">Free View</a>
         </div>
         <div class="social-links">
-            <a href="mailto:info@kinky-thots.com" class="social-link"><img src="https://i.ibb.co/fVZdJCpS/email.png" width="50px"></a>
+            <a href="mailto:info@kinky-thots.xxx" class="social-link"><img src="https://i.ibb.co/fVZdJCpS/email.png" width="50px"></a>
             <a href="https://facebook.com/kinkythots" class="social-link"><img src="https://i.ibb.co/WNG2YQhW/10462343.png" width="100px"></a>
             <a href="https://x.com/kinkythotsmodel" class="social-link"><img src="https://i.ibb.co/j9Rqb5Lc/X-Logo.png" width="50px"></a>
             <a href="https://kinky-thots.bdsmlr.com" class="social-link"><img src="https://i.ibb.co/gL33B4Tx/bdsmlr.png" width="50px"></a>
@@ -234,7 +240,7 @@
                 <p>© 2025 <a href="/index.html">Kinky-Thots</a> <img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="25px">All rights reserved.</p>
             </div>
             <div class="footer-right">
-                <a href="https://kinky-thots.com/terms.html" class="footer-link">Terms & Conditions</a>
+                <a href="https://kinky-thots.xxx/terms.html" class="footer-link">Terms & Conditions</a>
             </div>
         </div>
     </div>
