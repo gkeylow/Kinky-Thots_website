@@ -2,13 +2,14 @@
 
 > **IMPORTANT**: Read this file before starting any work. Document completed work here for future sessions.
 
-## Current Version: 1.7.1
+## Current Version: 1.7.2
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 
 ### Version History (Summary)
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.7.2 | Jan 15, 2026 | Inline crypto payments, password toggle, file cleanup |
 | 1.7.1 | Jan 14, 2026 | Login page, lightbox fix, checkout redirect fix |
 | 1.7.0 | Jan 14, 2026 | Linode reverse proxy, WireGuard VPN, removed localtonet |
 | 1.6.0 | Jan 5, 2026 | Migrated from PayPal to NOWPayments (crypto) |
@@ -225,6 +226,55 @@ Internet → Linode (nginx) → WireGuard VPN → Home Server (Docker)
 | Linode VPN IP | 10.100.0.1 |
 | Home Server VPN IP | 10.100.0.2 |
 | WireGuard Port | 51820/udp |
+
+## Recent Changes (Jan 15, 2026)
+
+### Inline Crypto Payments
+Replaced redirect-to-NOWPayments flow with inline payment on checkout page:
+
+**Backend endpoints added** (`backend/server.js`):
+- `POST /api/payments/create` - Create payment with user-selected currency
+- `GET /api/payments/:paymentId` - Poll payment status
+- `GET /api/payments/min-amount/:currency` - Get minimum payment amount
+
+**Checkout page updates** (`checkout.html`):
+- Currency selector (BTC, ETH, USDT TRC20, LTC, XMR, SOL)
+- QR code display for easy mobile scanning
+- Copy-to-clipboard for payment address
+- Memo/tag warning for currencies that require it
+- Real-time status polling (waiting → confirming → confirmed → finished)
+- Countdown timer for fixed-rate payment expiration (~20 min)
+- User never leaves the site during payment
+
+### Password Visibility Toggle
+Added eye icon to show/hide password on login page (`login.html`):
+- Login form password field
+- Register form password field
+- Register form confirm password field
+- SVG icons (open/closed eye) with hover effect
+
+### File Cleanup
+Removed unused files and directories:
+- `/dist/` - Old Vite build (using `/assets/dist/` instead)
+- `/.test/` - Empty directory
+- `/.hls/` - Empty directory (using `/hls/`)
+- `test-paths.php` - Diagnostic test file
+- `backend/add-durations.js` - One-time utility script
+- `backend/uploads/` - Old duplicate uploads (~25MB freed)
+
+### Pending TODO Items
+**NOWPayments Enhancements:**
+- Add min payment amount validation to checkout
+- Add estimated crypto price preview to checkout
+- Build admin payments dashboard (list all transactions)
+- Add re-deposit tracking (parent_payment_id in webhooks)
+- Enable wrong-asset auto-processing in NOWPayments dashboard
+- Add fee transparency to payment receipts
+
+**Other:**
+- Create Python Flask webmail page for site
+
+---
 
 ## Recent Changes (Jan 14, 2026)
 
