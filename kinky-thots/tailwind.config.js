@@ -4,7 +4,7 @@ export default {
     './*.html',
     './*.php',
     './php-pages/**/*.php',
-    './src/**/*.{js,css}',
+    './.src/**/*.{js,css}',
   ],
   theme: {
     extend: {
