@@ -1,14 +1,25 @@
 {
   "s3": {
-    "endpoint": "https://s3.nvme.eu-central.r-cdn.com",
-    "access_key": "Z1Z2BU5WTNB6S28P6OW4M",
-    "secret_key": "TrwzRLw1U8NPS0g3hDKWNkxBw7ZSw8NYRcNZNFQ1",
-    "bucket": "6318",
-    "region": "eu-central"
+    "videos": {
+      "endpoint": "https://s3.eu-central.r-cdn.com",
+      "access_key": "Z1Z2BU5WTNB6S28P6OW4M",
+      "secret_key": "TrwzRLw1U8NPS0g3hDKWNkxBw7ZSw8NYRcNZNFQ1",
+      "bucket": "6318",
+      "region": "eu-central",
+      "cdn_hostname": "6318.s3.nvme.de01.sonic.r-cdn.com"
+    },
+    "images": {
+      "endpoint": "https://s3.eu-central.r-cdn.com",
+      "access_key": "F7CLSY3KHFVQJYCOLYUNN",
+      "secret_key": "hDg5U1VPw1JHRkM1M1Q3VlU4M1mcTFEzUbbDVE45",
+      "bucket": "6406",
+      "region": "eu-central",
+      "cdn_hostname": "6406.s3.de01.sonic.r-cdn.com"
+    }
   },
   "cdn": {
-    "hostname": "6318.s3.nvme.de01.sonic.r-cdn.com",
-    "base_url": "https://6318.s3.nvme.de01.sonic.r-cdn.com"
+    "videos_url": "https://6318.s3.nvme.de01.sonic.r-cdn.com",
+    "images_url": "https://6406.s3.de01.sonic.r-cdn.com"
   },
   "settings": {
     "path_style": true,
@@ -19,36 +30,5 @@
       "videos": ["mp4", "mov", "avi", "mkv", "webm", "mpeg", "flv", "m4v"],
       "documents": ["pdf", "doc", "docx", "txt"]
     }
-  },
-  "notes": {
-    "api_compatibility": "Sonic S3 API compatible",
-    "supported_operations": [
-      "PutObject",
-      "GetObject",
-      "HeadObject",
-      "CopyObject",
-      "DeleteObject",
-      "ListObjectsV2",
-      "ListObjectsV1",
-      "DeleteMultipleObjects",
-      "PostPolicy",
-      "GetObjectTagging",
-      "PutObjectTagging",
-      "DeleteObjectTagging",
-      "NewMultipartUpload",
-      "CompleteMultipartUpload",
-      "AbortMultipartUpload",
-      "ListMultipartUploads",
-      "PutObjectPart",
-      "CopyObjectPart",
-      "ListObjectParts"
-    ],
-    "special_features": [
-      "Byte range requests supported",
-      "DeleteObject can delete folders",
-      "Unlimited free requests",
-      "No bucket policy editing (default mixed access)"
-    ],
-    "access_policy": "Path-style bucket requires authentication for S3 endpoint, but CDN hostname serves files publicly"
   }
 }

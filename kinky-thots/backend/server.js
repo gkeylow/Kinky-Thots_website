@@ -8,6 +8,7 @@ const { exec } = require('child_process');
 const { promisify } = require('util');
 const execAsync = promisify(exec);
 const { generateResponsiveImages, getResponsiveImageUrls } = require('./image-optimizer');
+const SonicS3Client = require('./sonic-s3-client');
 const http = require('http');
 const WebSocket = require('ws');
 const bcrypt = require('bcrypt');
@@ -37,9 +38,9 @@ const emailTransporter = nodemailer.createTransport({
   }
 });
 
-const SITE_URL = process.env.SITE_URL || 'https://kinky-thots.com';
+const SITE_URL = process.env.SITE_URL || 'https://kinky-thots.xxx';
 const SITE_NAME = 'Kinky-Thots';
-const SMTP_FROM = `"${process.env.SMTP_FROM_NAME || SITE_NAME}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'noreply@kinky-thots.com'}>`;
+const SMTP_FROM = `"${process.env.SMTP_FROM_NAME || SITE_NAME}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'noreply@kinky-thots.xxx'}>`;
 
 // ============================================
 // EMAIL HELPER FUNCTIONS
@@ -285,6 +286,7 @@ function canAccessContent(userTier, contentIndex, totalContent) {
 }
 
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (Apache) - fixes rate-limit X-Forwarded-For errors
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
@@ -310,14 +312,14 @@ const PUSHR_CONFIG = {
   apiKey: process.env.PUSHR_API_KEY,
   apiUrl: 'https://www.pushrcdn.com/api/v3/prefetch',
   secretToken: process.env.PUSHR_SECRET_TOKEN,
-  baseUrl: process.env.PUSHR_BASE_URL || 'https://kinky-thots.com',
+  baseUrl: process.env.PUSHR_BASE_URL || 'https://kinky-thots.xxx',
   cdnUrls: {
-    images: process.env.PUSHR_CDN_IMAGES || 'https://c5988z6294.r-cdn.com',
-    videos: process.env.PUSHR_CDN_VIDEOS || 'https://c5988z6295.r-cdn.com'
+    images: process.env.PUSHR_CDN_IMAGES || 'https://6406.s3.de01.sonic.r-cdn.com',
+    videos: process.env.PUSHR_CDN_VIDEOS || 'https://6318.s3.nvme.de01.sonic.r-cdn.com'
   },
   zones: {
-    images: process.env.PUSHR_ZONE_IMAGES || '6294',
-    videos: process.env.PUSHR_ZONE_VIDEOS || '6293'
+    images: process.env.PUSHR_ZONE_IMAGES || '6406',
+    videos: process.env.PUSHR_ZONE_VIDEOS || '6318'
   },
   useSecureTokens: true
 };
@@ -580,7 +582,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 
     // Find user by email or username
     const users = await conn.query(
-      `SELECT id, username, email, password_hash, display_color, subscription_tier, is_admin
+      `SELECT id, username, email, password_hash, display_color, avatar_url, bio, subscription_tier, is_admin
        FROM users WHERE email = ? OR username = ?`,
       [email.toLowerCase(), email.toLowerCase()]
     );
@@ -617,6 +619,8 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
         username: user.username,
         email: user.email,
         display_color: user.display_color,
+        avatar_url: user.avatar_url || null,
+        bio: user.bio || null,
         subscription_tier: user.subscription_tier || 'free',
         is_admin: Boolean(user.is_admin)
       }
@@ -636,7 +640,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
     conn = await pool.getConnection();
     const users = await conn.query(
-      `SELECT id, username, email, display_color, subscription_tier, subscription_status,
+      `SELECT id, username, email, display_color, avatar_url, bio, subscription_tier, subscription_status,
               subscription_expires_at, created_at, last_login_at, is_admin
        FROM users WHERE id = ?`,
       [req.user.userId]
@@ -648,16 +652,20 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 
     const user = users[0];
     res.json({
-      id: Number(user.id),
-      username: user.username,
-      email: user.email,
-      display_color: user.display_color,
-      subscription_tier: user.subscription_tier || 'free',
-      subscription_status: user.subscription_status || 'active',
-      subscription_expires_at: user.subscription_expires_at,
-      created_at: user.created_at,
-      last_login_at: user.last_login_at,
-      is_admin: Boolean(user.is_admin)
+      user: {
+        id: Number(user.id),
+        username: user.username,
+        email: user.email,
+        display_color: user.display_color,
+        avatar_url: user.avatar_url,
+        bio: user.bio,
+        subscription_tier: user.subscription_tier || 'free',
+        subscription_status: user.subscription_status || 'active',
+        subscription_expires_at: user.subscription_expires_at,
+        created_at: user.created_at,
+        last_login_at: user.last_login_at,
+        is_admin: Boolean(user.is_admin)
+      }
     });
 
   } catch (err) {
@@ -668,11 +676,11 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
   }
 });
 
-// Update user profile (color, username)
+// Update user profile (color, bio)
 app.put('/api/auth/profile', authenticateToken, async (req, res) => {
   let conn;
   try {
-    const { display_color } = req.body;
+    const { display_color, bio } = req.body;
     const userId = req.user.userId;
 
     conn = await pool.getConnection();
@@ -682,13 +690,33 @@ app.put('/api/auth/profile', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Invalid color format. Use #RRGGBB' });
     }
 
+    // Validate bio length (max 500 chars)
+    if (bio !== undefined && bio.length > 500) {
+      return res.status(400).json({ error: 'Bio must be 500 characters or less' });
+    }
+
+    // Build dynamic update query
+    const updates = [];
+    const values = [];
+
     if (display_color) {
-      await conn.query('UPDATE users SET display_color = ? WHERE id = ?', [display_color, userId]);
+      updates.push('display_color = ?');
+      values.push(display_color);
+    }
+
+    if (bio !== undefined) {
+      updates.push('bio = ?');
+      values.push(bio.trim() || null);
+    }
+
+    if (updates.length > 0) {
+      values.push(userId);
+      await conn.query(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, values);
     }
 
     // Fetch updated user
     const users = await conn.query(
-      'SELECT id, username, email, display_color, subscription_tier FROM users WHERE id = ?',
+      'SELECT id, username, email, display_color, avatar_url, bio, subscription_tier FROM users WHERE id = ?',
       [userId]
     );
 
@@ -699,6 +727,8 @@ app.put('/api/auth/profile', authenticateToken, async (req, res) => {
         username: users[0].username,
         email: users[0].email,
         display_color: users[0].display_color,
+        avatar_url: users[0].avatar_url,
+        bio: users[0].bio,
         subscription_tier: users[0].subscription_tier || 'free'
       }
     });
@@ -706,6 +736,139 @@ app.put('/api/auth/profile', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Profile update error:', err);
     res.status(500).json({ error: 'Failed to update profile' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Upload avatar image to CDN
+app.post('/api/auth/avatar', authenticateToken, async (req, res) => {
+  let conn;
+  try {
+    const userId = req.user.userId;
+
+    // Check if file was uploaded
+    if (!req.files || !req.files.avatar) {
+      return res.status(400).json({ error: 'No avatar file uploaded' });
+    }
+
+    const file = req.files.avatar;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return res.status(400).json({ error: 'Invalid file type. Use JPG, PNG, GIF, or WebP' });
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      return res.status(400).json({ error: 'File too large. Maximum size is 5MB' });
+    }
+
+    // Generate unique filename
+    const ext = path.extname(file.name).toLowerCase() || '.jpg';
+    const filename = `avatars/user-${userId}-${Date.now()}${ext}`;
+
+    // Upload to CDN via S3
+    let s3Client;
+    try {
+      s3Client = new SonicS3Client();
+    } catch (configErr) {
+      console.error('S3 config error:', configErr.message);
+      return res.status(500).json({ error: 'CDN configuration error' });
+    }
+
+    const uploadResult = await s3Client.uploadBuffer(file.data, filename, file.mimetype);
+
+    if (!uploadResult.success) {
+      console.error('S3 upload error:', uploadResult.error);
+      return res.status(500).json({ error: 'Failed to upload avatar to CDN' });
+    }
+
+    // Update user's avatar_url in database
+    conn = await pool.getConnection();
+
+    // Get old avatar URL to potentially delete later
+    const oldUser = await conn.query('SELECT avatar_url FROM users WHERE id = ?', [userId]);
+    const oldAvatarUrl = oldUser[0]?.avatar_url;
+
+    // Update with new avatar URL
+    await conn.query('UPDATE users SET avatar_url = ? WHERE id = ?', [uploadResult.cdn_url, userId]);
+
+    // Delete old avatar from CDN if it exists
+    if (oldAvatarUrl && oldAvatarUrl.includes('avatars/user-')) {
+      try {
+        const oldKey = oldAvatarUrl.split('/').pop();
+        await s3Client.deleteFile(`avatars/${oldKey}`);
+      } catch (deleteErr) {
+        console.warn('Could not delete old avatar:', deleteErr.message);
+      }
+    }
+
+    // Fetch updated user
+    const users = await conn.query(
+      'SELECT id, username, email, display_color, avatar_url, bio, subscription_tier FROM users WHERE id = ?',
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      avatar_url: uploadResult.cdn_url,
+      user: {
+        id: Number(users[0].id),
+        username: users[0].username,
+        email: users[0].email,
+        display_color: users[0].display_color,
+        avatar_url: users[0].avatar_url,
+        bio: users[0].bio,
+        subscription_tier: users[0].subscription_tier || 'free'
+      }
+    });
+
+  } catch (err) {
+    console.error('Avatar upload error:', err);
+    res.status(500).json({ error: 'Failed to upload avatar' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Delete avatar
+app.delete('/api/auth/avatar', authenticateToken, async (req, res) => {
+  let conn;
+  try {
+    const userId = req.user.userId;
+
+    conn = await pool.getConnection();
+
+    // Get current avatar URL
+    const users = await conn.query('SELECT avatar_url FROM users WHERE id = ?', [userId]);
+    const avatarUrl = users[0]?.avatar_url;
+
+    if (!avatarUrl) {
+      return res.status(400).json({ error: 'No avatar to delete' });
+    }
+
+    // Delete from CDN if it's our avatar
+    if (avatarUrl.includes('avatars/user-')) {
+      try {
+        const s3Client = new SonicS3Client();
+        const key = avatarUrl.split('/').slice(-2).join('/'); // Get 'avatars/user-xxx.jpg'
+        await s3Client.deleteFile(key);
+      } catch (deleteErr) {
+        console.warn('Could not delete avatar from CDN:', deleteErr.message);
+      }
+    }
+
+    // Clear avatar_url in database
+    await conn.query('UPDATE users SET avatar_url = NULL WHERE id = ?', [userId]);
+
+    res.json({ success: true, message: 'Avatar deleted' });
+
+  } catch (err) {
+    console.error('Avatar delete error:', err);
+    res.status(500).json({ error: 'Failed to delete avatar' });
   } finally {
     if (conn) conn.release();
   }
@@ -752,7 +915,7 @@ app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
 
     try {
       await emailTransporter.sendMail({
-        from: `"${SITE_NAME}" <${process.env.SMTP_USER || 'noreply@kinky-thots.com'}>`,
+        from: `"${SITE_NAME}" <${process.env.SMTP_USER || 'noreply@kinky-thots.xxx'}>`,
         to: user.email,
         subject: `Password Reset - ${SITE_NAME}`,
         html: `
@@ -889,6 +1052,70 @@ app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Change password error:', err);
     res.status(500).json({ error: 'Failed to change password' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Change email (for logged in users)
+app.post('/api/auth/change-email', authenticateToken, async (req, res) => {
+  let conn;
+  try {
+    const { newEmail, password } = req.body;
+    const userId = req.user.userId;
+
+    if (!newEmail || !password) {
+      return res.status(400).json({ error: 'New email and current password are required' });
+    }
+
+    // Validate email format
+    if (!validator.isEmail(newEmail)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    conn = await pool.getConnection();
+
+    // Get current password hash and email
+    const users = await conn.query(
+      'SELECT email, password_hash FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify current password
+    const validPassword = await bcrypt.compare(password, users[0].password_hash);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Password is incorrect' });
+    }
+
+    // Check if new email is same as current
+    if (users[0].email.toLowerCase() === newEmail.toLowerCase()) {
+      return res.status(400).json({ error: 'New email is the same as current email' });
+    }
+
+    // Check if new email is already in use
+    const existingUser = await conn.query(
+      'SELECT id FROM users WHERE email = ? AND id != ?',
+      [newEmail.toLowerCase(), userId]
+    );
+
+    if (existingUser.length > 0) {
+      return res.status(409).json({ error: 'Email is already in use by another account' });
+    }
+
+    // Update email
+    await conn.query('UPDATE users SET email = ? WHERE id = ?', [newEmail.toLowerCase(), userId]);
+
+    console.log(`Auth: Email changed for user ${userId} from ${users[0].email} to ${newEmail}`);
+
+    res.json({ success: true, message: 'Email updated successfully', email: newEmail.toLowerCase() });
+
+  } catch (err) {
+    console.error('Change email error:', err);
+    res.status(500).json({ error: 'Failed to change email' });
   } finally {
     if (conn) conn.release();
   }
@@ -1596,6 +1823,21 @@ app.post('/api/upload', async (req, res) => {
         .catch(err => console.error(`Failed to generate responsive images: ${err.message}`));
     }
 
+    // Upload to CDN (images go to images bucket, videos to videos bucket)
+    let cdnUrl = null;
+    try {
+      const s3Client = new SonicS3Client(null, fileType === 'image' ? 'images' : 'videos');
+      const uploadResult = await s3Client.uploadFile(uploadPath, filename);
+      if (uploadResult.success) {
+        cdnUrl = uploadResult.cdn_url;
+        console.log(`[CDN] Uploaded to: ${cdnUrl}`);
+      } else {
+        console.error(`[CDN] Upload failed: ${uploadResult.error}`);
+      }
+    } catch (cdnErr) {
+      console.error(`[CDN] Error uploading to CDN: ${cdnErr.message}`);
+    }
+
     // Insert into database with file type and path
     conn = await pool.getConnection();
     const result = await conn.query(
@@ -1603,7 +1845,7 @@ app.post('/api/upload', async (req, res) => {
       [filename, fileType, webPath]
     );
 
-    // Trigger CDN prefetch in background
+    // Trigger CDN prefetch in background (for pull zone caching)
     prefetchToCDN(filename, fileType);
 
     res.json({
@@ -1612,7 +1854,8 @@ app.post('/api/upload', async (req, res) => {
       filename: filename,
       file_type: fileType,
       web_path: webPath,
-      full_url: `${webPath}/${encodeURIComponent(filename)}`,
+      full_url: cdnUrl || `${webPath}/${encodeURIComponent(filename)}`,
+      cdn_url: cdnUrl,
       message: `${fileType === 'video' ? 'Video' : 'Image'} uploaded successfully`
     });
   } catch (err) {

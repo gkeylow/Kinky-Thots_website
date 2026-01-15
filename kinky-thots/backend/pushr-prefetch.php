@@ -286,7 +286,7 @@ switch ($command) {
         }
         
         $zoneId = $zones[$zoneName]['zone_id'] ?? null;
-        $baseUrl = $zones[$zoneName]['base_url'] ?? 'https://kinky-thots.com';
+        $baseUrl = $zones[$zoneName]['base_url'] ?? 'https://kinky-thots.xxx';
         
         if (!$zoneId) {
             echo "Error: Zone '$zoneName' not found\n";
@@ -322,7 +322,7 @@ switch ($command) {
         }
         
         $zoneId = $zones[$zoneName]['zone_id'] ?? null;
-        $baseUrl = $zones[$zoneName]['base_url'] ?? 'https://kinky-thots.com';
+        $baseUrl = $zones[$zoneName]['base_url'] ?? 'https://kinky-thots.xxx';
         
         if (!$zoneId) {
             echo "Error: Zone '$zoneName' not found\n";
@@ -342,7 +342,7 @@ switch ($command) {
     case 'prefetch-videos':
         $zoneName = $argv[2] ?? 'videos';
         $zoneId = $zones[$zoneName]['zone_id'] ?? null;
-        $baseUrl = $zones[$zoneName]['base_url'] ?? 'https://kinky-thots.com';
+        $baseUrl = $zones[$zoneName]['base_url'] ?? 'https://kinky-thots.xxx';
         
         if (!$zoneId) {
             echo "Error: Zone '$zoneName' not found\n";
@@ -364,7 +364,7 @@ switch ($command) {
     case 'prefetch-uploads':
         $zoneName = $argv[2] ?? 'images';
         $zoneId = $zones[$zoneName]['zone_id'] ?? null;
-        $baseUrl = $zones[$zoneName]['base_url'] ?? 'https://kinky-thots.com';
+        $baseUrl = $zones[$zoneName]['base_url'] ?? 'https://kinky-thots.xxx';
         
         if (!$zoneId) {
             echo "Error: Zone '$zoneName' not found\n";
@@ -386,7 +386,7 @@ switch ($command) {
     case 'prefetch-images':
         $zoneName = $argv[2] ?? 'images';
         $zoneId = $zones[$zoneName]['zone_id'] ?? null;
-        $baseUrl = $zones[$zoneName]['base_url'] ?? 'https://kinky-thots.com';
+        $baseUrl = $zones[$zoneName]['base_url'] ?? 'https://kinky-thots.xxx';
         
         if (!$zoneId) {
             echo "Error: Zone '$zoneName' not found\n";
@@ -451,7 +451,7 @@ switch ($command) {
         echo "  help                          Show this help\n\n";
         echo "Examples:\n";
         echo "  php pushr-prefetch.php list-zones\n";
-        echo "  php pushr-prefetch.php prefetch https://kinky-thots.com/porn/video.mp4\n";
+        echo "  php pushr-prefetch.php prefetch https://kinky-thots.xxx/porn/video.mp4\n";
         echo "  php pushr-prefetch.php prefetch-file /media/porn/kinky-thots-shorts/video.mp4\n";
         echo "  php pushr-prefetch.php prefetch-dir /media/porn mp4,webm videos\n";
         echo "  php pushr-prefetch.php prefetch-videos\n";
