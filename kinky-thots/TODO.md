@@ -20,13 +20,29 @@
 
 ---
 
+## ✅ COMPLETED (Jan 14, 2026)
+
+### NOWPayments Webhook Testing
+- [x] Verified API connection status (production mode)
+- [x] Tested webhook endpoint reachability externally
+- [x] Verified IPN signature validation (HMAC-SHA512)
+- [x] Tested full payment flow end-to-end with test user
+- [x] Fixed database ENUM to include yearly tier
+
+### Subscription Tier Changes
+- [x] Changed "Lifetime" ($250) to "Yearly" ($120)
+- [x] Updated backend/server.js - SUBSCRIPTION_TIERS and webhook handler
+- [x] Updated subscriptions.html - toggle, prices, FAQ
+- [x] Updated checkout.html - pricing display
+- [x] Updated database ENUM: `free`, `basic`, `premium`, `yearly`, `vip`
+- [x] Updated email templates for yearly tier
+
+---
+
 ## 🔄 IN PROGRESS
 
-### NOWPayments - Finish Testing
-- [ ] Test full payment flow end-to-end (user pays → webhook activates subscription)
-- [ ] Verify webhook IPN signature validation in production
+### Subscription Renewal Testing
 - [ ] Test subscription renewal flow (auto-charge after 31 days)
-- [ ] Add Lifetime plan (currently using 3-year workaround - NOWPayments doesn't support true one-time)
 
 ---
 
@@ -148,10 +164,15 @@ NOWPAYMENTS_BASIC_PLAN_ID=1682032527
 NOWPAYMENTS_PREMIUM_PLAN_ID=381801900
 ```
 
-### NOWPayments Webhook URL
-```
-https://kinky-thots.com/api/nowpayments/webhook
-```
+### NOWPayments Dashboard URLs
+| Setting | URL |
+|---------|-----|
+| IPN Callback (Webhook) | `https://kinky-thots.xxx/api/nowpayments/webhook` |
+| Success Page | `https://kinky-thots.xxx/checkout.html?status=success` |
+| Failed Page | `https://kinky-thots.xxx/checkout.html?status=failed` |
+| Partial Payment | `https://kinky-thots.xxx/checkout.html?status=partial` |
+
+IPN Secret: `rnuWG3MSWP3wn5j3asK1N0I39cCWOrRc`
 
 ### Key Files
 | Feature | Files |

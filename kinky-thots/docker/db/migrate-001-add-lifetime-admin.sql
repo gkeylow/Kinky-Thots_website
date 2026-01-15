@@ -1,9 +1,9 @@
--- Migration 001: Add lifetime tier and is_admin column
+-- Migration 001: Add yearly tier and is_admin column
 -- Run this on existing databases to update schema
 
--- Add 'lifetime' to subscription_tier ENUM
+-- Add 'yearly' to subscription_tier ENUM (was 'lifetime' before Jan 2026)
 ALTER TABLE users
-MODIFY COLUMN subscription_tier ENUM('free', 'basic', 'premium', 'lifetime', 'vip') DEFAULT 'free';
+MODIFY COLUMN subscription_tier ENUM('free', 'basic', 'premium', 'yearly', 'vip') DEFAULT 'free';
 
 -- Add is_admin column if it doesn't exist
 ALTER TABLE users

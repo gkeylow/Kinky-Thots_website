@@ -64,7 +64,7 @@
             font-weight: 600;
             white-space: nowrap;
         }
-        .tier-card.lifetime-mode::before {
+        .tier-card.yearly-mode::before {
             content: 'BEST VALUE';
             background: linear-gradient(135deg, #FFD700, #FFA500);
             color: #000;
@@ -90,7 +90,7 @@
             -webkit-text-fill-color: transparent;
             line-height: 1.1;
         }
-        .tier-price.lifetime {
+        .tier-price.yearly {
             background: linear-gradient(135deg, #FFD700, #FFA500);
             -webkit-background-clip: text;
         }
@@ -167,13 +167,13 @@
         .tier-btn.current:hover {
             transform: none;
         }
-        .tier-btn.lifetime {
+        .tier-btn.yearly {
             background: linear-gradient(135deg, #FFD700, #FFA500);
             color: #000;
         }
 
-        /* Lifetime Toggle */
-        .lifetime-toggle-container {
+        /* Yearly Toggle */
+        .yearly-toggle-container {
             display: flex;
             align-items: center;
             justify-content: center;
@@ -191,7 +191,7 @@
         .toggle-label.active {
             color: #fff;
         }
-        .lifetime-toggle {
+        .yearly-toggle {
             position: relative;
             width: 50px;
             height: 26px;
@@ -200,10 +200,10 @@
             cursor: pointer;
             transition: background 0.3s;
         }
-        .lifetime-toggle.active {
+        .yearly-toggle.active {
             background: linear-gradient(135deg, #FFD700, #FFA500);
         }
-        .lifetime-toggle::after {
+        .yearly-toggle::after {
             content: '';
             position: absolute;
             top: 3px;
@@ -214,7 +214,7 @@
             border-radius: 50%;
             transition: transform 0.3s;
         }
-        .lifetime-toggle.active::after {
+        .yearly-toggle.active::after {
             transform: translateX(24px);
         }
 
@@ -381,14 +381,14 @@
         <!-- Premium Tier -->
         <div class="tier-card featured" data-tier="premium" id="premiumCard">
             <h3 class="tier-name">Premium</h3>
-            <div class="lifetime-toggle-container">
+            <div class="yearly-toggle-container">
                 <span class="toggle-label active" id="monthlyLabel">Monthly</span>
-                <div class="lifetime-toggle" id="lifetimeToggle"></div>
-                <span class="toggle-label" id="lifetimeLabel">Lifetime</span>
+                <div class="yearly-toggle" id="yearlyToggle"></div>
+                <span class="toggle-label" id="yearlyLabel">Yearly</span>
             </div>
             <div class="tier-price-container">
                 <div class="tier-price" id="premiumPrice">$15<span>/mo</span></div>
-                <div class="tier-savings" id="lifetimeSavings">Save $430+ vs 3 years monthly</div>
+                <div class="tier-savings" id="yearlySavings">Save $60/year vs monthly ($10/mo)</div>
             </div>
             <div class="tier-access">All videos (5+ minutes)</div>
             <ul class="tier-features">
@@ -410,7 +410,7 @@
         </div>
         <div class="faq-item">
             <div class="faq-question">Can I cancel anytime? <span>+</span></div>
-            <div class="faq-answer">Yes! Monthly subscriptions can be cancelled at any time. You'll continue to have access until the end of your billing period. Lifetime purchases are one-time payments that never expire.</div>
+            <div class="faq-answer">Yes! Monthly subscriptions can be cancelled at any time. You'll continue to have access until the end of your billing period. Yearly subscriptions give you 12 months of access upfront.</div>
         </div>
         <div class="faq-item">
             <div class="faq-question">How do I upgrade my plan? <span>+</span></div>
@@ -418,11 +418,11 @@
         </div>
         <div class="faq-item">
             <div class="faq-question">What's the difference between tiers? <span>+</span></div>
-            <div class="faq-answer">Tiers are based on video length. Free members can watch clips under 1 minute. Basic ($8/mo) unlocks videos up to 5 minutes. Premium ($15/mo or $250 lifetime) gives you access to all full-length content over 5 minutes.</div>
+            <div class="faq-answer">Tiers are based on video length. Free members can watch clips under 1 minute. Basic ($8/mo) unlocks videos up to 5 minutes. Premium ($15/mo or $120/year) gives you access to all full-length content over 5 minutes.</div>
         </div>
         <div class="faq-item">
-            <div class="faq-question">Is Lifetime really forever? <span>+</span></div>
-            <div class="faq-answer">Yes! The $250 Lifetime option gives you permanent Premium access with no recurring charges. It's equivalent to about 17 months of Premium and pays for itself if you stay subscribed longer.</div>
+            <div class="faq-question">Why choose Yearly? <span>+</span></div>
+            <div class="faq-answer">The $120 Yearly option saves you $60 compared to paying monthly ($180/year). That's like getting 4 months free! You get all Premium features for a full year with one payment.</div>
         </div>
     </section>
 </main>
@@ -445,39 +445,39 @@
     const AUTH_USER_KEY = 'kt_auth_user';
 
     // State
-    let isLifetimeMode = false;
+    let isYearlyMode = false;
 
     // Elements
-    const toggle = document.getElementById('lifetimeToggle');
+    const toggle = document.getElementById('yearlyToggle');
     const premiumCard = document.getElementById('premiumCard');
     const premiumPrice = document.getElementById('premiumPrice');
     const premiumBtn = document.getElementById('premiumBtn');
-    const lifetimeSavings = document.getElementById('lifetimeSavings');
+    const yearlySavings = document.getElementById('yearlySavings');
     const monthlyLabel = document.getElementById('monthlyLabel');
-    const lifetimeLabel = document.getElementById('lifetimeLabel');
+    const yearlyLabel = document.getElementById('yearlyLabel');
 
-    // Toggle lifetime mode
+    // Toggle yearly mode
     toggle.addEventListener('click', () => {
-        isLifetimeMode = !isLifetimeMode;
-        toggle.classList.toggle('active', isLifetimeMode);
-        premiumCard.classList.toggle('lifetime-mode', isLifetimeMode);
-        monthlyLabel.classList.toggle('active', !isLifetimeMode);
-        lifetimeLabel.classList.toggle('active', isLifetimeMode);
+        isYearlyMode = !isYearlyMode;
+        toggle.classList.toggle('active', isYearlyMode);
+        premiumCard.classList.toggle('yearly-mode', isYearlyMode);
+        monthlyLabel.classList.toggle('active', !isYearlyMode);
+        yearlyLabel.classList.toggle('active', isYearlyMode);
 
-        if (isLifetimeMode) {
-            premiumPrice.innerHTML = '$250<span> one-time</span>';
-            premiumPrice.classList.add('lifetime');
-            premiumBtn.href = '/checkout.html?tier=lifetime';
-            premiumBtn.textContent = 'Get Lifetime Access';
-            premiumBtn.classList.add('lifetime');
-            lifetimeSavings.classList.add('visible');
+        if (isYearlyMode) {
+            premiumPrice.innerHTML = '$120<span>/year</span>';
+            premiumPrice.classList.add('yearly');
+            premiumBtn.href = '/checkout.html?tier=yearly';
+            premiumBtn.textContent = 'Get Yearly Access';
+            premiumBtn.classList.add('yearly');
+            yearlySavings.classList.add('visible');
         } else {
             premiumPrice.innerHTML = '$15<span>/mo</span>';
-            premiumPrice.classList.remove('lifetime');
+            premiumPrice.classList.remove('yearly');
             premiumBtn.href = '/checkout.html?tier=premium';
             premiumBtn.textContent = 'Subscribe Now';
-            premiumBtn.classList.remove('lifetime');
-            lifetimeSavings.classList.remove('visible');
+            premiumBtn.classList.remove('yearly');
+            yearlySavings.classList.remove('visible');
         }
     });
 
@@ -488,7 +488,7 @@
 
         // Show current tier badge
         if (user) {
-            const tierNames = { free: 'Free', basic: 'Basic', premium: 'Premium', lifetime: 'Lifetime', vip: 'VIP' };
+            const tierNames = { free: 'Free', basic: 'Basic', premium: 'Premium', yearly: 'Yearly', vip: 'VIP' };
             document.getElementById('currentTierDisplay').innerHTML =
                 `<span class="current-tier-badge">Current Plan: ${tierNames[currentTier] || currentTier}</span>`;
         }
@@ -509,15 +509,15 @@
             basicBtn.textContent = 'Current Plan';
             basicBtn.classList.add('current');
             basicBtn.removeAttribute('href');
-        } else if (['premium', 'lifetime', 'vip'].includes(currentTier)) {
+        } else if (['premium', 'yearly', 'vip'].includes(currentTier)) {
             basicBtn.textContent = 'Included';
             basicBtn.classList.add('current');
             basicBtn.removeAttribute('href');
         }
 
         // Update Premium button
-        if (['premium', 'lifetime', 'vip'].includes(currentTier)) {
-            premiumBtn.textContent = currentTier === 'lifetime' ? 'Lifetime Member' : 'Current Plan';
+        if (['premium', 'yearly', 'vip'].includes(currentTier)) {
+            premiumBtn.textContent = currentTier === 'yearly' ? 'Yearly Member' : 'Current Plan';
             premiumBtn.classList.add('current');
             premiumBtn.removeAttribute('href');
             toggle.style.pointerEvents = 'none';
