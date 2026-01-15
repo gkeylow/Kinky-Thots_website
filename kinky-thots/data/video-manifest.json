@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-03T21:49:57.184Z",
+  "generated": "2026-01-07T05:00:03.441Z",
   "cdn_base_url": "https://6318.s3.nvme.de01.sonic.r-cdn.com",
   "videos": [
     {
@@ -17,6 +17,13 @@
       "size_bytes": 142749328,
       "on_cdn": true,
       "duration_seconds": 1904
+    },
+    {
+      "filename": "Cytherea Short.mp4",
+      "width": null,
+      "height": null,
+      "size_bytes": 0,
+      "on_cdn": true
     },
     {
       "filename": "DJI_20241217_211309_707_video.mp4",

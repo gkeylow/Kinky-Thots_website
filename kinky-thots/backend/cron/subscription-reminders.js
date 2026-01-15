@@ -15,7 +15,7 @@ const mariadb = require('mariadb');
 const nodemailer = require('nodemailer');
 
 const SITE_NAME = 'Kinky Thots';
-const SITE_URL = process.env.SITE_URL || 'https://kinky-thots.com';
+const SITE_URL = process.env.SITE_URL || 'https://kinky-thots.xxx';
 
 // Database pool
 const pool = mariadb.createPool({
