@@ -53,6 +53,21 @@ Thumbs.db
 
 # Docker volumes (local data)
 db_data/
+.docker-data/
+
+# Local logs
+.logs/
+
+# Vite build output (root level)
+dist/
+
+# Test/temp files
+test-paths.php
+
+# Temp screenshots
+*screenshot*.png
+loginstyling.png
+videosubscribe.png
 
 # HLS streaming segments
 hls/*.ts
