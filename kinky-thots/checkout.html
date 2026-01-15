@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex,nofollow">
     <title>Checkout - Kinky Thots</title>
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
-    <link rel="stylesheet" href="/assets/dist/css/main.css?v=202601120941">
+    <link rel="stylesheet" href="/assets/dist/css/main.css?v=202601150001">
     <style>
         .checkout-container {
             max-width: 600px;
@@ -195,6 +195,153 @@
         .crypto-icons span:hover {
             opacity: 1;
         }
+        .currency-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 1.5rem 0;
+        }
+        .currency-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem 0.5rem;
+            background: rgba(0,0,0,0.3);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #fff;
+        }
+        .currency-btn:hover {
+            border-color: rgba(11, 208, 243, 0.5);
+            background: rgba(11, 208, 243, 0.1);
+        }
+        .currency-btn.selected {
+            border-color: #0bd0f3;
+            background: rgba(11, 208, 243, 0.2);
+        }
+        .currency-btn .icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+        .currency-btn .name {
+            font-size: 0.75rem;
+            color: #888;
+        }
+        .payment-details {
+            background: rgba(0,0,0,0.4);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .qr-container {
+            background: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 1rem 0;
+        }
+        .qr-container canvas {
+            display: block;
+        }
+        .pay-address {
+            background: rgba(0,0,0,0.5);
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            word-break: break-all;
+            color: #0bd0f3;
+            margin: 0.5rem 0;
+            position: relative;
+        }
+        .pay-amount {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin: 0.5rem 0;
+        }
+        .pay-amount .currency {
+            color: #0bd0f3;
+            font-size: 1rem;
+        }
+        .copy-btn {
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: opacity 0.2s;
+        }
+        .copy-btn:hover {
+            opacity: 0.9;
+        }
+        .copy-btn.copied {
+            background: #2ecc71;
+        }
+        .memo-warning {
+            background: rgba(243, 156, 18, 0.2);
+            border: 1px solid rgba(243, 156, 18, 0.5);
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-size: 0.85rem;
+            color: #f39c12;
+        }
+        .payment-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+        .payment-status.waiting {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+        }
+        .payment-status.confirming {
+            background: rgba(243, 156, 18, 0.2);
+            color: #f39c12;
+        }
+        .payment-status.confirmed, .payment-status.finished {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+        }
+        .payment-status.expired, .payment-status.failed {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+        }
+        .status-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .countdown {
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 0.5rem;
+        }
+        .countdown.urgent {
+            color: #e74c3c;
+        }
+        .network-info {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 0.5rem;
+        }
         @media (max-width: 480px) {
             .checkout-container { margin-top: 80px; }
             .checkout-card { padding: 1.5rem; }
@@ -322,6 +469,8 @@
     </div>
 </footer>
 
+<!-- QR Code library -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script>
     const AUTH_TOKEN_KEY = 'kt_auth_token';
     const AUTH_USER_KEY = 'kt_auth_user';
@@ -333,14 +482,28 @@
     const isFailed = urlParams.get('status') === 'failed';
     const isPartial = urlParams.get('status') === 'partial';
 
-    // Determine if this is a one-time payment (yearly) or subscription
-    const isOneTimePayment = selectedTier === 'yearly';
+    // Popular currencies with icons
+    const POPULAR_CURRENCIES = [
+        { id: 'btc', name: 'Bitcoin', icon: '₿' },
+        { id: 'eth', name: 'Ethereum', icon: 'Ξ' },
+        { id: 'usdttrc20', name: 'USDT TRC20', icon: '₮' },
+        { id: 'ltc', name: 'Litecoin', icon: 'Ł' },
+        { id: 'xmr', name: 'Monero', icon: 'ɱ' },
+        { id: 'sol', name: 'Solana', icon: '◎' }
+    ];
+
+    // Currencies that require memo/tag
+    const MEMO_CURRENCIES = ['xrp', 'xlm', 'eos', 'bnbmainnet', 'atom', 'xem'];
 
     let tierData = null;
+    let currentPayment = null;
+    let statusPollInterval = null;
+    let countdownInterval = null;
+    let authToken = null;
 
     async function init() {
         const user = JSON.parse(localStorage.getItem(AUTH_USER_KEY) || 'null');
-        const token = localStorage.getItem(AUTH_TOKEN_KEY);
+        authToken = localStorage.getItem(AUTH_TOKEN_KEY);
 
         // Handle payment return status
         if (isSuccess) {
@@ -358,10 +521,9 @@
         }
 
         // Check login status
-        if (!user || !token) {
+        if (!user || !authToken) {
             document.getElementById('loginRequired').style.display = 'block';
             document.getElementById('paymentContainer').innerHTML = '';
-            // Set login link with redirect back to checkout
             const loginLink = document.getElementById('loginLink');
             const redirectUrl = encodeURIComponent(window.location.href);
             loginLink.href = `/login.html?redirect=${redirectUrl}`;
@@ -391,7 +553,7 @@
             }
 
             renderOrderSummary(tierData);
-            initPayment(tierData, token);
+            showCurrencySelector();
         } catch (err) {
             showError('Failed to load subscription data');
         }
@@ -428,34 +590,48 @@
         errorEl.style.display = 'block';
     }
 
+    function hideError() {
+        document.getElementById('errorMessage').style.display = 'none';
+    }
+
     function showSuccess() {
         document.querySelector('.checkout-card').style.display = 'none';
         document.getElementById('successState').style.display = 'block';
+        clearIntervals();
     }
 
     function showPartialPayment() {
         document.querySelector('.checkout-card').style.display = 'none';
         document.getElementById('partialState').style.display = 'block';
+        clearIntervals();
     }
 
-    async function initPayment(tier, token) {
+    function clearIntervals() {
+        if (statusPollInterval) clearInterval(statusPollInterval);
+        if (countdownInterval) clearInterval(countdownInterval);
+    }
+
+    function showCurrencySelector() {
         const container = document.getElementById('paymentContainer');
         const isYearly = selectedTier === 'yearly';
         const priceLabel = isYearly ? '/year' : '/mo';
 
-        // Show crypto payment button
         container.innerHTML = `
             <div class="crypto-payment">
-                <div class="crypto-icons" style="display: flex; justify-content: center; gap: 15px; margin-bottom: 1.5rem;">
-                    <span style="font-size: 2rem;">₿</span>
-                    <span style="font-size: 2rem;">Ξ</span>
-                    <span style="font-size: 2rem; color: #26A17B;">₮</span>
-                </div>
-                <p style="color: #888; margin-bottom: 1rem; font-size: 0.9rem;">
-                    Pay securely with Bitcoin, Ethereum, USDT, or 300+ other cryptocurrencies
+                <p style="color: #fff; margin-bottom: 0.5rem; font-weight: 600;">Select Payment Currency</p>
+                <p style="color: #888; margin-bottom: 1rem; font-size: 0.85rem;">
+                    Choose your preferred cryptocurrency
                 </p>
-                <button id="payWithCryptoBtn" class="checkout-btn">
-                    Pay with Crypto - $${tier.price}${priceLabel}
+                <div class="currency-selector" id="currencySelector">
+                    ${POPULAR_CURRENCIES.map(c => `
+                        <button class="currency-btn" data-currency="${c.id}">
+                            <span class="icon">${c.icon}</span>
+                            <span class="name">${c.name}</span>
+                        </button>
+                    `).join('')}
+                </div>
+                <button id="createPaymentBtn" class="checkout-btn" disabled>
+                    Select a currency to continue
                 </button>
                 <p style="color: #666; margin-top: 1rem; font-size: 0.8rem;">
                     Powered by NOWPayments • Secure & Anonymous
@@ -463,39 +639,239 @@
             </div>
         `;
 
-        document.getElementById('payWithCryptoBtn').addEventListener('click', async () => {
-            const btn = document.getElementById('payWithCryptoBtn');
-            btn.disabled = true;
-            btn.textContent = 'Creating payment...';
+        let selectedCurrency = null;
 
+        // Currency selection
+        document.querySelectorAll('.currency-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.currency-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedCurrency = btn.dataset.currency;
+                const currencyName = POPULAR_CURRENCIES.find(c => c.id === selectedCurrency)?.name || selectedCurrency.toUpperCase();
+                document.getElementById('createPaymentBtn').disabled = false;
+                document.getElementById('createPaymentBtn').textContent = `Pay $${tierData.price}${priceLabel} with ${currencyName}`;
+            });
+        });
+
+        // Create payment button
+        document.getElementById('createPaymentBtn').addEventListener('click', async () => {
+            if (!selectedCurrency) return;
+            await createPayment(selectedCurrency);
+        });
+    }
+
+    async function createPayment(currency) {
+        const btn = document.getElementById('createPaymentBtn');
+        btn.disabled = true;
+        btn.textContent = 'Creating payment...';
+        hideError();
+
+        try {
+            const response = await fetch('/api/payments/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    tier: selectedTier,
+                    pay_currency: currency
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to create payment');
+            }
+
+            currentPayment = data;
+            showPaymentDetails(data);
+
+        } catch (err) {
+            showError(err.message);
+            btn.disabled = false;
+            btn.textContent = 'Try Again';
+        }
+    }
+
+    async function showPaymentDetails(payment) {
+        const container = document.getElementById('paymentContainer');
+        const currencyUpper = payment.pay_currency.toUpperCase();
+        const needsMemo = MEMO_CURRENCIES.includes(payment.pay_currency.toLowerCase());
+
+        container.innerHTML = `
+            <div class="payment-details">
+                <p style="color: #888; margin-bottom: 1rem;">Send exactly this amount:</p>
+                <div class="pay-amount">
+                    ${payment.pay_amount} <span class="currency">${currencyUpper}</span>
+                </div>
+                <p style="color: #666; font-size: 0.85rem;">= $${payment.price_amount} USD</p>
+
+                <div class="qr-container">
+                    <canvas id="qrCode"></canvas>
+                </div>
+
+                <p style="color: #888; margin-bottom: 0.5rem; font-size: 0.85rem;">To this address:</p>
+                <div class="pay-address" id="payAddress">${payment.pay_address}</div>
+                <button class="copy-btn" id="copyAddressBtn">Copy Address</button>
+
+                ${needsMemo && payment.payin_extra_id ? `
+                    <div class="memo-warning">
+                        <strong>IMPORTANT:</strong> You must include this memo/tag with your transaction:
+                        <div class="pay-address" style="margin-top: 0.5rem;" id="payMemo">${payment.payin_extra_id}</div>
+                        <button class="copy-btn" id="copyMemoBtn" style="background: #f39c12;">Copy Memo</button>
+                    </div>
+                ` : ''}
+
+                ${payment.network ? `<p class="network-info">Network: ${payment.network}</p>` : ''}
+
+                <div class="payment-status waiting" id="paymentStatus">
+                    <div class="status-spinner"></div>
+                    <span>Waiting for payment...</span>
+                </div>
+
+                <div class="countdown" id="countdown"></div>
+
+                <button class="checkout-btn" style="margin-top: 1.5rem; background: rgba(255,255,255,0.1);" id="changeCurrencyBtn">
+                    Change Currency
+                </button>
+            </div>
+        `;
+
+        // Generate QR code
+        const qrData = needsMemo && payment.payin_extra_id
+            ? `${payment.pay_address}?amount=${payment.pay_amount}&memo=${payment.payin_extra_id}`
+            : payment.pay_address;
+
+        QRCode.toCanvas(document.getElementById('qrCode'), qrData, {
+            width: 200,
+            margin: 0,
+            color: { dark: '#000000', light: '#ffffff' }
+        });
+
+        // Copy address button
+        document.getElementById('copyAddressBtn').addEventListener('click', () => {
+            copyToClipboard(payment.pay_address, 'copyAddressBtn', 'Address Copied!');
+        });
+
+        // Copy memo button if exists
+        const memoBtn = document.getElementById('copyMemoBtn');
+        if (memoBtn) {
+            memoBtn.addEventListener('click', () => {
+                copyToClipboard(payment.payin_extra_id, 'copyMemoBtn', 'Memo Copied!');
+            });
+        }
+
+        // Change currency button
+        document.getElementById('changeCurrencyBtn').addEventListener('click', () => {
+            clearIntervals();
+            showCurrencySelector();
+        });
+
+        // Start polling for status
+        startStatusPolling(payment.payment_id);
+
+        // Start countdown timer
+        if (payment.valid_until) {
+            startCountdown(new Date(payment.valid_until));
+        }
+    }
+
+    function copyToClipboard(text, btnId, successText) {
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.getElementById(btnId);
+            const originalText = btn.textContent;
+            btn.textContent = successText;
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.classList.remove('copied');
+            }, 2000);
+        });
+    }
+
+    function startStatusPolling(paymentId) {
+        const pollStatus = async () => {
             try {
-                const response = await fetch('/api/subscriptions/checkout', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ tier: selectedTier })
+                const response = await fetch(`/api/payments/${paymentId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
                 });
 
+                if (!response.ok) return;
+
                 const data = await response.json();
+                updatePaymentStatus(data.payment_status);
 
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to create payment');
-                }
-
-                // Redirect to NOWPayments invoice page
-                if (data.invoiceUrl) {
-                    window.location.href = data.invoiceUrl;
-                } else {
-                    throw new Error('No payment URL received');
+                // Handle completed states
+                if (data.payment_status === 'finished' || data.payment_status === 'confirmed') {
+                    clearIntervals();
+                    setTimeout(() => showSuccess(), 1500);
+                } else if (data.payment_status === 'partially_paid') {
+                    clearIntervals();
+                    showPartialPayment();
+                } else if (data.payment_status === 'expired' || data.payment_status === 'failed') {
+                    clearIntervals();
                 }
             } catch (err) {
-                showError(err.message);
-                btn.disabled = false;
-                btn.textContent = `Pay with Crypto - $${tier.price}${priceLabel}`;
+                console.error('Status poll error:', err);
             }
-        });
+        };
+
+        // Poll immediately and then every 10 seconds
+        pollStatus();
+        statusPollInterval = setInterval(pollStatus, 10000);
+    }
+
+    function updatePaymentStatus(status) {
+        const statusEl = document.getElementById('paymentStatus');
+        if (!statusEl) return;
+
+        const statusConfig = {
+            waiting: { class: 'waiting', text: 'Waiting for payment...', spinner: true },
+            confirming: { class: 'confirming', text: 'Payment detected, confirming...', spinner: true },
+            confirmed: { class: 'confirmed', text: 'Payment confirmed!', spinner: false },
+            finished: { class: 'finished', text: 'Payment complete!', spinner: false },
+            partially_paid: { class: 'confirming', text: 'Partial payment received', spinner: false },
+            expired: { class: 'expired', text: 'Payment expired', spinner: false },
+            failed: { class: 'failed', text: 'Payment failed', spinner: false }
+        };
+
+        const config = statusConfig[status] || statusConfig.waiting;
+        statusEl.className = `payment-status ${config.class}`;
+        statusEl.innerHTML = `
+            ${config.spinner ? '<div class="status-spinner"></div>' : ''}
+            <span>${config.text}</span>
+        `;
+    }
+
+    function startCountdown(expiryDate) {
+        const countdownEl = document.getElementById('countdown');
+        if (!countdownEl) return;
+
+        const updateCountdown = () => {
+            const now = new Date();
+            const diff = expiryDate - now;
+
+            if (diff <= 0) {
+                countdownEl.textContent = 'Payment expired';
+                countdownEl.classList.add('urgent');
+                clearInterval(countdownInterval);
+                return;
+            }
+
+            const minutes = Math.floor(diff / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+
+            countdownEl.textContent = `Payment expires in ${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            if (minutes < 5) {
+                countdownEl.classList.add('urgent');
+            }
+        };
+
+        updateCountdown();
+        countdownInterval = setInterval(updateCountdown, 1000);
     }
 
     init();

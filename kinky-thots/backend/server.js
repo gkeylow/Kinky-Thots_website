@@ -1305,7 +1305,159 @@ app.get('/api/payments/currencies', async (req, res) => {
   }
 });
 
-// Create payment for subscription checkout
+// Get minimum payment amount for a currency
+app.get('/api/payments/min-amount/:currency', async (req, res) => {
+  try {
+    const { currency } = req.params;
+    const response = await fetch(
+      `${NOWPAYMENTS_CONFIG.baseUrl}/v1/min-amount?currency_from=${currency.toLowerCase()}&currency_to=usd`,
+      { headers: { 'x-api-key': NOWPAYMENTS_CONFIG.apiKey } }
+    );
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch minimum amount' });
+  }
+});
+
+// Create inline payment (user stays on site)
+// Returns crypto address and amount for direct payment
+app.post('/api/payments/create', authenticateToken, async (req, res) => {
+  const { tier, pay_currency } = req.body;
+
+  if (!NOWPAYMENTS_CONFIG.apiKey) {
+    return res.status(503).json({ error: 'Payment system not configured' });
+  }
+
+  if (!pay_currency) {
+    return res.status(400).json({ error: 'Payment currency is required' });
+  }
+
+  const tierConfig = SUBSCRIPTION_TIERS[tier];
+  if (!tierConfig || tierConfig.price === 0) {
+    return res.status(400).json({ error: 'Invalid subscription tier' });
+  }
+
+  try {
+    const orderId = `${tier}-${req.user.userId}-${Date.now()}`;
+    const isYearly = tier === 'yearly';
+
+    const paymentData = {
+      price_amount: tierConfig.price,
+      price_currency: 'usd',
+      pay_currency: pay_currency.toLowerCase(),
+      ipn_callback_url: `${SITE_URL}/api/nowpayments/webhook`,
+      order_id: orderId,
+      order_description: `${tierConfig.name} ${isYearly ? 'Yearly' : ''} Subscription - ${SITE_NAME}`,
+      is_fixed_rate: true,
+      is_fee_paid_by_user: false
+    };
+
+    console.log('Creating NOWPayments payment:', paymentData);
+
+    const response = await fetch(`${NOWPAYMENTS_CONFIG.baseUrl}/v1/payment`, {
+      method: 'POST',
+      headers: {
+        'x-api-key': NOWPAYMENTS_CONFIG.apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(paymentData)
+    });
+
+    const payment = await response.json();
+    console.log('NOWPayments payment response:', JSON.stringify(payment, null, 2));
+
+    if (!response.ok) {
+      console.error('NOWPayments payment error:', payment);
+      return res.status(500).json({
+        error: payment.message || 'Failed to create payment'
+      });
+    }
+
+    // Store payment ID for webhook matching
+    let conn;
+    try {
+      conn = await pool.getConnection();
+      await conn.query(
+        `UPDATE users SET
+          payment_customer_id = ?,
+          payment_provider = 'nowpayments'
+        WHERE id = ?`,
+        [payment.payment_id, req.user.userId]
+      );
+    } finally {
+      if (conn) conn.release();
+    }
+
+    // Return payment details for inline display
+    res.json({
+      payment_id: payment.payment_id,
+      payment_status: payment.payment_status,
+      pay_address: payment.pay_address,
+      pay_amount: payment.pay_amount,
+      pay_currency: payment.pay_currency,
+      price_amount: payment.price_amount,
+      price_currency: payment.price_currency,
+      order_id: payment.order_id,
+      valid_until: payment.valid_until,
+      payin_extra_id: payment.payin_extra_id, // Memo/tag for some currencies
+      network: payment.network,
+      tier,
+      tierName: tierConfig.name,
+      isYearly
+    });
+
+  } catch (err) {
+    console.error('NOWPayments payment error:', err);
+    res.status(500).json({ error: err.message || 'Payment service error' });
+  }
+});
+
+// Get payment status by ID
+app.get('/api/payments/:paymentId', authenticateToken, async (req, res) => {
+  const { paymentId } = req.params;
+
+  if (!NOWPAYMENTS_CONFIG.apiKey) {
+    return res.status(503).json({ error: 'Payment system not configured' });
+  }
+
+  try {
+    const response = await fetch(
+      `${NOWPAYMENTS_CONFIG.baseUrl}/v1/payment/${paymentId}`,
+      {
+        headers: { 'x-api-key': NOWPAYMENTS_CONFIG.apiKey }
+      }
+    );
+
+    const payment = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: payment.message || 'Failed to fetch payment status'
+      });
+    }
+
+    res.json({
+      payment_id: payment.payment_id,
+      payment_status: payment.payment_status,
+      pay_address: payment.pay_address,
+      pay_amount: payment.pay_amount,
+      actually_paid: payment.actually_paid,
+      pay_currency: payment.pay_currency,
+      price_amount: payment.price_amount,
+      price_currency: payment.price_currency,
+      order_id: payment.order_id,
+      outcome_amount: payment.outcome_amount,
+      outcome_currency: payment.outcome_currency
+    });
+
+  } catch (err) {
+    console.error('Payment status error:', err);
+    res.status(500).json({ error: err.message || 'Failed to fetch payment status' });
+  }
+});
+
+// Create payment for subscription checkout (legacy - redirects to NOWPayments)
 // - Basic/Premium: Uses recurring subscription API (requires JWT)
 // - Lifetime: Uses one-time invoice API
 app.post('/api/subscriptions/checkout', authenticateToken, async (req, res) => {
