@@ -7,31 +7,35 @@ const { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, DeleteO
  * Provides S3-compatible API access to Sonic CDN for uploading and managing files
  */
 class SonicS3Client {
-  constructor(configPath = null) {
+  constructor(configPath = null, bucketType = 'videos') {
     // Load configuration
     const configFile = configPath || path.join(__dirname, '../config/sonic-s3-cdn.json');
-    
+
     if (!fs.existsSync(configFile)) {
       throw new Error(`Configuration file not found: ${configFile}`);
     }
 
     const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
     this.config = config;
+    this.bucketType = bucketType;
+
+    // Get bucket-specific config (videos or images)
+    const s3Config = config.s3[bucketType] || config.s3.videos;
 
     // Initialize S3 client
     this.s3Client = new S3Client({
-      region: config.s3.region,
-      endpoint: config.s3.endpoint,
+      region: s3Config.region,
+      endpoint: s3Config.endpoint,
       credentials: {
-        accessKeyId: config.s3.access_key,
-        secretAccessKey: config.s3.secret_key
+        accessKeyId: s3Config.access_key,
+        secretAccessKey: s3Config.secret_key
       },
       forcePathStyle: config.settings.path_style,
       tls: config.settings.use_ssl
     });
 
-    this.bucket = config.s3.bucket;
-    this.cdnBaseUrl = config.cdn.base_url;
+    this.bucket = s3Config.bucket;
+    this.cdnBaseUrl = `https://${s3Config.cdn_hostname}`;
   }
 
   /**
