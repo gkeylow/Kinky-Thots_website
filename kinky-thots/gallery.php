@@ -201,17 +201,6 @@ endif;
 
         <ul class="nav-links">
             <li><a href="/index.html">Home</a></li>
-
-            <li class="dropdown">
-                <button class="dropdown-toggle">About</button>
-                <ul class="dropdown-menu">
-                    <li><a href="/index.html#about">About Us</a></li>
-                    <li><a href="/index.html#skills">Our Skills</a></li>
-                    <li><a href="/index.html#portfolio">Portfolio</a></li>
-                    <li><a href="/index.html#contact">Contact</a></li>
-                </ul>
-            </li>
-
             <li class="dropdown">
                 <button class="dropdown-toggle">Models</button>
                 <ul class="dropdown-menu">
@@ -219,7 +208,6 @@ endif;
                     <li><a href="/bustersherry.html">Buster Sherry</a></li>
                 </ul>
             </li>
-
             <li class="dropdown">
                 <button class="dropdown-toggle">Content</button>
                 <ul class="dropdown-menu">
@@ -230,7 +218,6 @@ endif;
                     <li><a href="/live.html">Live Cam</a></li>
                 </ul>
             </li>
-
             <li class="dropdown" id="userDropdown">
                 <button class="dropdown-toggle" id="userTrigger">Account</button>
                 <ul class="dropdown-menu">
