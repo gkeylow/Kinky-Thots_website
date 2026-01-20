@@ -185,6 +185,13 @@ function formatDuration($seconds) {
         <ul class="nav-links">
             <li><a href="/index.html">Home</a></li>
             <li class="dropdown">
+                <button class="dropdown-toggle">Models</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/sissylonglegs.html">Sissy Long Legs</a></li>
+                    <li><a href="/bustersherry.html">Buster Sherry</a></li>
+                </ul>
+            </li>
+            <li class="dropdown">
                 <button class="dropdown-toggle">Content</button>
                 <ul class="dropdown-menu">
                     <li><a href="/free-content.php">Free Teasers</a></li>
@@ -192,13 +199,6 @@ function formatDuration($seconds) {
                     <li><a href="/premium-content.php">Full Access</a></li>
                     <li><a href="/gallery.php">Photo Gallery</a></li>
                     <li><a href="/live.html">Live Cam</a></li>
-                </ul>
-            </li>
-            <li class="dropdown">
-                <button class="dropdown-toggle">Models</button>
-                <ul class="dropdown-menu">
-                    <li><a href="/sissylonglegs.html">Sissy Long Legs</a></li>
-                    <li><a href="/bustersherry.html">Buster Sherry</a></li>
                 </ul>
             </li>
             <li class="dropdown" id="userDropdown">
