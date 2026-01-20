@@ -276,17 +276,6 @@
 
         <ul class="nav-links">
             <li><a href="/index.html">Home</a></li>
-
-            <li class="dropdown">
-                <button class="dropdown-toggle">About</button>
-                <ul class="dropdown-menu">
-                    <li><a href="/index.html#about">About Us</a></li>
-                    <li><a href="/index.html#skills">Our Skills</a></li>
-                    <li><a href="/index.html#portfolio">Portfolio</a></li>
-                    <li><a href="/index.html#contact">Contact</a></li>
-                </ul>
-            </li>
-
             <li class="dropdown">
                 <button class="dropdown-toggle">Models</button>
                 <ul class="dropdown-menu">
@@ -294,7 +283,6 @@
                     <li><a href="/bustersherry.html">Buster Sherry</a></li>
                 </ul>
             </li>
-
             <li class="dropdown">
                 <button class="dropdown-toggle">Content</button>
                 <ul class="dropdown-menu">
@@ -305,7 +293,6 @@
                     <li><a href="/live.html">Live Cam</a></li>
                 </ul>
             </li>
-
             <li class="dropdown" id="userDropdown">
                 <button class="dropdown-toggle" id="userTrigger">Account</button>
                 <ul class="dropdown-menu">
@@ -544,6 +531,12 @@
 
             localStorage.setItem('kt_auth_token', data.token);
             localStorage.setItem('kt_auth_user', JSON.stringify(data.user));
+
+            // Check if user needs to change password
+            if (data.user.force_password_change) {
+                window.location.href = '/profile.html?change_password=1';
+                return;
+            }
 
             // Redirect to profile or intended page
             const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/profile.html';

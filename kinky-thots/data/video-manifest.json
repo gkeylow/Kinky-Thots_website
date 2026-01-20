@@ -1,173 +1,214 @@
 {
-  "generated": "2026-01-07T05:00:03.441Z",
+  "generated": "2026-01-17T01:01:08.008Z",
   "cdn_base_url": "https://6318.s3.nvme.de01.sonic.r-cdn.com",
   "videos": [
     {
+      "filename": "017e36103eaa3ca630d4c137bf15a86d531bb6c965.mp4",
+      "duration_seconds": 65,
+      "width": null,
+      "height": null,
+      "size_bytes": 11135416,
+      "on_cdn": true
+    },
+    {
+      "filename": "1403229-1717706159-231-480.mp4",
+      "duration_seconds": 144,
+      "width": null,
+      "height": null,
+      "size_bytes": 77589010,
+      "on_cdn": true
+    },
+    {
       "filename": "20190821_183153(1).mp4",
+      "duration_seconds": 11,
       "width": null,
       "height": null,
       "size_bytes": 24169609,
-      "on_cdn": true,
-      "duration_seconds": 11
+      "on_cdn": true
     },
     {
       "filename": "Carter Cruise (Full).mp4",
+      "duration_seconds": 1904,
       "width": null,
       "height": null,
       "size_bytes": 142749328,
-      "on_cdn": true,
-      "duration_seconds": 1904
-    },
-    {
-      "filename": "Cytherea Short.mp4",
-      "width": null,
-      "height": null,
-      "size_bytes": 0,
       "on_cdn": true
     },
     {
       "filename": "DJI_20241217_211309_707_video.mp4",
+      "duration_seconds": 111,
       "width": null,
       "height": null,
       "size_bytes": 237485875,
-      "on_cdn": true,
-      "duration_seconds": 111
+      "on_cdn": true
     },
     {
       "filename": "DJI_20250428_144952_136_slowmotion.mp4",
+      "duration_seconds": 8,
       "width": null,
       "height": null,
       "size_bytes": 33837179,
-      "on_cdn": true,
-      "duration_seconds": 8
+      "on_cdn": true
     },
     {
       "filename": "IMB_qrb26A.MP4",
+      "duration_seconds": 10,
       "width": null,
       "height": null,
       "size_bytes": 25579408,
-      "on_cdn": true,
-      "duration_seconds": 10
+      "on_cdn": true
+    },
+    {
+      "filename": "IMG_0287.MOV",
+      "duration_seconds": 100,
+      "width": null,
+      "height": null,
+      "size_bytes": 190094495,
+      "on_cdn": true
+    },
+    {
+      "filename": "IMG_0289.MOV",
+      "duration_seconds": 92,
+      "width": null,
+      "height": null,
+      "size_bytes": 265298724,
+      "on_cdn": true
     },
     {
       "filename": "IMG_0291.mp4",
+      "duration_seconds": 40,
       "width": null,
       "height": null,
       "size_bytes": 23098611,
-      "on_cdn": true,
-      "duration_seconds": 40
+      "on_cdn": true
     },
     {
       "filename": "IMG_2517.mp4",
+      "duration_seconds": 42,
       "width": null,
       "height": null,
       "size_bytes": 26543719,
-      "on_cdn": true,
-      "duration_seconds": 42
+      "on_cdn": true
     },
     {
       "filename": "IMG_4210.mp4",
+      "duration_seconds": 35,
       "width": null,
       "height": null,
       "size_bytes": 80231366,
-      "on_cdn": true,
-      "duration_seconds": 35
+      "on_cdn": true
+    },
+    {
+      "filename": "IMG_5295.MOV",
+      "duration_seconds": 108,
+      "width": null,
+      "height": null,
+      "size_bytes": 317937380,
+      "on_cdn": true
     },
     {
       "filename": "IMG_7192.mp4",
+      "duration_seconds": 27,
       "width": null,
       "height": null,
       "size_bytes": 23050727,
-      "on_cdn": true,
-      "duration_seconds": 27
+      "on_cdn": true
     },
     {
       "filename": "IMG_9197.mp4",
+      "duration_seconds": 33,
       "width": null,
       "height": null,
       "size_bytes": 22877384,
-      "on_cdn": true,
-      "duration_seconds": 33
+      "on_cdn": true
     },
     {
       "filename": "Samantha LookUp2.MP4",
+      "duration_seconds": 15,
       "width": null,
       "height": null,
       "size_bytes": 28544443,
-      "on_cdn": true,
-      "duration_seconds": 15
+      "on_cdn": true
     },
     {
       "filename": "SexiestVideoMadeSoFar.mp4",
+      "duration_seconds": 27,
       "width": null,
       "height": null,
       "size_bytes": 27226027,
-      "on_cdn": true,
-      "duration_seconds": 27
+      "on_cdn": true
     },
     {
       "filename": "video-output-18BFA4DD-6FCC-4D06-84B9-A769489834.mp4",
+      "duration_seconds": 12,
       "width": null,
       "height": null,
       "size_bytes": 20510255,
-      "on_cdn": true,
-      "duration_seconds": 12
+      "on_cdn": true
     },
     {
       "filename": "video-output-6C86B7C5-0A79-479D-A139-FB27AB7741.mp4",
+      "duration_seconds": 59,
       "width": null,
       "height": null,
       "size_bytes": 145286275,
-      "on_cdn": true,
-      "duration_seconds": 59
+      "on_cdn": true
     },
     {
       "filename": "video-output-757F527B-28C7-485B-8637-5E66689C1287.mp4",
+      "duration_seconds": 47,
       "width": null,
       "height": null,
       "size_bytes": 12877836,
-      "on_cdn": true,
-      "duration_seconds": 47
+      "on_cdn": true
+    },
+    {
+      "filename": "video-output-7D335F24-9B8A-4F80-85E4-7AFBE18619.mp4",
+      "duration_seconds": 1084,
+      "width": null,
+      "height": null,
+      "size_bytes": 2056297998,
+      "on_cdn": true
     },
     {
       "filename": "video-output-B1A2B51A-B238-42CB-A2BF-1AFD480E48.mp4",
+      "duration_seconds": 56,
       "width": null,
       "height": null,
       "size_bytes": 158242566,
-      "on_cdn": true,
-      "duration_seconds": 56
+      "on_cdn": true
     },
     {
       "filename": "video-output-B521A2EF-AEC0-488C-92C2-01FC7B828B.mp4",
+      "duration_seconds": 140,
       "width": null,
       "height": null,
       "size_bytes": 80228601,
-      "on_cdn": true,
-      "duration_seconds": 140
+      "on_cdn": true
     },
     {
       "filename": "video-output-CAA30E33-809A-4FA3-BFBC-7A960B229B.mp4",
+      "duration_seconds": 835,
       "width": null,
       "height": null,
       "size_bytes": 1585132756,
-      "on_cdn": true,
-      "duration_seconds": 835
+      "on_cdn": true
     },
     {
       "filename": "video-output-CEE7864F-8D14-4D26-AA4E-AC6EC41260.mp4",
+      "duration_seconds": 945,
       "width": null,
       "height": null,
       "size_bytes": 546157159,
-      "on_cdn": true,
-      "duration_seconds": 945
+      "on_cdn": true
     },
     {
       "filename": "video-output-F57ADCB5-9098-40CA-AD74-3D00EEFEFD.mp4",
+      "duration_seconds": 89,
       "width": null,
       "height": null,
       "size_bytes": 118960547,
-      "on_cdn": true,
-      "duration_seconds": 89
+      "on_cdn": true
     }
   ]
 }

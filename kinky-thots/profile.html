@@ -375,6 +375,13 @@
         <ul class="nav-links">
             <li><a href="/index.html">Home</a></li>
             <li class="dropdown">
+                <button class="dropdown-toggle">Models</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/sissylonglegs.html">Sissy Long Legs</a></li>
+                    <li><a href="/bustersherry.html">Buster Sherry</a></li>
+                </ul>
+            </li>
+            <li class="dropdown">
                 <button class="dropdown-toggle">Content</button>
                 <ul class="dropdown-menu">
                     <li><a href="/free-content.php">Free Teasers</a></li>
@@ -559,7 +566,7 @@
             <hr class="security-divider">
 
             <!-- Change Password -->
-            <div class="security-section">
+            <div class="security-section" id="password-section">
                 <h3>Change Password</h3>
                 <form id="passwordForm" class="profile-form">
                     <div class="form-group">
@@ -1094,6 +1101,24 @@
 
     // Initialize
     loadProfile();
+
+    // Check if user needs to change password (redirected from login)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('change_password') === '1') {
+        // Scroll to password section and show message
+        setTimeout(() => {
+            const passwordSection = document.getElementById('password-section');
+            if (passwordSection) {
+                passwordSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                passwordSection.style.border = '2px solid #f39c12';
+                passwordSection.style.borderRadius = '8px';
+                passwordSection.style.padding = '20px';
+                showAlert('Please change your password to continue.', 'warning');
+            }
+        }, 500);
+        // Clean up URL
+        window.history.replaceState({}, document.title, '/profile.html');
+    }
 </script>
 </body>
 </html>
