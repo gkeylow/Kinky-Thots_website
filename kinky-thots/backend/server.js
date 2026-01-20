@@ -583,7 +583,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 
     // Find user by email or username
     const users = await conn.query(
-      `SELECT id, username, email, password_hash, display_color, avatar_url, bio, subscription_tier, is_admin
+      `SELECT id, username, email, password_hash, display_color, avatar_url, bio, subscription_tier, is_admin, admin_role, force_password_change
        FROM users WHERE email = ? OR username = ?`,
       [email.toLowerCase(), email.toLowerCase()]
     );
@@ -600,9 +600,14 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Generate JWT (include is_admin for gallery access)
+    // Generate JWT (include is_admin and admin_role for permissions)
     const token = jwt.sign(
-      { userId: Number(user.id), username: user.username, isAdmin: Boolean(user.is_admin) },
+      {
+        userId: Number(user.id),
+        username: user.username,
+        isAdmin: Boolean(user.is_admin),
+        adminRole: user.admin_role || 'none'
+      },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
@@ -623,7 +628,9 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
         avatar_url: user.avatar_url || null,
         bio: user.bio || null,
         subscription_tier: user.subscription_tier || 'free',
-        is_admin: Boolean(user.is_admin)
+        is_admin: Boolean(user.is_admin),
+        admin_role: user.admin_role || 'none',
+        force_password_change: Boolean(user.force_password_change)
       }
     });
 
@@ -642,7 +649,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
     conn = await pool.getConnection();
     const users = await conn.query(
       `SELECT id, username, email, display_color, avatar_url, bio, subscription_tier, subscription_status,
-              subscription_expires_at, created_at, last_login_at, is_admin
+              subscription_expires_at, created_at, last_login_at, is_admin, admin_role, force_password_change
        FROM users WHERE id = ?`,
       [req.user.userId]
     );
@@ -665,7 +672,9 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
         subscription_expires_at: user.subscription_expires_at,
         created_at: user.created_at,
         last_login_at: user.last_login_at,
-        is_admin: Boolean(user.is_admin)
+        is_admin: Boolean(user.is_admin),
+        admin_role: user.admin_role || 'none',
+        force_password_change: Boolean(user.force_password_change)
       }
     });
 
@@ -780,7 +789,9 @@ app.post('/api/auth/avatar', authenticateToken, async (req, res) => {
       return res.status(500).json({ error: 'CDN configuration error' });
     }
 
-    const uploadResult = await s3Client.uploadBuffer(file.data, filename, file.mimetype);
+    // Read file data (useTempFiles mode stores data in temp file, not file.data)
+    const fileData = file.tempFilePath ? fs.readFileSync(file.tempFilePath) : file.data;
+    const uploadResult = await s3Client.uploadBuffer(fileData, filename, file.mimetype);
 
     if (!uploadResult.success) {
       console.error('S3 upload error:', uploadResult.error);
@@ -1044,9 +1055,9 @@ app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
       return res.status(401).json({ error: 'Current password is incorrect' });
     }
 
-    // Hash and save new password
+    // Hash and save new password, clear force_password_change flag
     const newPasswordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
-    await conn.query('UPDATE users SET password_hash = ? WHERE id = ?', [newPasswordHash, userId]);
+    await conn.query('UPDATE users SET password_hash = ?, force_password_change = 0 WHERE id = ?', [newPasswordHash, userId]);
 
     res.json({ success: true, message: 'Password changed successfully' });
 
@@ -1320,6 +1331,38 @@ app.get('/api/payments/min-amount/:currency', async (req, res) => {
   }
 });
 
+// Get estimated crypto amount for a USD price
+app.get('/api/payments/estimate', async (req, res) => {
+  console.log('Estimate endpoint hit:', req.query);
+  try {
+    const { amount, currency } = req.query;
+
+    if (!amount || !currency) {
+      return res.status(400).json({ error: 'Amount and currency are required' });
+    }
+
+    if (!NOWPAYMENTS_CONFIG.apiKey) {
+      return res.status(503).json({ error: 'Payment API not configured' });
+    }
+
+    const url = `${NOWPAYMENTS_CONFIG.baseUrl}/v1/estimate?amount=${amount}&currency_from=usd&currency_to=${currency.toLowerCase()}`;
+    const response = await fetch(url, {
+      headers: { 'x-api-key': NOWPAYMENTS_CONFIG.apiKey }
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('NOWPayments estimate error:', response.status, data);
+      return res.status(response.status).json(data);
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error('Estimate fetch error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch estimate' });
+  }
+});
+
 // Create inline payment (user stays on site)
 // Returns crypto address and amount for direct payment
 app.post('/api/payments/create', authenticateToken, async (req, res) => {
@@ -1402,6 +1445,8 @@ app.post('/api/payments/create', authenticateToken, async (req, res) => {
       valid_until: payment.valid_until,
       payin_extra_id: payment.payin_extra_id, // Memo/tag for some currencies
       network: payment.network,
+      burning_percent: payment.burning_percent, // Network fee %
+      network_precision: payment.network_precision,
       tier,
       tierName: tierConfig.name,
       isYearly
@@ -1708,6 +1753,9 @@ app.post('/api/nowpayments/webhook', express.json(), async (req, res) => {
   }
 
   console.log('NOWPayments webhook:', payload.payment_status, payload.order_id);
+  if (payload.parent_payment_id) {
+    console.log('Re-deposit detected, parent_payment_id:', payload.parent_payment_id);
+  }
 
   let conn;
   try {
@@ -1716,7 +1764,35 @@ app.post('/api/nowpayments/webhook', express.json(), async (req, res) => {
     // Parse order_id: "tier-userId-timestamp"
     const orderParts = payload.order_id?.split('-') || [];
     const tier = orderParts[0];
-    const oderId = payload.order_id;
+    const orderId = payload.order_id;
+
+    // Store/update payment record in payments table
+    try {
+      await conn.query(
+        `INSERT INTO payments (payment_id, parent_payment_id, order_id, price_amount, price_currency,
+          pay_amount, pay_currency, actually_paid, payment_status, tier)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          actually_paid = VALUES(actually_paid),
+          payment_status = VALUES(payment_status),
+          updated_at = CURRENT_TIMESTAMP`,
+        [
+          payload.payment_id,
+          payload.parent_payment_id || null,
+          orderId,
+          payload.price_amount || 0,
+          payload.price_currency || 'usd',
+          payload.pay_amount || null,
+          payload.pay_currency || null,
+          payload.actually_paid || null,
+          payload.payment_status,
+          tier
+        ]
+      );
+    } catch (paymentErr) {
+      // Table may not exist yet - log and continue
+      console.log('Note: payments table insert skipped:', paymentErr.code);
+    }
 
     // Get user by payment_customer_id (invoice ID)
     const users = await conn.query(
@@ -1724,7 +1800,26 @@ app.post('/api/nowpayments/webhook', express.json(), async (req, res) => {
       [payload.invoice_id || payload.payment_id]
     );
 
-    const user = users[0];
+    // If this is a re-deposit, try finding user by parent payment
+    let user = users[0];
+    if (!user && payload.parent_payment_id) {
+      const parentUsers = await conn.query(
+        'SELECT id, username, email, subscription_tier FROM users WHERE payment_customer_id = ?',
+        [payload.parent_payment_id]
+      );
+      user = parentUsers[0];
+      if (user) console.log('Found user via parent_payment_id:', user.username);
+    }
+
+    // Update payment with user_id if found
+    if (user) {
+      try {
+        await conn.query(
+          'UPDATE payments SET user_id = ? WHERE payment_id = ?',
+          [user.id, payload.payment_id]
+        );
+      } catch (e) { /* payments table may not exist */ }
+    }
 
     switch (payload.payment_status) {
       case 'waiting':
@@ -2002,6 +2097,286 @@ app.get('/api/gallery', async (req, res) => {
     if (conn) conn.release();
   }
 });
+
+// ============================================
+// ADMIN API ENDPOINTS
+// ============================================
+
+// Admin middleware - check if user is admin
+const requireAdmin = async (req, res, next) => {
+  if (!req.user || !req.user.userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const users = await conn.query('SELECT is_admin FROM users WHERE id = ?', [req.user.userId]);
+    if (!users[0] || !users[0].is_admin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    next();
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to verify admin status' });
+  } finally {
+    if (conn) conn.release();
+  }
+};
+
+// Check if current user is admin
+app.get('/api/admin/check', authenticateToken, async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const users = await conn.query('SELECT is_admin FROM users WHERE id = ?', [req.user.userId]);
+    res.json({ isAdmin: users[0]?.is_admin === 1 });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to check admin status' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Get dashboard stats
+app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    // Total users
+    const totalUsersResult = await conn.query('SELECT COUNT(*) as count FROM users');
+    const totalUsers = Number(totalUsersResult[0].count);
+
+    // Active subscribers (non-free, active status)
+    const activeSubsResult = await conn.query(
+      `SELECT COUNT(*) as count FROM users WHERE subscription_tier != 'free' AND subscription_status = 'active'`
+    );
+    const activeSubscribers = Number(activeSubsResult[0].count);
+
+    // Monthly revenue (from payments table, this month, finished status)
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    let monthlyRevenue = 0;
+    let totalRevenue = 0;
+    let pendingPayments = 0;
+
+    try {
+      const monthlyResult = await conn.query(
+        `SELECT COALESCE(SUM(price_amount), 0) as total FROM payments
+         WHERE payment_status IN ('finished', 'confirmed') AND created_at >= ?`,
+        [monthStart]
+      );
+      monthlyRevenue = parseFloat(monthlyResult[0].total) || 0;
+
+      const totalResult = await conn.query(
+        `SELECT COALESCE(SUM(price_amount), 0) as total FROM payments WHERE payment_status IN ('finished', 'confirmed')`
+      );
+      totalRevenue = parseFloat(totalResult[0].total) || 0;
+
+      const pendingResult = await conn.query(
+        `SELECT COUNT(*) as count FROM payments WHERE payment_status IN ('waiting', 'confirming')`
+      );
+      pendingPayments = Number(pendingResult[0].count);
+    } catch (e) {
+      // payments table may not exist yet
+      console.log('Note: payments table not found for stats');
+    }
+
+    // Total videos from manifest
+    let totalVideos = 0;
+    try {
+      const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/video-manifest.json'), 'utf-8'));
+      totalVideos = manifest.videos?.length || 0;
+    } catch (e) {
+      totalVideos = 0;
+    }
+
+    // Recent activity (new users + completed payments)
+    let recentActivity = [];
+    try {
+      const recentUsers = await conn.query(
+        `SELECT username, created_at, 'New registration' as action FROM users ORDER BY created_at DESC LIMIT 5`
+      );
+      const recentPayments = await conn.query(
+        `SELECT u.username, p.created_at, CONCAT('Payment: $', p.price_amount, ' (', p.tier, ')') as action
+         FROM payments p LEFT JOIN users u ON p.user_id = u.id
+         WHERE p.payment_status IN ('finished', 'confirmed')
+         ORDER BY p.created_at DESC LIMIT 5`
+      );
+      recentActivity = [...recentUsers, ...recentPayments]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 10);
+    } catch (e) {
+      // Just return empty activity
+    }
+
+    res.json({
+      totalUsers,
+      activeSubscribers,
+      monthlyRevenue,
+      totalRevenue,
+      pendingPayments,
+      totalVideos,
+      recentActivity
+    });
+  } catch (err) {
+    console.error('Admin stats error:', err);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Get members list with filtering
+app.get('/api/admin/members', authenticateToken, requireAdmin, async (req, res) => {
+  const { page = 1, limit = 20, search, tier, status } = req.query;
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    let query = `SELECT id, username, email, subscription_tier, subscription_status,
+                 subscription_expires_at, is_admin, created_at, last_login_at FROM users WHERE 1=1`;
+    const params = [];
+
+    if (search) {
+      query += ` AND (username LIKE ? OR email LIKE ?)`;
+      params.push(`%${search}%`, `%${search}%`);
+    }
+    if (tier) {
+      query += ` AND subscription_tier = ?`;
+      params.push(tier);
+    }
+    if (status) {
+      query += ` AND subscription_status = ?`;
+      params.push(status);
+    }
+
+    query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+    params.push(parseInt(limit), offset);
+
+    const members = await conn.query(query, params);
+    res.json({ members, page: parseInt(page), limit: parseInt(limit) });
+  } catch (err) {
+    console.error('Admin members error:', err);
+    res.status(500).json({ error: 'Failed to fetch members' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Get single member
+app.get('/api/admin/members/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const users = await conn.query(
+      `SELECT id, username, email, subscription_tier, subscription_status,
+       subscription_expires_at, is_admin, created_at, last_login_at FROM users WHERE id = ?`,
+      [id]
+    );
+
+    if (!users[0]) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(users[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch user' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Update member
+app.put('/api/admin/members/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { subscription_tier, subscription_status, is_admin } = req.body;
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    // Prevent admin from removing their own admin status
+    if (parseInt(id) === req.user.userId && is_admin === false) {
+      return res.status(400).json({ error: 'Cannot remove your own admin status' });
+    }
+
+    await conn.query(
+      `UPDATE users SET subscription_tier = ?, subscription_status = ?, is_admin = ? WHERE id = ?`,
+      [subscription_tier, subscription_status, is_admin ? 1 : 0, id]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Admin update user error:', err);
+    res.status(500).json({ error: 'Failed to update user' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Get transactions list with filtering
+app.get('/api/admin/transactions', authenticateToken, requireAdmin, async (req, res) => {
+  const { page = 1, limit = 20, status, tier, dateFrom, dateTo } = req.query;
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    let query = `SELECT p.*, u.username FROM payments p LEFT JOIN users u ON p.user_id = u.id WHERE 1=1`;
+    const params = [];
+
+    if (status) {
+      query += ` AND p.payment_status = ?`;
+      params.push(status);
+    }
+    if (tier) {
+      query += ` AND p.tier = ?`;
+      params.push(tier);
+    }
+    if (dateFrom) {
+      query += ` AND p.created_at >= ?`;
+      params.push(dateFrom);
+    }
+    if (dateTo) {
+      query += ` AND p.created_at <= ?`;
+      params.push(dateTo + ' 23:59:59');
+    }
+
+    query += ` ORDER BY p.created_at DESC LIMIT ? OFFSET ?`;
+    params.push(parseInt(limit), offset);
+
+    const transactions = await conn.query(query, params);
+    res.json({ transactions, page: parseInt(page), limit: parseInt(limit) });
+  } catch (err) {
+    console.error('Admin transactions error:', err);
+    res.status(500).json({ error: 'Failed to fetch transactions' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Get content (videos) list
+app.get('/api/admin/content', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const manifestPath = path.join(__dirname, '../data/video-manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+    res.json({ videos: manifest.videos || [] });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load video manifest', videos: [] });
+  }
+});
+
+// ============================================
+// END ADMIN API ENDPOINTS
+// ============================================
 
 // Upload file (image or video)
 app.post('/api/upload', async (req, res) => {

@@ -1,7 +1,7 @@
 {
   "s3": {
     "videos": {
-      "endpoint": "https://s3.eu-central.r-cdn.com",
+      "endpoint": "https://s3.nvme.eu-central.r-cdn.com",
       "access_key": "Z1Z2BU5WTNB6S28P6OW4M",
       "secret_key": "TrwzRLw1U8NPS0g3hDKWNkxBw7ZSw8NYRcNZNFQ1",
       "bucket": "6318",

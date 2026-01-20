@@ -281,7 +281,9 @@ class SonicS3Client {
    * @returns {string} Full CDN URL
    */
   getCdnUrl(key) {
-    return `${this.cdnBaseUrl}/${encodeURIComponent(key.replace(/^\//, ''))}`;
+    // Encode each path segment separately to preserve slashes
+    const encodedPath = key.replace(/^\//, '').split('/').map(segment => encodeURIComponent(segment)).join('/');
+    return `${this.cdnBaseUrl}/${encodedPath}`;
   }
 
   /**

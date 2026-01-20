@@ -34,7 +34,8 @@ services:
       - "3002:3001"    # Test mode: use 3002 instead of 3001
     volumes:
       - ./uploads:/uploads
-      - ./config:/var/www/kinky-thots/config:ro
+      - ./config:/config:ro
+      - ./data:/data
       - /media/porn/kinky-thots-shorts:/media/porn/kinky-thots-shorts
     environment:
       - NODE_ENV=production
