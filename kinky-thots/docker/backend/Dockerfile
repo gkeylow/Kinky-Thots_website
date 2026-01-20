@@ -1,12 +1,13 @@
 FROM node:20-alpine
 
-# Install build dependencies for sharp
+# Install build dependencies for sharp and ffmpeg for video probing
 RUN apk add --no-cache \
     python3 \
     make \
     g++ \
     vips-dev \
-    pkgconfig
+    pkgconfig \
+    ffmpeg
 
 WORKDIR /app
 

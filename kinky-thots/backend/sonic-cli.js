@@ -8,8 +8,28 @@
 const SonicS3Client = require('./sonic-s3-client');
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const client = new SonicS3Client();
+
+/**
+ * Get video duration using ffprobe
+ * @param {string} url - CDN URL of the video
+ * @returns {number|null} Duration in seconds, or null on error
+ */
+function getVideoDuration(url) {
+  try {
+    const result = execSync(
+      `ffprobe -v quiet -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${url}"`,
+      { timeout: 30000, encoding: 'utf8' }
+    );
+    const duration = parseFloat(result.trim());
+    return isNaN(duration) ? null : Math.round(duration);
+  } catch (error) {
+    console.error(`  ⚠ Could not probe duration: ${error.message}`);
+    return null;
+  }
+}
 const command = process.argv[2];
 
 async function runCommand() {
@@ -105,17 +125,36 @@ async function runCommand() {
 
         console.log(`Found ${videos.length} video(s) on CDN\n`);
 
-        // Build manifest
-        const manifest = {
-          generated: new Date().toISOString(),
-          cdn_base_url: client.getCdnBaseUrl(),
-          videos: videos.map(obj => ({
+        // Build manifest with duration probing
+        console.log('Probing video durations (this may take a while)...\n');
+        const videoData = [];
+
+        for (let i = 0; i < videos.length; i++) {
+          const obj = videos[i];
+          const cdnUrl = obj.cdn_url;
+          console.log(`[${i + 1}/${videos.length}] ${obj.key}`);
+
+          const duration = getVideoDuration(cdnUrl);
+          if (duration !== null) {
+            console.log(`  ✓ Duration: ${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}`);
+          } else {
+            console.log(`  ⚠ Duration: unknown (defaulting to 60s)`);
+          }
+
+          videoData.push({
             filename: obj.key,
+            duration_seconds: duration || 60,
             width: null,
             height: null,
             size_bytes: obj.size,
             on_cdn: true
-          }))
+          });
+        }
+
+        const manifest = {
+          generated: new Date().toISOString(),
+          cdn_base_url: client.getCdnBaseUrl(),
+          videos: videoData
         };
 
         // Write manifest
