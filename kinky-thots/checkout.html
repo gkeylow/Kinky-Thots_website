@@ -358,6 +358,13 @@
         <ul class="nav-links">
             <li><a href="/index.html">Home</a></li>
             <li class="dropdown">
+                <button class="dropdown-toggle">Models</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/sissylonglegs.html">Sissy Long Legs</a></li>
+                    <li><a href="/bustersherry.html">Buster Sherry</a></li>
+                </ul>
+            </li>
+            <li class="dropdown">
                 <button class="dropdown-toggle">Content</button>
                 <ul class="dropdown-menu">
                     <li><a href="/free-content.php">Free Teasers</a></li>
@@ -630,6 +637,7 @@
                         </button>
                     `).join('')}
                 </div>
+                <p id="cryptoEstimate" style="display: none; color: #0bd0f3; font-size: 1.1rem; margin: 0.5rem 0 1rem; font-family: monospace;"></p>
                 <button id="createPaymentBtn" class="checkout-btn" disabled>
                     Select a currency to continue
                 </button>
@@ -643,13 +651,52 @@
 
         // Currency selection
         document.querySelectorAll('.currency-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', async () => {
                 document.querySelectorAll('.currency-btn').forEach(b => b.classList.remove('selected'));
                 btn.classList.add('selected');
                 selectedCurrency = btn.dataset.currency;
                 const currencyName = POPULAR_CURRENCIES.find(c => c.id === selectedCurrency)?.name || selectedCurrency.toUpperCase();
-                document.getElementById('createPaymentBtn').disabled = false;
-                document.getElementById('createPaymentBtn').textContent = `Pay $${tierData.price}${priceLabel} with ${currencyName}`;
+                const payBtn = document.getElementById('createPaymentBtn');
+
+                // Check minimum payment amount for this currency
+                payBtn.disabled = true;
+                payBtn.textContent = 'Checking minimum amount...';
+                hideError();
+
+                try {
+                    // Fetch min amount and estimate in parallel
+                    const [minResponse, estimateResponse] = await Promise.all([
+                        fetch(`/api/payments/min-amount/${selectedCurrency}`),
+                        fetch(`/api/payments/estimate?amount=${tierData.price}&currency=${selectedCurrency}`)
+                    ]);
+                    const minData = await minResponse.json();
+                    const estimateData = await estimateResponse.json();
+
+                    if (minData.min_amount && tierData.price < minData.min_amount) {
+                        showError(`Minimum payment for ${currencyName} is $${minData.min_amount.toFixed(2)} USD. Please choose a different currency or upgrade to a higher tier.`);
+                        payBtn.textContent = `Below minimum ($${minData.min_amount.toFixed(2)})`;
+                        payBtn.disabled = true;
+                        return;
+                    }
+
+                    // Show estimated crypto amount
+                    const estimateEl = document.getElementById('cryptoEstimate');
+                    if (estimateData.estimated_amount) {
+                        const symbol = POPULAR_CURRENCIES.find(c => c.id === selectedCurrency)?.icon || '';
+                        estimateEl.innerHTML = `≈ <strong>${estimateData.estimated_amount}</strong> ${symbol} ${selectedCurrency.toUpperCase()}`;
+                        estimateEl.style.display = 'block';
+                    } else {
+                        estimateEl.style.display = 'none';
+                    }
+
+                    payBtn.disabled = false;
+                    payBtn.textContent = `Pay $${tierData.price}${priceLabel} with ${currencyName}`;
+                } catch (err) {
+                    // If checks fail, allow payment attempt anyway
+                    document.getElementById('cryptoEstimate').style.display = 'none';
+                    payBtn.disabled = false;
+                    payBtn.textContent = `Pay $${tierData.price}${priceLabel} with ${currencyName}`;
+                }
             });
         });
 
@@ -707,6 +754,14 @@
                     ${payment.pay_amount} <span class="currency">${currencyUpper}</span>
                 </div>
                 <p style="color: #666; font-size: 0.85rem;">= $${payment.price_amount} USD</p>
+                ${payment.burning_percent || payment.network_precision ? `
+                    <div style="background: rgba(255,255,255,0.05); border-radius: 6px; padding: 0.5rem; margin: 0.75rem 0; font-size: 0.8rem;">
+                        <p style="color: #888; margin: 0;">
+                            ${payment.burning_percent ? `<span style="color: #f39c12;">⚡ Network fee: ~${payment.burning_percent}%</span>` : ''}
+                            ${payment.network_precision ? ` • Precision: ${payment.network_precision} decimals` : ''}
+                        </p>
+                    </div>
+                ` : ''}
 
                 <div class="qr-container">
                     <canvas id="qrCode"></canvas>
