@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Members - Kinky Thots</title>
+    <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
+    <link rel="stylesheet" href="/assets/dist/css/main.css?v=20260120">
+    <style>
+        .members-container {
+            max-width: 1200px;
+            margin: 100px auto 40px;
+            padding: 0 20px;
+        }
+        .members-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .members-header h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .members-filters {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+        .filter-input {
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(11, 208, 243, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            min-width: 200px;
+        }
+        .filter-input:focus {
+            outline: none;
+            border-color: #0bd0f3;
+        }
+        .filter-select {
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(11, 208, 243, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .filter-select option {
+            background: #1a1a1a;
+        }
+        .members-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .member-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+            border: 1px solid rgba(11, 208, 243, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .member-card:hover {
+            transform: translateY(-3px);
+            border-color: #0bd0f3;
+        }
+        .member-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid rgba(11, 208, 243, 0.5);
+            margin-bottom: 1rem;
+            background: #333;
+        }
+        .member-avatar-placeholder {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #333, #222);
+            border: 3px solid rgba(11, 208, 243, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        .member-username {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+        .member-tier {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+        .member-tier.free { background: #333; color: #888; }
+        .member-tier.basic { background: linear-gradient(135deg, #4ECDC4, #45B7D1); color: #000; }
+        .member-tier.premium { background: linear-gradient(135deg, #f805a7, #0bd0f3); color: #fff; }
+        .member-tier.yearly { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; }
+        .member-tier.vip { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; }
+        .member-tier.lifetime { background: linear-gradient(135deg, #9b59b6, #8e44ad); color: #fff; }
+        .member-last-seen {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        .member-last-seen.online {
+            color: #2ecc71;
+        }
+        .dm-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1.25rem;
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            border: none;
+            border-radius: 20px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .dm-btn:hover {
+            opacity: 0.9;
+        }
+        .dm-btn.locked {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+        .dm-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+        .load-more {
+            text-align: center;
+            margin-top: 2rem;
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary {
+            background: #333;
+        }
+        .login-prompt {
+            text-align: center;
+            padding: 3rem;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+            border: 1px solid rgba(11, 208, 243, 0.3);
+            border-radius: 16px;
+        }
+        .login-prompt h2 {
+            color: #fff;
+            margin-bottom: 1rem;
+        }
+        .login-prompt p {
+            color: #888;
+            margin-bottom: 1.5rem;
+        }
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #888;
+        }
+        .no-members {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+        /* DM Modal Styles */
+        .dm-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .dm-modal-overlay.active {
+            display: flex;
+        }
+        .dm-modal {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+            border: 1px solid rgba(11, 208, 243, 0.3);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .dm-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .dm-recipient-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .dm-recipient-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #333;
+        }
+        .dm-recipient-name {
+            font-weight: 600;
+            color: #fff;
+        }
+        .dm-modal-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            line-height: 1;
+        }
+        .dm-modal-close:hover {
+            color: #fff;
+        }
+        .dm-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 1.5rem;
+            min-height: 300px;
+            max-height: 400px;
+        }
+        .dm-message {
+            margin-bottom: 0.75rem;
+            max-width: 80%;
+        }
+        .dm-message.sent {
+            margin-left: auto;
+        }
+        .dm-message-bubble {
+            padding: 0.75rem 1rem;
+            border-radius: 16px;
+            word-wrap: break-word;
+        }
+        .dm-message.sent .dm-message-bubble {
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+        .dm-message.received .dm-message-bubble {
+            background: #2a2a2a;
+            color: #fff;
+            border-bottom-left-radius: 4px;
+        }
+        .dm-message-time {
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+        .dm-message.sent .dm-message-time {
+            text-align: right;
+        }
+        .dm-input-form {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .dm-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(11, 208, 243, 0.3);
+            border-radius: 20px;
+            color: #fff;
+            font-size: 1rem;
+            resize: none;
+        }
+        .dm-input:focus {
+            outline: none;
+            border-color: #0bd0f3;
+        }
+        .dm-send-btn {
+            padding: 0.75rem 1.25rem;
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            border: none;
+            border-radius: 20px;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .dm-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .dm-loading {
+            text-align: center;
+            padding: 2rem;
+            color: #888;
+        }
+        .dm-empty {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+        /* Upgrade prompt */
+        .upgrade-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+        .upgrade-modal-overlay.active {
+            display: flex;
+        }
+        .upgrade-modal {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+            border: 1px solid rgba(248, 5, 167, 0.5);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            max-width: 400px;
+        }
+        .upgrade-modal h3 {
+            color: #f805a7;
+            margin-bottom: 1rem;
+        }
+        .upgrade-modal p {
+            color: #888;
+            margin-bottom: 1.5rem;
+        }
+        .upgrade-modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        /* Alert */
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .alert-error {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+        }
+        @media (max-width: 768px) {
+            .members-container { margin-top: 80px; }
+            .members-filters { flex-direction: column; align-items: center; }
+            .filter-input { width: 100%; max-width: 300px; }
+            .dm-modal { max-height: 90vh; }
+            .dm-messages { min-height: 200px; }
+        }
+    </style>
+</head>
+<body>
+<!-- Navigation -->
+<nav id="navbar">
+    <div class="nav-container">
+        <div class="logo">
+            <a href="/index.html">Kinky-Thots<img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></a>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/index.html">Home</a></li>
+            <li class="dropdown">
+                <button class="dropdown-toggle">Models</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/sissylonglegs.html">Sissy Long Legs</a></li>
+                    <li><a href="/bustersherry.html">Buster Sherry</a></li>
+                </ul>
+            </li>
+            <li class="dropdown">
+                <button class="dropdown-toggle">Content</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/free-content.php">Free Teasers</a></li>
+                    <li><a href="/basic-content.php">Extended Videos</a></li>
+                    <li><a href="/premium-content.php">Full Access</a></li>
+                    <li><a href="/gallery.php">Photo Gallery</a></li>
+                    <li><a href="/live.html">Live Cam</a></li>
+                </ul>
+            </li>
+            <li class="dropdown" id="userDropdown">
+                <button class="dropdown-toggle" id="userTrigger">Account</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/profile.html">My Profile</a></li>
+                    <li><a href="/members.html" class="active">Members</a></li>
+                    <li><a href="/subscriptions.html">Subscription</a></li>
+                    <li id="adminLink" style="display:none;"><a href="/admin.html" style="color:#f805a7;">Admin Dashboard</a></li>
+                    <li><a href="#" id="logoutLink">Logout</a></li>
+                </ul>
+            </li>
+            <li id="loginItem"><a href="/login.html" class="login-btn" id="authTrigger">Login</a></li>
+        </ul>
+        <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
+    </div>
+</nav>
+<script type="module" src="/assets/dist/js/main.js"></script>
+<script>
+(function() {
+    const token = localStorage.getItem('kt_auth_token');
+    const user = JSON.parse(localStorage.getItem('kt_auth_user') || 'null');
+
+    if (token && user) {
+        document.body.classList.add('logged-in');
+        document.getElementById('userTrigger').textContent = user.username;
+        if (user.is_admin) {
+            const adminLink = document.getElementById('adminLink');
+            if (adminLink) adminLink.style.display = 'block';
+        }
+        document.getElementById('logoutLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('kt_auth_token');
+            localStorage.removeItem('kt_auth_user');
+            window.location.href = '/index.html';
+        });
+    } else {
+        document.body.classList.add('logged-out');
+        if (token && !user) localStorage.removeItem('kt_auth_token');
+        if (!token && user) localStorage.removeItem('kt_auth_user');
+    }
+})();
+</script>
+
+<main class="members-container">
+    <div class="members-header">
+        <h1>Community Members</h1>
+    </div>
+
+    <!-- Not logged in state -->
+    <div id="notLoggedIn" class="login-prompt" style="display: none;">
+        <h2>Please Log In</h2>
+        <p>You need to be logged in to view members.</p>
+        <a href="/login.html?redirect=/members.html" class="btn">Go to Login</a>
+    </div>
+
+    <!-- Members content -->
+    <div id="membersContent" style="display: none;">
+        <!-- Alert container -->
+        <div id="alertContainer"></div>
+
+        <!-- Filters -->
+        <div class="members-filters">
+            <input type="text" class="filter-input" id="searchInput" placeholder="Search members...">
+            <select class="filter-select" id="tierFilter">
+                <option value="">All Tiers</option>
+                <option value="basic">Basic</option>
+                <option value="premium">Premium</option>
+                <option value="yearly">Yearly</option>
+                <option value="vip">VIP</option>
+                <option value="lifetime">Lifetime</option>
+            </select>
+        </div>
+
+        <!-- Members grid -->
+        <div id="membersGrid" class="members-grid"></div>
+
+        <!-- Loading indicator -->
+        <div id="loadingIndicator" class="loading" style="display: none;">Loading members...</div>
+
+        <!-- No members message -->
+        <div id="noMembers" class="no-members" style="display: none;">No members found</div>
+
+        <!-- Load more -->
+        <div id="loadMore" class="load-more" style="display: none;">
+            <button class="btn btn-secondary" id="loadMoreBtn">Load More</button>
+        </div>
+    </div>
+</main>
+
+<!-- DM Modal -->
+<div id="dmModal" class="dm-modal-overlay">
+    <div class="dm-modal">
+        <div class="dm-modal-header">
+            <div class="dm-recipient-info">
+                <img src="" alt="" class="dm-recipient-avatar" id="dmRecipientAvatar">
+                <span class="dm-recipient-name" id="dmRecipientName"></span>
+            </div>
+            <button class="dm-modal-close" id="dmModalClose">&times;</button>
+        </div>
+        <div class="dm-messages" id="dmMessages">
+            <div class="dm-loading">Loading messages...</div>
+        </div>
+        <form class="dm-input-form" id="dmForm">
+            <textarea class="dm-input" id="dmInput" placeholder="Type a message..." maxlength="2000" rows="1"></textarea>
+            <button type="submit" class="dm-send-btn" id="dmSendBtn">Send</button>
+        </form>
+    </div>
+</div>
+
+<!-- Upgrade Prompt Modal -->
+<div id="upgradeModal" class="upgrade-modal-overlay">
+    <div class="upgrade-modal">
+        <h3>Upgrade Required</h3>
+        <p>Direct messaging is available for subscribers only. Upgrade your plan to start chatting with other members!</p>
+        <div class="upgrade-modal-actions">
+            <button class="btn btn-secondary" id="upgradeModalClose">Close</button>
+            <a href="/subscriptions.html" class="btn">View Plans</a>
+        </div>
+    </div>
+</div>
+
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-left">
+                <p>&copy; 2025 <a href="/index.html">Kinky-Thots</a> All rights reserved.</p>
+            </div>
+            <div class="footer-right">
+                <a href="/terms.html" class="footer-link">Terms & Conditions</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+const AUTH_TOKEN_KEY = 'kt_auth_token';
+const AUTH_USER_KEY = 'kt_auth_user';
+
+let currentUser = null;
+let canSendDM = false;
+let currentPage = 1;
+let hasMore = true;
+let isLoading = false;
+let currentDmUserId = null;
+let searchTimeout = null;
+let ws = null;
+
+function getToken() {
+    return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+function getUser() {
+    return JSON.parse(localStorage.getItem(AUTH_USER_KEY) || 'null');
+}
+
+function showAlert(message, type = 'error') {
+    const container = document.getElementById('alertContainer');
+    container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+    setTimeout(() => container.innerHTML = '', 5000);
+}
+
+function formatRelativeTime(dateStr) {
+    if (!dateStr) return 'Never';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 5) return 'Online now';
+    if (minutes < 60) return `${minutes} min ago`;
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+}
+
+function formatMessageTime(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Render member card
+function renderMemberCard(member) {
+    const isOnline = member.last_login_at && (new Date() - new Date(member.last_login_at)) < 300000;
+    const avatarHtml = member.avatar_url
+        ? `<img src="${escapeHtml(member.avatar_url)}" alt="${escapeHtml(member.username)}" class="member-avatar">`
+        : `<div class="member-avatar-placeholder">${member.username.charAt(0).toUpperCase()}</div>`;
+
+    const dmBtnClass = canSendDM ? 'dm-btn' : 'dm-btn locked';
+    const dmIcon = canSendDM
+        ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>'
+        : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>';
+
+    return `
+        <div class="member-card" data-user-id="${member.id}">
+            ${avatarHtml}
+            <div class="member-username">${escapeHtml(member.username)}</div>
+            <span class="member-tier ${member.subscription_tier}">${member.subscription_tier.toUpperCase()}</span>
+            <span class="member-last-seen ${isOnline ? 'online' : ''}">${formatRelativeTime(member.last_login_at)}</span>
+            <button class="${dmBtnClass}" data-user-id="${member.id}" data-username="${escapeHtml(member.username)}" data-avatar="${escapeHtml(member.avatar_url || '')}">
+                ${dmIcon} Message
+            </button>
+        </div>
+    `;
+}
+
+// Load members
+async function loadMembers(append = false) {
+    if (isLoading) return;
+    isLoading = true;
+
+    const grid = document.getElementById('membersGrid');
+    const loading = document.getElementById('loadingIndicator');
+    const noMembers = document.getElementById('noMembers');
+    const loadMoreDiv = document.getElementById('loadMore');
+
+    if (!append) {
+        grid.innerHTML = '';
+        currentPage = 1;
+    }
+
+    loading.style.display = 'block';
+    noMembers.style.display = 'none';
+    loadMoreDiv.style.display = 'none';
+
+    const search = document.getElementById('searchInput').value;
+    const tier = document.getElementById('tierFilter').value;
+
+    try {
+        const params = new URLSearchParams({
+            page: currentPage,
+            limit: 20,
+            ...(search && { search }),
+            ...(tier && { tier })
+        });
+
+        const response = await fetch(`/api/members?${params}`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+
+        if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem(AUTH_TOKEN_KEY);
+                localStorage.removeItem(AUTH_USER_KEY);
+                window.location.href = '/login.html?redirect=/members.html';
+                return;
+            }
+            throw new Error('Failed to load members');
+        }
+
+        const data = await response.json();
+
+        loading.style.display = 'none';
+
+        if (data.members.length === 0 && currentPage === 1) {
+            noMembers.style.display = 'block';
+            return;
+        }
+
+        // Filter out current user from the list
+        const filteredMembers = data.members.filter(m => m.id !== currentUser.id);
+
+        filteredMembers.forEach(member => {
+            grid.innerHTML += renderMemberCard(member);
+        });
+
+        hasMore = currentPage < data.pagination.totalPages;
+        if (hasMore) {
+            loadMoreDiv.style.display = 'block';
+        }
+
+    } catch (err) {
+        console.error('Load members error:', err);
+        loading.style.display = 'none';
+        showAlert('Failed to load members');
+    } finally {
+        isLoading = false;
+    }
+}
+
+// Open DM modal
+async function openDmModal(userId, username, avatarUrl) {
+    if (!canSendDM) {
+        document.getElementById('upgradeModal').classList.add('active');
+        return;
+    }
+
+    currentDmUserId = userId;
+    const modal = document.getElementById('dmModal');
+    const messagesContainer = document.getElementById('dmMessages');
+
+    document.getElementById('dmRecipientName').textContent = username;
+    const avatarEl = document.getElementById('dmRecipientAvatar');
+    if (avatarUrl) {
+        avatarEl.src = avatarUrl;
+        avatarEl.style.display = 'block';
+    } else {
+        avatarEl.style.display = 'none';
+    }
+
+    messagesContainer.innerHTML = '<div class="dm-loading">Loading messages...</div>';
+    modal.classList.add('active');
+
+    try {
+        const response = await fetch(`/api/messages/conversation/${userId}`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to load messages');
+
+        const data = await response.json();
+
+        if (data.messages.length === 0) {
+            messagesContainer.innerHTML = '<div class="dm-empty">No messages yet. Start the conversation!</div>';
+        } else {
+            messagesContainer.innerHTML = data.messages.map(msg => `
+                <div class="dm-message ${msg.isMine ? 'sent' : 'received'}">
+                    <div class="dm-message-bubble">${escapeHtml(msg.content)}</div>
+                    <div class="dm-message-time">${formatMessageTime(msg.createdAt)}</div>
+                </div>
+            `).join('');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Mark messages as read
+        await fetch(`/api/messages/read/${userId}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+
+    } catch (err) {
+        console.error('Load conversation error:', err);
+        messagesContainer.innerHTML = '<div class="dm-empty">Failed to load messages</div>';
+    }
+}
+
+// Close DM modal
+function closeDmModal() {
+    document.getElementById('dmModal').classList.remove('active');
+    currentDmUserId = null;
+}
+
+// Send message
+async function sendMessage(content) {
+    if (!currentDmUserId || !content.trim()) return;
+
+    const sendBtn = document.getElementById('dmSendBtn');
+    const input = document.getElementById('dmInput');
+
+    sendBtn.disabled = true;
+
+    try {
+        const response = await fetch('/api/messages/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            },
+            body: JSON.stringify({
+                recipientId: currentDmUserId,
+                content: content.trim()
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to send message');
+        }
+
+        // Add message to UI
+        const messagesContainer = document.getElementById('dmMessages');
+        const emptyMsg = messagesContainer.querySelector('.dm-empty');
+        if (emptyMsg) emptyMsg.remove();
+
+        messagesContainer.innerHTML += `
+            <div class="dm-message sent">
+                <div class="dm-message-bubble">${escapeHtml(data.message.content)}</div>
+                <div class="dm-message-time">${formatMessageTime(data.message.createdAt)}</div>
+            </div>
+        `;
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        input.value = '';
+
+    } catch (err) {
+        console.error('Send message error:', err);
+        showAlert(err.message);
+    } finally {
+        sendBtn.disabled = false;
+    }
+}
+
+// Connect to WebSocket for real-time notifications
+function connectWebSocket() {
+    const token = getToken();
+    if (!token) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${protocol}//${window.location.host}/ws/chat?token=${token}`);
+
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'new_dm' && currentDmUserId === data.fromId) {
+                // Add incoming message to current conversation
+                const messagesContainer = document.getElementById('dmMessages');
+                const emptyMsg = messagesContainer.querySelector('.dm-empty');
+                if (emptyMsg) emptyMsg.remove();
+
+                messagesContainer.innerHTML += `
+                    <div class="dm-message received">
+                        <div class="dm-message-bubble">${escapeHtml(data.preview)}</div>
+                        <div class="dm-message-time">${formatMessageTime(data.createdAt)}</div>
+                    </div>
+                `;
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                // Mark as read
+                fetch(`/api/messages/read/${data.fromId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+            }
+        } catch (e) {
+            // Ignore non-DM messages
+        }
+    };
+
+    ws.onclose = () => {
+        // Reconnect after 5 seconds
+        setTimeout(connectWebSocket, 5000);
+    };
+}
+
+// Initialize page
+async function init() {
+    const token = getToken();
+    const user = getUser();
+
+    if (!token || !user) {
+        document.getElementById('notLoggedIn').style.display = 'block';
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            throw new Error('Invalid session');
+        }
+
+        const data = await response.json();
+        currentUser = data.user;
+
+        // Check if user can send DMs (has subscription)
+        const tier = currentUser.subscription_tier || 'free';
+        canSendDM = tier !== 'free';
+
+        document.getElementById('membersContent').style.display = 'block';
+        loadMembers();
+        connectWebSocket();
+
+    } catch (err) {
+        console.error('Init error:', err);
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        localStorage.removeItem(AUTH_USER_KEY);
+        window.location.href = '/login.html?redirect=/members.html';
+    }
+}
+
+// Event listeners
+document.getElementById('searchInput').addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => loadMembers(), 300);
+});
+
+document.getElementById('tierFilter').addEventListener('change', () => {
+    loadMembers();
+});
+
+document.getElementById('loadMoreBtn').addEventListener('click', () => {
+    currentPage++;
+    loadMembers(true);
+});
+
+document.getElementById('membersGrid').addEventListener('click', (e) => {
+    const dmBtn = e.target.closest('.dm-btn');
+    if (dmBtn) {
+        const userId = parseInt(dmBtn.dataset.userId);
+        const username = dmBtn.dataset.username;
+        const avatar = dmBtn.dataset.avatar;
+        openDmModal(userId, username, avatar);
+    }
+});
+
+document.getElementById('dmModalClose').addEventListener('click', closeDmModal);
+document.getElementById('dmModal').addEventListener('click', (e) => {
+    if (e.target.id === 'dmModal') closeDmModal();
+});
+
+document.getElementById('dmForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const content = document.getElementById('dmInput').value;
+    sendMessage(content);
+});
+
+document.getElementById('upgradeModalClose').addEventListener('click', () => {
+    document.getElementById('upgradeModal').classList.remove('active');
+});
+document.getElementById('upgradeModal').addEventListener('click', (e) => {
+    if (e.target.id === 'upgradeModal') {
+        document.getElementById('upgradeModal').classList.remove('active');
+    }
+});
+
+// Auto-resize textarea
+document.getElementById('dmInput').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+});
+
+// Keyboard shortcut: Enter to send, Shift+Enter for newline
+document.getElementById('dmInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        document.getElementById('dmForm').dispatchEvent(new Event('submit'));
+    }
+});
+
+// Initialize
+init();
+</script>
+</body>
+</html>
