@@ -1014,6 +1014,193 @@ Percentage of requests served within a certain time (ms):
 
 ---
 
+## Benchmark #7 - January 21, 2026 @ 18:45 UTC
+
+### Test Environment
+- **Server**: Apache/2.4.65 + PHP (Docker: kinky-web)
+- **Database**: MariaDB (Docker: kinky-db)
+- **CDN**: Pushr CDN (Sonic S3)
+- **Backend**: Node.js on port 3002→3001 (Docker: kinky-backend)
+- **Proxy**: Linode nginx reverse proxy + WireGuard VPN tunnel
+- **Test Tool**: Apache Bench (ab), curl
+- **Changes Since Last**: Added members page with DM feature, admin nav link, simplified navigation
+
+---
+
+### Page Response Times (TTFB)
+
+| Page | TTFB | Total Time | Size |
+|------|------|------------|------|
+| index.html | 0.001s | 0.001s | 14,114b |
+| live.html | 0.001s | 0.001s | 14,933b |
+| subscriptions.html | 0.001s | 0.001s | 20,477b |
+| profile.html | 0.002s | 0.002s | 40,869b |
+| checkout.html | 0.001s | 0.001s | 35,108b |
+| members.html | 0.001s | 0.001s | 32,607b |
+| admin.html | 0.001s | 0.001s | 32,825b |
+| bustersherry.html | 0.002s | 0.002s | 12,586b |
+| sissylonglegs.html | 0.002s | 0.002s | 12,351b |
+| terms.html | 0.001s | 0.001s | 5,169b |
+| free-content.php | 0.002s | 0.003s | 21,388b |
+| basic-content.php | 0.001s | 0.002s | 20,000b |
+| premium-content.php | 0.001s | 0.002s | 18,334b |
+| gallery.php | 0.038s | 0.038s | 3,413b |
+
+**Result**: All static pages under 2ms TTFB ✅ (gallery.php ~38ms due to file scanning)
+
+---
+
+### Load Testing (Apache Bench)
+
+#### Light Load (100 requests, 10 concurrent)
+```
+Server Software:        Apache/2.4.65
+Document Path:          /
+Requests per second:    1834.90 [#/sec]
+Time per request:       5.450 [ms]
+Failed requests:        0
+```
+
+#### Heavy Load (1000 requests, 50 concurrent)
+```
+Server Software:        Apache/2.4.65
+Document Path:          /
+Requests per second:    1853.44 [#/sec]
+Time per request:       26.977 [ms]
+Failed requests:        0
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.9      0       8
+Processing:     4   26   7.8     24      64
+Waiting:        1   25   7.5     23      64
+Total:          4   26   8.0     25      65
+
+Percentage of requests served within a certain time (ms):
+  50%     25
+  66%     27
+  75%     30
+  90%     36
+  95%     41
+  99%     61
+ 100%     65 (longest request)
+```
+
+#### Stress Test (5000 requests, 100 concurrent)
+```
+Server Software:        Apache/2.4.65
+Document Path:          /
+Requests per second:    2015.88 [#/sec]
+Time per request:       49.606 [ms]
+Failed requests:        0
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.9      0       9
+Processing:    11   49   8.3     48      83
+Waiting:        1   47   7.9     47      81
+Total:         12   49   8.2     49      84
+
+Percentage of requests served within a certain time (ms):
+  50%     49
+  66%     52
+  75%     54
+  90%     60
+  95%     63
+  99%     69
+ 100%     84 (longest request)
+```
+
+**Result**: ~2,000 req/sec sustained under stress with zero failures ✅
+
+---
+
+### Asset Compression (Gzip)
+
+| Asset | Uncompressed | Compressed | Reduction |
+|-------|--------------|------------|-----------|
+| assets/dist/css/main.css | 7,135b | 2,051b | 71% |
+| assets/dist/css/media-gallery.css | 12,356b | 2,941b | 76% |
+| assets/dist/css/live.css | 18,052b | 4,158b | 77% |
+| assets/dist/js/main.js | 2,386b | 872b | 63% |
+| assets/dist/js/live.js | 17,007b | 5,023b | 70% |
+
+**Result**: Average 71% compression ratio ✅
+
+---
+
+### CDN Performance (Pushr/Sonic)
+
+| Metric | Value |
+|--------|-------|
+| CDN TTFB | ~629ms |
+| Base URL | https://6318.s3.nvme.de01.sonic.r-cdn.com |
+
+---
+
+### Service Health
+
+| Service | Container | Status | Port |
+|---------|-----------|--------|------|
+| Apache | kinky-web | ✅ Running (38h) | 80 |
+| Node.js Backend | kinky-backend | ✅ Healthy (15h) | 3002→3001 |
+| MariaDB | kinky-db | ✅ Healthy (38h) | 3306 |
+| WireGuard | wg0 | ✅ Connected | 51820 |
+| Linode nginx | N/A | ✅ Running | 80, 443 |
+
+### WireGuard Tunnel Status
+
+| Metric | Value |
+|--------|-------|
+| Interface | wg0 |
+| Endpoint | 45.33.100.131:51820 |
+| Last Handshake | 1 minute ago |
+| Data Transferred | 7.55 MiB rx / 73.38 MiB tx |
+
+### Proxy Test (via kinky-thots.xxx)
+
+| Metric | Value |
+|--------|-------|
+| TTFB (via proxy) | ~538ms |
+| Total Time | ~538ms |
+
+---
+
+### New Features Since Last Benchmark
+
+1. **Members Page** (`members.html`):
+   - Member list with search and tier filtering
+   - Private messaging (DM) feature for subscribers
+   - Real-time message notifications via WebSocket
+
+2. **Admin Navigation**:
+   - Conditional admin link in nav (visible only to admins)
+   - Added across all authenticated pages
+
+3. **Database Migration**:
+   - Added `private_messages` table for DM storage
+
+---
+
+### Summary
+
+| Metric | Target | Actual | Status |
+|--------|--------|--------|--------|
+| TTFB (local) | < 200ms | < 2ms | ✅ PASS |
+| TTFB (proxy) | < 1000ms | ~538ms | ✅ PASS |
+| Requests/sec | > 1000 | 2,016 | ✅ PASS |
+| Failed Requests | 0 | 0 | ✅ PASS |
+| Gzip Enabled | Yes | Yes | ✅ PASS |
+| 99th Percentile | < 500ms | 69ms | ✅ PASS |
+| WireGuard Tunnel | Connected | Connected | ✅ PASS |
+| SSL Certificates | Valid | Valid | ✅ PASS |
+
+**Overall Score**: EXCELLENT
+**Performance vs Benchmark #6**: Consistent (~2,000 req/sec)
+**New Features**: Members page with DM, admin nav integration
+
+---
+
 ## Future Benchmarks
 
 Add new benchmark entries below following the same format.

@@ -2,13 +2,14 @@
 
 > **IMPORTANT**: Read this file before starting any work. Document completed work here for future sessions.
 
-## Current Version: 1.7.2
+## Current Version: 1.8.0
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 
 ### Version History (Summary)
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.8.0 | Jan 20, 2026 | Members page, private messaging (DM), admin nav link |
 | 1.7.2 | Jan 15, 2026 | Inline crypto payments, password toggle, file cleanup |
 | 1.7.1 | Jan 14, 2026 | Login page, lightbox fix, checkout redirect fix |
 | 1.7.0 | Jan 14, 2026 | Linode reverse proxy, WireGuard VPN, removed localtonet |
@@ -170,6 +171,7 @@ journalctl -u stream-watcher -u rtmp-hls -f
 - `index.html` - Homepage
 - `login.html` - Standalone login/register page with redirect support
 - `live.html` - Live streaming page (uses HLS.js + nginx-rtmp)
+- `members.html` - Member list with private messaging (DM) feature
 - `free-content.php` - Free videos (< 1 min) - open to all
 - `basic-content.php` - Extended videos (1-5 min) - Basic+ subscribers
 - `premium-content.php` - Full-length videos (> 5 min) - Premium/Lifetime subscribers
@@ -177,6 +179,7 @@ journalctl -u stream-watcher -u rtmp-hls -f
 - `subscriptions.html` - Subscription tiers with Lifetime toggle
 - `checkout.html` - Payment checkout with crypto (NOWPayments)
 - `profile.html` - User profile and settings
+- `admin.html` - Admin dashboard (admin users only)
 - `sissylonglegs.html` - Model page with skills hover images
 - `bustersherry.html` - Model page with skills hover images
 - `terms.html` - Terms & conditions
@@ -226,6 +229,84 @@ Internet → Linode (nginx) → WireGuard VPN → Home Server (Docker)
 | Linode VPN IP | 10.100.0.1 |
 | Home Server VPN IP | 10.100.0.2 |
 | WireGuard Port | 51820/udp |
+
+## Recent Changes (Jan 20, 2026)
+
+### Members Page with Private Messaging
+Created `members.html` - a member list page with DM (Direct Messaging) feature:
+
+**Features**:
+- Lists all registered users with username, avatar, subscription tier, and "last seen" timestamp
+- Search input to filter members by username
+- Tier filter dropdown (All, Free, Basic, Premium, Lifetime, VIP)
+- Responsive card grid layout
+- DM button on each member card
+- Lock icon on DM button for free users (subscription required)
+
+**Access Control**:
+- All registered users can VIEW the member list
+- Only subscribers (Basic+) can USE the DM feature
+- Free users see upgrade prompt when clicking DM
+
+**DM Modal**:
+- Full-screen modal with recipient info header
+- Scrollable message history with sent/received bubbles
+- Real-time message notifications via WebSocket
+- Messages persisted in database for offline reading
+
+### Database Migration
+**New file:** `docker/db/migrate-003-add-private-messages.sql`
+
+```sql
+CREATE TABLE private_messages (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    sender_id INT NOT NULL,
+    recipient_id INT NOT NULL,
+    content TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
+### Backend API Endpoints
+Added to `backend/server.js`:
+
+| Endpoint | Method | Auth | Purpose |
+|----------|--------|------|---------|
+| `/api/members` | GET | JWT | List members with pagination, search, tier filter |
+| `/api/messages/conversations` | GET | JWT + Subscriber | List user's DM conversations |
+| `/api/messages/conversation/:userId` | GET | JWT + Subscriber | Get messages with specific user |
+| `/api/messages/send` | POST | JWT + Subscriber | Send a private message |
+| `/api/messages/read/:userId` | POST | JWT + Subscriber | Mark messages as read |
+| `/api/messages/unread-count` | GET | JWT | Get unread count for nav badge |
+
+**Middleware added**:
+- `requireSubscriber` - Gates DM endpoints to Basic+ subscribers
+- `messageLimiter` - Rate limits message sending (30/minute)
+
+**WebSocket Extension**:
+- Added `dmClients` Map to track connected users by userId
+- `notifyNewDM()` function sends real-time notifications to online recipients
+- New message type `new_dm` for client-side handling
+
+### Admin Dashboard Navigation
+Added conditional Admin Dashboard link to navigation across all pages:
+- Hidden by default (`style="display:none;"`)
+- Shown only when `user.is_admin` is true in localStorage
+- Pink highlight color (`#f805a7`) for visibility
+- Links to `/admin.html`
+
+**Pages updated** with admin nav link:
+- index.html, login.html, live.html, profile.html, members.html
+- subscriptions.html, checkout.html, terms.html
+- sissylonglegs.html, bustersherry.html, admin.html
+
+### Navigation Updates
+Added "Members" link to Account dropdown on all pages.
+
+---
 
 ## Recent Changes (Jan 15, 2026)
 
@@ -488,7 +569,7 @@ Each page features:
 
 ### Shelved Features (For Future Implementation)
 - **Video Features**: Like/save, watch history, recommendations
-- **Admin Dashboard**: User management, content moderation, analytics
+- **Admin Dashboard Expansion**: Content moderation, analytics (basic admin page exists)
 - **Chat Enhancements**: Emojis, mentions, message reactions
 
 ---
@@ -549,8 +630,10 @@ Reorganized CSS into modular, reusable files:
 | basic-content.php | main.css + media-gallery.css |
 | premium-content.php | main.css + media-gallery.css |
 | live.html | main.css + live.css |
+| members.html | main.css (inline styles) |
 | subscriptions.html | main.css (inline styles) |
 | profile.html | main.css (inline styles) |
+| admin.html | main.css (inline styles) |
 | terms.html | main.css + content.css |
 
 ### Bug Fixes (Dec 29, 2024)
