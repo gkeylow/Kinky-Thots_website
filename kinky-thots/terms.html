@@ -44,8 +44,10 @@
                 <button class="dropdown-toggle" id="userTrigger">Account</button>
                 <ul class="dropdown-menu">
                     <li><a href="/profile.html">My Profile</a></li>
+                    <li><a href="/members.html">Members</a></li>
                     <li><a href="/profile.html#security">Security</a></li>
                     <li><a href="/subscriptions.html">Subscription</a></li>
+                    <li id="adminLink" style="display:none;"><a href="/admin.html" style="color:#f805a7;">Admin Dashboard</a></li>
                     <li><a href="#" id="logoutLink">Logout</a></li>
                 </ul>
             </li>
@@ -65,6 +67,10 @@
         if (token && user) {
             document.body.classList.add('logged-in');
             document.getElementById('userTrigger').textContent = user.username;
+            if (user.is_admin) {
+                const adminLink = document.getElementById('adminLink');
+                if (adminLink) adminLink.style.display = 'block';
+            }
             document.getElementById('logoutLink').addEventListener('click', (e) => {
                 e.preventDefault();
                 localStorage.removeItem('kt_auth_token');

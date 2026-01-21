@@ -2099,6 +2099,392 @@ app.get('/api/gallery', async (req, res) => {
 });
 
 // ============================================
+// MEMBERS & MESSAGING API ENDPOINTS
+// ============================================
+
+// Rate limiter for messaging
+const messageLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // 30 messages per minute
+  message: { error: 'Too many messages, please slow down' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Subscriber middleware - check if user has active subscription
+const requireSubscriber = async (req, res, next) => {
+  if (!req.user || !req.user.userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const users = await conn.query(
+      'SELECT subscription_tier, subscription_status FROM users WHERE id = ?',
+      [req.user.userId]
+    );
+    if (!users[0]) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const tier = users[0].subscription_tier || 'free';
+    const status = users[0].subscription_status || 'active';
+
+    // Free users cannot use DM feature
+    if (tier === 'free') {
+      return res.status(403).json({
+        error: 'DM feature requires Basic or higher subscription',
+        upgradeUrl: '/subscriptions.html'
+      });
+    }
+    // Check if subscription is active (or lifetime which never expires)
+    if (status !== 'active' && tier !== 'lifetime' && tier !== 'vip') {
+      return res.status(403).json({
+        error: 'Your subscription has expired',
+        upgradeUrl: '/subscriptions.html'
+      });
+    }
+    req.user.subscriptionTier = tier;
+    next();
+  } catch (err) {
+    console.error('Subscriber check error:', err);
+    res.status(500).json({ error: 'Failed to verify subscription status' });
+  } finally {
+    if (conn) conn.release();
+  }
+};
+
+// Get members list (public info only - no email)
+app.get('/api/members', authenticateToken, async (req, res) => {
+  const { page = 1, limit = 20, search, tier } = req.query;
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+  const limitNum = Math.min(parseInt(limit), 50); // Max 50 per page
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    let query = `SELECT id, username, avatar_url, subscription_tier, last_login_at, created_at
+                 FROM users WHERE 1=1`;
+    let countQuery = `SELECT COUNT(*) as total FROM users WHERE 1=1`;
+    const params = [];
+    const countParams = [];
+
+    // Search by username only (no email for privacy)
+    if (search) {
+      query += ` AND username LIKE ?`;
+      countQuery += ` AND username LIKE ?`;
+      params.push(`%${search}%`);
+      countParams.push(`%${search}%`);
+    }
+
+    // Filter by subscription tier
+    if (tier) {
+      query += ` AND subscription_tier = ?`;
+      countQuery += ` AND subscription_tier = ?`;
+      params.push(tier);
+      countParams.push(tier);
+    }
+
+    query += ` ORDER BY last_login_at DESC NULLS LAST, created_at DESC LIMIT ? OFFSET ?`;
+    params.push(limitNum, offset);
+
+    const [members, totalResult] = await Promise.all([
+      conn.query(query, params),
+      conn.query(countQuery, countParams)
+    ]);
+
+    const total = Number(totalResult[0].total);
+
+    res.json({
+      members: members.map(m => ({
+        id: Number(m.id),
+        username: m.username,
+        avatar_url: m.avatar_url,
+        subscription_tier: m.subscription_tier || 'free',
+        last_login_at: m.last_login_at,
+        created_at: m.created_at
+      })),
+      pagination: {
+        page: parseInt(page),
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum)
+      }
+    });
+  } catch (err) {
+    console.error('Members list error:', err);
+    res.status(500).json({ error: 'Failed to fetch members' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Get user's conversations list
+app.get('/api/messages/conversations', authenticateToken, requireSubscriber, async (req, res) => {
+  const userId = req.user.userId;
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    // Get all unique conversations with last message and unread count
+    const conversations = await conn.query(`
+      SELECT
+        CASE WHEN pm.sender_id = ? THEN pm.recipient_id ELSE pm.sender_id END as other_user_id,
+        u.username as other_username,
+        u.avatar_url as other_avatar_url,
+        u.subscription_tier as other_tier,
+        (SELECT content FROM private_messages pm2
+         WHERE (pm2.sender_id = ? AND pm2.recipient_id = other_user_id)
+            OR (pm2.sender_id = other_user_id AND pm2.recipient_id = ?)
+         ORDER BY pm2.created_at DESC LIMIT 1) as last_message,
+        (SELECT created_at FROM private_messages pm2
+         WHERE (pm2.sender_id = ? AND pm2.recipient_id = other_user_id)
+            OR (pm2.sender_id = other_user_id AND pm2.recipient_id = ?)
+         ORDER BY pm2.created_at DESC LIMIT 1) as last_message_at,
+        (SELECT COUNT(*) FROM private_messages pm2
+         WHERE pm2.sender_id = other_user_id
+           AND pm2.recipient_id = ?
+           AND pm2.is_read = FALSE) as unread_count
+      FROM private_messages pm
+      JOIN users u ON u.id = CASE WHEN pm.sender_id = ? THEN pm.recipient_id ELSE pm.sender_id END
+      WHERE pm.sender_id = ? OR pm.recipient_id = ?
+      GROUP BY other_user_id
+      ORDER BY last_message_at DESC
+    `, [userId, userId, userId, userId, userId, userId, userId, userId, userId]);
+
+    res.json({
+      conversations: conversations.map(c => ({
+        userId: Number(c.other_user_id),
+        username: c.other_username,
+        avatar_url: c.other_avatar_url,
+        subscription_tier: c.other_tier || 'free',
+        lastMessage: c.last_message ? c.last_message.substring(0, 100) : null,
+        lastMessageAt: c.last_message_at,
+        unreadCount: Number(c.unread_count)
+      }))
+    });
+  } catch (err) {
+    console.error('Conversations list error:', err);
+    res.status(500).json({ error: 'Failed to fetch conversations' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Get messages with specific user
+app.get('/api/messages/conversation/:userId', authenticateToken, requireSubscriber, async (req, res) => {
+  const currentUserId = req.user.userId;
+  const otherUserId = parseInt(req.params.userId);
+  const { page = 1, limit = 50 } = req.query;
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+  const limitNum = Math.min(parseInt(limit), 100);
+
+  if (isNaN(otherUserId) || otherUserId === currentUserId) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    // Verify other user exists
+    const otherUser = await conn.query(
+      'SELECT id, username, avatar_url, subscription_tier FROM users WHERE id = ?',
+      [otherUserId]
+    );
+    if (otherUser.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Get messages between the two users
+    const messages = await conn.query(`
+      SELECT id, sender_id, recipient_id, content, is_read, created_at
+      FROM private_messages
+      WHERE (sender_id = ? AND recipient_id = ?)
+         OR (sender_id = ? AND recipient_id = ?)
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `, [currentUserId, otherUserId, otherUserId, currentUserId, limitNum, offset]);
+
+    // Get total count
+    const countResult = await conn.query(`
+      SELECT COUNT(*) as total FROM private_messages
+      WHERE (sender_id = ? AND recipient_id = ?)
+         OR (sender_id = ? AND recipient_id = ?)
+    `, [currentUserId, otherUserId, otherUserId, currentUserId]);
+
+    const total = Number(countResult[0].total);
+
+    res.json({
+      otherUser: {
+        id: Number(otherUser[0].id),
+        username: otherUser[0].username,
+        avatar_url: otherUser[0].avatar_url,
+        subscription_tier: otherUser[0].subscription_tier || 'free'
+      },
+      messages: messages.reverse().map(m => ({
+        id: Number(m.id),
+        senderId: Number(m.sender_id),
+        recipientId: Number(m.recipient_id),
+        content: m.content,
+        isRead: Boolean(m.is_read),
+        createdAt: m.created_at,
+        isMine: Number(m.sender_id) === currentUserId
+      })),
+      pagination: {
+        page: parseInt(page),
+        limit: limitNum,
+        total,
+        hasMore: offset + limitNum < total
+      }
+    });
+  } catch (err) {
+    console.error('Get conversation error:', err);
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Send a message
+app.post('/api/messages/send', authenticateToken, requireSubscriber, messageLimiter, async (req, res) => {
+  const senderId = req.user.userId;
+  const { recipientId, content } = req.body;
+
+  // Validate input
+  if (!recipientId || !content) {
+    return res.status(400).json({ error: 'Recipient ID and content are required' });
+  }
+
+  const recipientIdNum = parseInt(recipientId);
+  if (isNaN(recipientIdNum) || recipientIdNum === senderId) {
+    return res.status(400).json({ error: 'Invalid recipient' });
+  }
+
+  // Validate content length
+  const contentTrimmed = content.trim();
+  if (contentTrimmed.length === 0) {
+    return res.status(400).json({ error: 'Message cannot be empty' });
+  }
+  if (contentTrimmed.length > 2000) {
+    return res.status(400).json({ error: 'Message too long (max 2000 characters)' });
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    // Verify recipient exists
+    const recipient = await conn.query(
+      'SELECT id, username FROM users WHERE id = ?',
+      [recipientIdNum]
+    );
+    if (recipient.length === 0) {
+      return res.status(404).json({ error: 'Recipient not found' });
+    }
+
+    // Sanitize content (basic XSS prevention)
+    const sanitizedContent = validator.escape(contentTrimmed);
+
+    // Insert message
+    const result = await conn.query(
+      'INSERT INTO private_messages (sender_id, recipient_id, content, created_at) VALUES (?, ?, ?, NOW())',
+      [senderId, recipientIdNum, sanitizedContent]
+    );
+
+    const messageId = Number(result.insertId);
+
+    // Get sender info for WebSocket notification
+    const sender = await conn.query(
+      'SELECT username, avatar_url FROM users WHERE id = ?',
+      [senderId]
+    );
+
+    const newMessage = {
+      id: messageId,
+      senderId,
+      recipientId: recipientIdNum,
+      content: sanitizedContent,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      isMine: true
+    };
+
+    // Send real-time notification to recipient if online
+    notifyNewDM(recipientIdNum, {
+      messageId,
+      senderId,
+      senderUsername: sender[0]?.username || 'Unknown',
+      senderAvatar: sender[0]?.avatar_url,
+      content: sanitizedContent,
+      createdAt: newMessage.createdAt
+    });
+
+    res.json({
+      success: true,
+      message: newMessage
+    });
+  } catch (err) {
+    console.error('Send message error:', err);
+    res.status(500).json({ error: 'Failed to send message' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Mark messages as read
+app.post('/api/messages/read/:userId', authenticateToken, requireSubscriber, async (req, res) => {
+  const currentUserId = req.user.userId;
+  const otherUserId = parseInt(req.params.userId);
+
+  if (isNaN(otherUserId)) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    // Mark all messages from other user as read
+    await conn.query(
+      'UPDATE private_messages SET is_read = TRUE WHERE sender_id = ? AND recipient_id = ? AND is_read = FALSE',
+      [otherUserId, currentUserId]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Mark read error:', err);
+    res.status(500).json({ error: 'Failed to mark messages as read' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Get unread message count (for nav badge)
+app.get('/api/messages/unread-count', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    const result = await conn.query(
+      'SELECT COUNT(*) as count FROM private_messages WHERE recipient_id = ? AND is_read = FALSE',
+      [userId]
+    );
+
+    res.json({ count: Number(result[0].count) });
+  } catch (err) {
+    console.error('Unread count error:', err);
+    res.status(500).json({ error: 'Failed to get unread count' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// ============================================
 // ADMIN API ENDPOINTS
 // ============================================
 
@@ -2530,6 +2916,25 @@ const wss = new WebSocket.Server({ server, path: '/ws/chat' });
 const chatClients = new Set();
 let viewerCount = 0;
 
+// DM clients - map userId to WebSocket for real-time notifications
+const dmClients = new Map();
+
+// Send real-time DM notification to recipient
+function notifyNewDM(recipientId, messageData) {
+  const recipientWs = dmClients.get(recipientId);
+  if (recipientWs && recipientWs.readyState === WebSocket.OPEN) {
+    recipientWs.send(JSON.stringify({
+      type: 'new_dm',
+      messageId: messageData.messageId,
+      fromId: messageData.senderId,
+      fromUsername: messageData.senderUsername,
+      fromAvatar: messageData.senderAvatar,
+      preview: messageData.content.substring(0, 100),
+      createdAt: messageData.createdAt
+    }));
+  }
+}
+
 // Moderation state
 const bannedUsers = new Map(); // username -> { reason, bannedBy, timestamp }
 const mutedUsers = new Map();  // username -> { until, mutedBy }
@@ -2590,6 +2995,8 @@ wss.on('connection', async (ws, req) => {
         ws.userColor = user.display_color;
         ws.subscriptionTier = user.subscription_tier || 'free';
         ws.isAuthenticated = true;
+        // Register for DM notifications
+        dmClients.set(ws.userId, ws);
       }
     } catch (err) {
       // Token invalid - fall through to guest mode
@@ -2776,6 +3183,10 @@ wss.on('connection', async (ws, req) => {
   ws.on('close', () => {
     chatClients.delete(ws);
     viewerCount--;
+    // Remove from DM clients if authenticated
+    if (ws.userId) {
+      dmClients.delete(ws.userId);
+    }
     console.log(`Chat: ${ws.username} disconnected (${viewerCount} viewers)`);
     broadcast({ type: 'viewers', count: viewerCount });
   });
