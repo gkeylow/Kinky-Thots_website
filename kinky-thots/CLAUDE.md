@@ -2,13 +2,14 @@
 
 > **IMPORTANT**: Read this file before starting any work. Document completed work here for future sessions.
 
-## Current Version: 1.8.0
+## Current Version: 1.9.0
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 
 ### Version History (Summary)
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.9.0 | Jan 26, 2026 | Production migrated to Linode, Mac Mini now dev-only |
 | 1.8.0 | Jan 20, 2026 | Members page, private messaging (DM), admin nav link |
 | 1.7.2 | Jan 15, 2026 | Inline crypto payments, password toggle, file cleanup |
 | 1.7.1 | Jan 14, 2026 | Login page, lightbox fix, checkout redirect fix |
@@ -32,10 +33,17 @@ See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 - **Web Server**: Apache2 with PHP (Docker: kinky-web)
 - **Backend**: Node.js WebSocket chat server on port 3002 (Docker: kinky-backend)
 - **Database**: MariaDB 10.11 (Docker: kinky-db)
-- **Streaming**: nginx-rtmp (Docker: kinky-rtmp) - RTMP on :1935, auto HLS conversion
+- **Streaming**: nginx-rtmp on Linode (45.79.208.9:1935) - direct HLS delivery
 - **CDN**: Pushr CDN with S3-compatible storage (Sonic)
 - **Build Tools**: Vite, Tailwind CSS, ESLint, Prettier
 - **SSL**: Let's Encrypt via Linode reverse proxy (nginx + certbot)
+
+### Infrastructure (Jan 26, 2026)
+| Environment | Server | IP | Services |
+|-------------|--------|-----|----------|
+| **Production** | Linode (kinky-thots-web) | 50.116.47.91 | Docker: web, backend, db |
+| **Reverse Proxy** | Linode (mail.kinky-thots) | 45.79.208.9 | nginx, SSL, mail, RTMP |
+| **Development** | Mac Mini (home) | local | Docker: web-dev, backend-dev, db-dev |
 
 ## CDN Configuration (Pushr/Sonic)
 
@@ -65,23 +73,40 @@ Secret Key: TrwzRLw1U8NPS0g3hDKWNkxBw7ZSw8NYRcNZNFQ1
 ## Quick Commands
 
 ### Docker Services
+
+#### Production (Linode - 50.116.47.91)
 ```bash
-# View all containers
+# SSH to production
+ssh root@50.116.47.91
+
+# View containers
+ssh root@50.116.47.91 "docker ps"
+
+# View logs
+ssh root@50.116.47.91 "docker logs -f kinky-web"
+ssh root@50.116.47.91 "docker logs -f kinky-backend"
+ssh root@50.116.47.91 "docker logs -f kinky-db"
+
+# Restart services
+ssh root@50.116.47.91 "docker compose -f /var/www/kinky-thots/docker-compose.yml restart"
+
+# Portainer Agent: http://50.116.47.91:9001
+```
+
+#### Development (Mac Mini - local)
+```bash
+# View containers
 docker ps
 
 # View logs
-docker logs -f kinky-web      # Apache/PHP
-docker logs -f kinky-backend  # Node.js API/Chat
-docker logs -f kinky-rtmp     # RTMP streaming
-docker logs -f kinky-db       # MariaDB
+docker logs -f kinky-web-dev
+docker logs -f kinky-backend-dev
+docker logs -f kinky-db-dev
 
 # Restart services
-docker-compose restart web
-docker-compose restart backend
-docker-compose restart rtmp
+docker-compose restart
 
-# Rebuild after Dockerfile changes
-docker-compose build web && docker-compose up -d web
+# Portainer Agent: http://localhost:9001
 ```
 
 ### CDN Management
@@ -100,6 +125,38 @@ npm run sonic:sync-manifest
 # Upload file to CDN
 npm run sonic:upload -- /path/to/file.mp4
 ```
+
+### Video Optimization
+```bash
+cd /var/www/kinky-thots/scripts
+
+# Preview what needs transcoding (no changes made)
+./transcode-videos.sh --dry-run
+
+# Transcode ALL videos (downloads, converts, uploads)
+./transcode-videos.sh
+
+# Transcode a single video
+./transcode-videos.sh "IMG_0287.MOV"
+```
+
+**What it does:**
+- Downloads videos from CDN
+- Converts to web-optimized MP4 (H.264, CRF 23, faststart)
+- Scales down videos larger than 1080p
+- Uploads optimized version back to CDN
+- Deletes original MOV files (replaced with .mp4)
+- Updates video manifest
+
+**Settings** (in script):
+- `CRF=23` - Quality (18-28, lower = better quality, larger file)
+- `PRESET=medium` - Speed/compression balance
+- `AUDIO_BITRATE=128k` - Audio quality
+
+**Expected results:**
+- 70-90% file size reduction
+- Faster video loading (faststart = instant playback)
+- MOV files converted to MP4
 
 ### Development
 ```bash
@@ -184,15 +241,24 @@ journalctl -u stream-watcher -u rtmp-hls -f
 - `bustersherry.html` - Model page with skills hover images
 - `terms.html` - Terms & conditions
 
-## Streaming Architecture (Docker)
-1. **OBS/Broadcaster** → `rtmp://SERVER:1935/live/stream`
-2. **nginx-rtmp** (kinky-rtmp container) receives RTMP and auto-converts to HLS
-3. **HLS output** → `/hls/stream.m3u8` (mounted volume)
-4. **live.html** uses HLS.js to play stream
+## Streaming Architecture (Linode)
+RTMP streaming moved to Linode for better performance (Jan 25, 2026).
+
+1. **OBS/Broadcaster** → `rtmp://45.79.208.9:1935/live/stream`
+2. **nginx-rtmp on Linode** receives RTMP and converts to HLS
+3. **HLS output** → `/var/www/hls/` on Linode
+4. **live.html** fetches HLS directly from Linode (no VPN hop)
 
 ### OBS Settings
-- Server: `rtmp://YOUR_SERVER:1935/live`
+- Server: `rtmp://45.79.208.9/live`
 - Stream Key: `stream`
+
+### OBS Low-Latency Settings (Recommended)
+- **Keyframe Interval**: 1 second (critical for low latency)
+- **Rate Control**: CBR
+- **Bitrate**: 3000-6000 Kbps
+- **Encoder Preset**: veryfast or superfast
+- **Tune**: zerolatency (if using x264)
 
 ## Security
 - All sensitive directories protected via .htaccess (config/, backend/, scripts/, data/, logs/)
@@ -216,19 +282,71 @@ journalctl -u stream-watcher -u rtmp-hls -f
   - kinky-thots.xxx (primary domain)
   - mail.kinky-thots.com (mail webui)
 
-### Network Architecture
+### Network Architecture (Updated Jan 26, 2026)
 ```
-Internet → Linode (nginx) → WireGuard VPN → Home Server (Docker)
-                ↓
-         SSL Termination
+Internet
+    │
+    ▼
+┌─────────────────────────────────────────────────────────┐
+│  Linode 1: mail.kinky-thots (45.79.208.9)               │
+│  - nginx reverse proxy (SSL termination)                │
+│  - Mail server (docker-mailserver)                      │
+│  - RTMP streaming (nginx-rtmp → /var/www/hls/)          │
+└─────────────────────────────────────────────────────────┘
+                        │
+                        ▼ proxies to
+┌─────────────────────────────────────────────────────────┐
+│  Linode 2: kinky-thots-web (50.116.47.91)               │
+│  - Docker: kinky-web (Apache/PHP) :80                   │
+│  - Docker: kinky-backend (Node.js) :3002                │
+│  - Docker: kinky-db (MariaDB) :3306                     │
+│  - Portainer Agent :9001                                │
+└─────────────────────────────────────────────────────────┘
+
+Mac Mini (Dev) ─── WireGuard VPN ─── Linode 1 (for dev access)
 ```
 
-| Component | IP/Address |
-|-----------|------------|
-| Linode Public IP | 45.33.100.131 |
-| Linode VPN IP | 10.100.0.1 |
-| Home Server VPN IP | 10.100.0.2 |
-| WireGuard Port | 51820/udp |
+| Component | IP/Address | Purpose |
+|-----------|------------|---------|
+| Linode Reverse Proxy | 45.79.208.9 | SSL, mail, RTMP |
+| Linode Production | 50.116.47.91 | Web, API, DB |
+| Mac Mini (Dev) | 10.100.0.2 (VPN) | Development |
+| WireGuard Port | 51820/udp | VPN tunnel |
+
+## Recent Changes (Jan 26, 2026)
+
+### Production Migration to Linode
+Migrated production infrastructure from Mac Mini (home server) to dedicated Linode instance for improved reliability and performance.
+
+**New Production Server (Linode):**
+- **Label**: kinky-thots-web
+- **IP**: 50.116.47.91
+- **Type**: g6-standard-1 (2GB RAM, 1 vCPU, 50GB disk)
+- **Region**: us-southeast (same as mail server)
+- **OS**: Ubuntu 24.04
+
+**Architecture Changes:**
+- Production Docker containers now run on Linode (kinky-web, kinky-backend, kinky-db)
+- Mac Mini repurposed as development server (kinky-web-dev, kinky-backend-dev, kinky-db-dev)
+- nginx reverse proxy updated to route traffic to production Linode instead of WireGuard VPN
+- Portainer Agent installed on both servers for container management
+- WireGuard VPN retained for development access
+
+**Migration Steps Performed:**
+1. Created new Linode instance (g6-standard-1, us-southeast)
+2. Installed Docker and Docker Compose
+3. Transferred all source files, configuration, and Docker build contexts
+4. Exported and imported MariaDB database (4 users, all tables)
+5. Transferred uploads directory (114MB)
+6. Updated nginx config on mail Linode (`10.100.0.2` → `50.116.47.91`)
+7. Renamed local containers to `-dev` suffix
+8. Installed Portainer Agent on production server
+
+**Files Updated:**
+- `docker-compose.yml` - Container names changed to `-dev` on Mac Mini
+- `docs/.linode-api.md` - Added new production server details
+
+---
 
 ## Recent Changes (Jan 20, 2026)
 
@@ -665,12 +783,24 @@ Reorganized CSS into modular, reusable files:
 - Added auto-cleanup of HLS segments when stream ends (prevents stale video on live.html)
 
 ## Docker Containers
+
+### Production (Linode - 50.116.47.91)
 | Container | Description | Ports |
 |-----------|-------------|-------|
-| kinky-web | Apache/PHP web server | 80 (443 for SSL) |
+| kinky-web | Apache/PHP web server | 80 |
 | kinky-backend | Node.js chat/API server | 3002 |
-| kinky-rtmp | nginx-rtmp streaming | 1935 (RTMP), 8080 (HTTP) |
 | kinky-db | MariaDB database | 3306 |
+| portainer_agent | Portainer management | 9001 |
+
+### Development (Mac Mini)
+| Container | Description | Ports |
+|-----------|-------------|-------|
+| kinky-web-dev | Apache/PHP web server | 80 |
+| kinky-backend-dev | Node.js chat/API server | 3002 |
+| kinky-db-dev | MariaDB database | 3306 |
+| portainer_agent | Portainer management | 9001 |
+
+**Note**: RTMP streaming runs on Linode 1 (45.79.208.9) for lower latency.
 
 ### Docker Volumes
 | Volume | Purpose |
