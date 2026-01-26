@@ -4,7 +4,7 @@ services:
     build:
       context: ./docker/web
       dockerfile: Dockerfile
-    container_name: kinky-web
+    container_name: kinky-web-dev
     ports:
       - "80:80"
       # - "443:443"   # Uncomment for HTTPS with certbot
@@ -29,7 +29,7 @@ services:
     build:
       context: ./backend
       dockerfile: ../docker/backend/Dockerfile
-    container_name: kinky-backend
+    container_name: kinky-backend-dev
     ports:
       - "3002:3001"    # Test mode: use 3002 instead of 3001
     volumes:
@@ -69,25 +69,27 @@ services:
       - kinky-network
     restart: unless-stopped
 
-  # nginx-rtmp Streaming Server
-  rtmp:
-    build:
-      context: ./docker/rtmp
-      dockerfile: Dockerfile
-    container_name: kinky-rtmp
-    ports:
-      - "1935:1935"
-      - "8081:8080"
-    volumes:
-      - ./hls:/tmp/hls
-    networks:
-      - kinky-network
-    restart: unless-stopped
+  # nginx-rtmp Streaming Server - MOVED TO LINODE (Jan 25, 2026)
+  # RTMP now runs on Linode (45.79.208.9) for lower latency
+  # See CLAUDE.md "Streaming Architecture" section for details
+  # rtmp:
+  #   build:
+  #     context: ./docker/rtmp
+  #     dockerfile: Dockerfile
+  #   container_name: kinky-rtmp
+  #   ports:
+  #     - "1935:1935"
+  #     - "8081:8080"
+  #   volumes:
+  #     - ./hls:/tmp/hls
+  #   networks:
+  #     - kinky-network
+  #   restart: unless-stopped
 
   # MariaDB Database
   db:
     image: mariadb:10.11
-    container_name: kinky-db
+    container_name: kinky-db-dev
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${MARIADB_DATABASE}
