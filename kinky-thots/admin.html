@@ -104,11 +104,15 @@
         }
         .filter-bar select, .filter-bar input {
             padding: 0.5rem 1rem;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: #1a1a1a;
+            border: 1px solid rgba(11, 208, 243, 0.3);
             border-radius: 6px;
             color: #fff;
             font-size: 0.9rem;
+        }
+        .filter-bar select option {
+            background: #1a1a1a;
+            color: #fff;
         }
         .filter-bar input {
             min-width: 200px;
@@ -180,6 +184,7 @@
         }
         .action-btn:hover { opacity: 0.8; }
         .action-btn.edit { background: #3498db; color: #fff; }
+        .action-btn.delete { background: #e74c3c; color: #fff; }
         .action-btn.ban { background: #e74c3c; color: #fff; }
         .action-btn.unban { background: #2ecc71; color: #fff; }
         .action-btn.upgrade { background: linear-gradient(135deg, #f805a7, #0bd0f3); color: #fff; }
@@ -252,9 +257,19 @@
         .form-group select, .form-group input {
             width: 100%;
             padding: 0.75rem;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: #1a1a1a;
+            border: 1px solid rgba(11, 208, 243, 0.3);
             border-radius: 6px;
+            color: #fff;
+        }
+        .form-group select option {
+            background: #1a1a1a;
+            color: #fff;
+            padding: 0.5rem;
+        }
+        .form-group select option:hover,
+        .form-group select option:checked {
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
             color: #fff;
         }
         .modal-actions {
@@ -306,8 +321,17 @@
                     <li><a href="/free-content.php">Free Teasers</a></li>
                     <li><a href="/basic-content.php">Extended Videos</a></li>
                     <li><a href="/premium-content.php">Full Access</a></li>
-                    <li><a href="/gallery.php">Photo Gallery</a></li>
                     <li><a href="/live.html">Live Cam</a></li>
+                </ul>
+            </li>
+            <li class="dropdown">
+                <button class="dropdown-toggle">Socials</button>
+                <ul class="dropdown-menu">
+                    <li><a href="https://onlyfans.com/kinkythots" target="_blank">OnlyFans</a></li>
+                    <li><a href="https://sharesome.com/KinkyThots" target="_blank">Sharesome</a></li>
+                    <li><a href="https://kinky-thots.bdsmlr.com" target="_blank">BDSMLR</a></li>
+                    <li><a href="https://facebook.com/kinkythots" target="_blank">Facebook</a></li>
+                    <li><a href="https://x.com/kinkythotsmodel" target="_blank">X (Twitter)</a></li>
                 </ul>
             </li>
             <li class="dropdown" id="userDropdown">
@@ -315,10 +339,13 @@
                 <ul class="dropdown-menu">
                     <li><a href="/profile.html">My Profile</a></li>
                     <li><a href="/members.html">Members</a></li>
-                    <li><a href="/admin.html" style="color: #f805a7;">Admin Dashboard</a></li>
+                    <li><a href="/profile.html#security">Security</a></li>
+                    <li><a href="/subscriptions.html">Subscription</a></li>
+                    <li id="adminLink" style="display:none;"><a href="/admin.html" style="color:#f805a7;">Admin Dashboard</a></li>
                     <li><a href="#" id="logoutLink">Logout</a></li>
                 </ul>
             </li>
+            <li id="loginItem"><a href="/login.html" class="login-btn" id="authTrigger">Login</a></li>
         </ul>
         <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
     </div>
@@ -523,6 +550,9 @@ async function checkAdmin() {
         document.getElementById('adminContent').style.display = 'block';
         document.getElementById('adminUser').textContent = `Logged in as ${currentUser.username}`;
         document.getElementById('userTrigger').textContent = currentUser.username;
+        document.body.classList.add('logged-in');
+        const adminLink = document.getElementById('adminLink');
+        if (adminLink) adminLink.style.display = 'block';
         return true;
     } catch (err) {
         document.getElementById('notAdmin').style.display = 'block';
@@ -630,6 +660,7 @@ async function loadMembers() {
                             <td>${new Date(m.created_at).toLocaleDateString()}</td>
                             <td>
                                 <button class="action-btn edit" onclick="editUser(${m.id})">Edit</button>
+                                <button class="action-btn delete" onclick="deleteUser(${m.id}, '${m.username}')">Delete</button>
                             </td>
                         </tr>
                     `).join('')}
@@ -776,6 +807,30 @@ async function editUser(userId) {
 
 function closeModal() {
     document.getElementById('editUserModal').classList.remove('open');
+}
+
+// Delete user
+async function deleteUser(userId, username) {
+    if (!confirm(`Are you sure you want to delete "${username}"?\n\nThis will permanently remove their account, messages, and payment history. This action cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/admin/members/${userId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            alert(data.message || 'User deleted successfully');
+            loadMembers();
+        } else {
+            alert(data.error || 'Failed to delete user');
+        }
+    } catch (err) {
+        alert('Failed to delete user');
+    }
 }
 
 // Save user changes
