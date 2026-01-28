@@ -8,7 +8,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
     <title>Login - Kinky Thots</title>
-    <link rel="stylesheet" href="/assets/dist/css/main.css?v=202601150002">
+    <link rel="stylesheet" href="/assets/dist/css/main.css?v=202601280001">
+    <!-- Cloudflare Turnstile -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         /* Login page specific styles */
         body {
@@ -255,6 +257,51 @@
             fill: currentColor;
         }
 
+        /* Turnstile widget container */
+        .turnstile-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        /* Verification pending message */
+        .verification-pending {
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        .verification-pending h3 {
+            color: #0bd0f3;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .verification-pending p {
+            color: #ccc;
+            margin-bottom: 1rem;
+        }
+
+        .verification-pending .email-highlight {
+            color: #f805a7;
+            font-weight: bold;
+        }
+
+        .resend-link {
+            color: #0bd0f3;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .resend-link:hover {
+            color: #f805a7;
+        }
+
+        .resend-link.disabled {
+            color: #666;
+            cursor: not-allowed;
+            text-decoration: none;
+        }
+
         @media (max-width: 768px) {
             .login-header h1 {
                 font-size: 2rem;
@@ -351,9 +398,31 @@
                     </div>
                     <div class="auth-error" id="loginError"></div>
                 </div>
+                <!-- Cloudflare Turnstile widget -->
+                <!-- Site key configured in Cloudflare Dashboard: https://dash.cloudflare.com/?to=/:account/turnstile -->
+                <div class="turnstile-wrapper" id="turnstileContainer">
+                    <!-- Widget rendered by script below after loading site key -->
+                </div>
                 <button type="submit" class="auth-submit">Login</button>
                 <a href="#" class="auth-forgot-link" id="forgotPasswordLink">Forgot Password?</a>
             </form>
+
+            <!-- Email Verification Pending (hidden by default) -->
+            <div class="auth-form" id="verificationPending">
+                <div class="verification-pending">
+                    <h3>Check Your Email</h3>
+                    <p>We've sent a verification link to:</p>
+                    <p class="email-highlight" id="pendingEmail">your@email.com</p>
+                    <p style="margin-top: 1.5rem;">Please click the link in your email to verify your account.</p>
+                    <p style="margin-top: 1rem; color: #888; font-size: 0.9rem;">
+                        Didn't receive the email?
+                        <span class="resend-link" id="resendVerification">Resend verification email</span>
+                    </p>
+                    <div class="auth-success" id="resendSuccess" style="text-align: center;"></div>
+                    <div class="auth-error" id="resendError" style="text-align: center;"></div>
+                    <button type="button" class="auth-submit" style="margin-top: 1.5rem;" id="backToLogin">Back to Login</button>
+                </div>
+            </div>
 
             <!-- Forgot Password Form -->
             <form class="auth-form" id="forgotForm">
@@ -426,11 +495,54 @@
 <!-- Built JS -->
 <script type="module" src="/assets/dist/js/main.js"></script>
 <script>
+// Turnstile callback - called when verification completes
+let turnstileToken = null;
+let turnstileWidgetId = null;
+function onTurnstileSuccess(token) {
+    console.log('[Turnstile] Verification successful');
+    turnstileToken = token;
+}
+
 // Auth functionality for login page
 (function() {
     console.log('[Login] Script starting...');
     const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3002' : '';
     console.log('[Login] API_URL:', API_URL || '(relative)');
+
+    // Track pending verification email for resend
+    let pendingVerificationEmail = null;
+
+    // Load Turnstile config and render widget
+    async function initTurnstile() {
+        try {
+            const res = await fetch(`${API_URL}/api/config`);
+            const config = await res.json();
+
+            if (config.turnstile?.enabled && config.turnstile?.siteKey) {
+                console.log('[Turnstile] Site key loaded, rendering widget');
+                // Wait for Turnstile script to load
+                const checkTurnstile = setInterval(() => {
+                    if (typeof turnstile !== 'undefined') {
+                        clearInterval(checkTurnstile);
+                        turnstileWidgetId = turnstile.render('#turnstileContainer', {
+                            sitekey: config.turnstile.siteKey,
+                            theme: 'dark',
+                            callback: onTurnstileSuccess
+                        });
+                    }
+                }, 100);
+            } else {
+                console.log('[Turnstile] Not configured or disabled');
+                // Hide the container if Turnstile is not enabled
+                document.getElementById('turnstileContainer').style.display = 'none';
+            }
+        } catch (err) {
+            console.warn('[Turnstile] Failed to load config:', err.message);
+        }
+    }
+
+    // Initialize Turnstile on page load
+    initTurnstile();
 
     // Check if already logged in
     const token = localStorage.getItem('kt_auth_token');
@@ -525,7 +637,11 @@
             const res = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: emailOrUsername, password })
+                body: JSON.stringify({
+                    email: emailOrUsername,
+                    password,
+                    turnstileToken: turnstileToken
+                })
             });
 
             console.log('[Login] Response status:', res.status);
@@ -533,10 +649,25 @@
             console.log('[Login] Response data:', data);
 
             if (!res.ok) {
+                // Check if email not verified
+                if (data.code === 'EMAIL_NOT_VERIFIED') {
+                    pendingVerificationEmail = data.email;
+                    showVerificationPending(data.email);
+                    loginBtn.textContent = originalText;
+                    loginBtn.disabled = false;
+                    // Reset Turnstile for next attempt
+                    if (typeof turnstile !== 'undefined' && turnstileWidgetId !== null) turnstile.reset(turnstileWidgetId);
+                    turnstileToken = null;
+                    return;
+                }
+
                 errorDiv.textContent = data.error || 'Login failed';
                 errorDiv.style.display = 'block';
                 loginBtn.textContent = originalText;
                 loginBtn.disabled = false;
+                // Reset Turnstile on error
+                if (typeof turnstile !== 'undefined' && turnstileWidgetId !== null) turnstile.reset(turnstileWidgetId);
+                turnstileToken = null;
                 return;
             }
 
@@ -558,10 +689,82 @@
             errorDiv.style.display = 'block';
             loginBtn.textContent = originalText;
             loginBtn.disabled = false;
+            // Reset Turnstile on error
+            if (typeof turnstile !== 'undefined' && turnstileWidgetId !== null) turnstile.reset(turnstileWidgetId);
+            turnstileToken = null;
+        }
+    });
+
+    // Show verification pending screen
+    function showVerificationPending(email) {
+        forms.forEach(f => f.classList.remove('active'));
+        document.getElementById('verificationPending').classList.add('active');
+        document.getElementById('pendingEmail').textContent = email;
+        document.getElementById('resendSuccess').style.display = 'none';
+        document.getElementById('resendError').style.display = 'none';
+    }
+
+    // Back to login button
+    document.getElementById('backToLogin').addEventListener('click', () => {
+        forms.forEach(f => f.classList.remove('active'));
+        document.getElementById('loginForm').classList.add('active');
+    });
+
+    // Resend verification email
+    let resendCooldown = false;
+    document.getElementById('resendVerification').addEventListener('click', async () => {
+        if (resendCooldown || !pendingVerificationEmail) return;
+
+        const resendLink = document.getElementById('resendVerification');
+        const successDiv = document.getElementById('resendSuccess');
+        const errorDiv = document.getElementById('resendError');
+
+        resendLink.classList.add('disabled');
+        resendLink.textContent = 'Sending...';
+        successDiv.style.display = 'none';
+        errorDiv.style.display = 'none';
+
+        try {
+            const res = await fetch(`${API_URL}/api/auth/resend-verification`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: pendingVerificationEmail })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                successDiv.textContent = 'Verification email sent! Please check your inbox.';
+                successDiv.style.display = 'block';
+                // 5-minute cooldown
+                resendCooldown = true;
+                let countdown = 300;
+                const updateCountdown = setInterval(() => {
+                    countdown--;
+                    resendLink.textContent = `Resend in ${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, '0')}`;
+                    if (countdown <= 0) {
+                        clearInterval(updateCountdown);
+                        resendCooldown = false;
+                        resendLink.classList.remove('disabled');
+                        resendLink.textContent = 'Resend verification email';
+                    }
+                }, 1000);
+            } else {
+                errorDiv.textContent = data.error || 'Failed to resend email';
+                errorDiv.style.display = 'block';
+                resendLink.classList.remove('disabled');
+                resendLink.textContent = 'Resend verification email';
+            }
+        } catch (err) {
+            errorDiv.textContent = 'Connection error. Please try again.';
+            errorDiv.style.display = 'block';
+            resendLink.classList.remove('disabled');
+            resendLink.textContent = 'Resend verification email';
         }
     });
 
     // Register form submission
+    const registerBtn = document.querySelector('#registerForm .auth-submit');
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const username = document.getElementById('registerUsername').value;
@@ -576,6 +779,12 @@
             return;
         }
 
+        // Show loading state
+        const originalText = registerBtn.textContent;
+        registerBtn.textContent = 'Creating account...';
+        registerBtn.disabled = true;
+        errorDiv.style.display = 'none';
+
         try {
             const res = await fetch(`${API_URL}/api/auth/register`, {
                 method: 'POST',
@@ -588,18 +797,32 @@
             if (!res.ok) {
                 errorDiv.textContent = data.error || 'Registration failed';
                 errorDiv.style.display = 'block';
+                registerBtn.textContent = originalText;
+                registerBtn.disabled = false;
                 return;
             }
 
-            localStorage.setItem('kt_auth_token', data.token);
-            localStorage.setItem('kt_auth_user', JSON.stringify(data.user));
+            // Registration requires email verification - show pending screen
+            if (data.requiresVerification) {
+                pendingVerificationEmail = data.email;
+                showVerificationPending(data.email);
+                registerBtn.textContent = originalText;
+                registerBtn.disabled = false;
+                return;
+            }
 
-            // Redirect to profile or intended page
-            const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/profile.html';
-            window.location.href = redirectUrl;
+            // Fallback for backwards compatibility (shouldn't happen with new backend)
+            if (data.token) {
+                localStorage.setItem('kt_auth_token', data.token);
+                localStorage.setItem('kt_auth_user', JSON.stringify(data.user));
+                const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/profile.html';
+                window.location.href = redirectUrl;
+            }
         } catch (err) {
             errorDiv.textContent = 'Connection error. Please try again.';
             errorDiv.style.display = 'block';
+            registerBtn.textContent = originalText;
+            registerBtn.disabled = false;
         }
     });
 
