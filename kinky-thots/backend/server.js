@@ -474,6 +474,22 @@ function authenticateToken(req, res, next) {
 }
 
 // ============================================
+// PUBLIC CONFIG ENDPOINT
+// ============================================
+
+// Get public configuration (site keys, feature flags)
+app.get('/api/config', (req, res) => {
+  res.json({
+    turnstile: {
+      enabled: !!process.env.TURNSTILE_SITE_KEY,
+      siteKey: process.env.TURNSTILE_SITE_KEY || null
+    },
+    siteName: SITE_NAME,
+    siteUrl: SITE_URL
+  });
+});
+
+// ============================================
 // AUTH ENDPOINTS
 // ============================================
 
@@ -528,37 +544,56 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
     const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'];
     const displayColor = colors[Math.floor(Math.random() * colors.length)];
 
-    // Insert user
+    // Generate email verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenHash = crypto.createHash('sha256').update(verificationToken).digest('hex');
+
+    // Insert user with email_verified = false
     const result = await conn.query(
-      `INSERT INTO users (username, email, password_hash, display_color, created_at)
-       VALUES (?, ?, ?, ?, NOW())`,
-      [usernameClean, email.toLowerCase(), passwordHash, displayColor]
+      `INSERT INTO users (username, email, password_hash, display_color, email_verified, email_verification_token, created_at)
+       VALUES (?, ?, ?, ?, FALSE, ?, NOW())`,
+      [usernameClean, email.toLowerCase(), passwordHash, displayColor, verificationTokenHash]
     );
 
     const userId = Number(result.insertId);
 
-    // Generate JWT
-    const token = jwt.sign(
-      { userId, username: usernameClean },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    console.log(`Auth: New user registered - ${usernameClean} (awaiting email verification)`);
 
-    // Update last login
-    await conn.query('UPDATE users SET last_login_at = NOW() WHERE id = ?', [userId]);
+    // Send verification email
+    const verifyUrl = `${SITE_URL}/verify-email.html?token=${verificationToken}`;
 
-    console.log(`Auth: New user registered - ${usernameClean}`);
+    try {
+      await emailTransporter.sendMail({
+        from: SMTP_FROM,
+        to: email.toLowerCase(),
+        subject: `Verify your email - ${SITE_NAME}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f0f; padding: 30px; border-radius: 16px;">
+            <h2 style="color: #f805a7; margin-bottom: 20px;">Welcome to ${SITE_NAME}!</h2>
+            <p style="color: #fff;">Hi ${usernameClean},</p>
+            <p style="color: #ccc;">Thank you for registering! Please verify your email address by clicking the button below:</p>
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="${verifyUrl}" style="background: linear-gradient(135deg, #f805a7, #0bd0f3); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">Verify Email</a>
+            </p>
+            <p style="color: #ccc;">This link expires in 24 hours.</p>
+            <p style="color: #888; font-size: 12px;">If you didn't create this account, please ignore this email.</p>
+            <hr style="border: none; border-top: 1px solid #333; margin: 20px 0;">
+            <p style="color: #666; font-size: 12px;">${SITE_NAME} - ${SITE_URL}</p>
+          </div>
+        `
+      });
+      console.log(`Verification email sent to ${email.toLowerCase()}`);
+    } catch (emailErr) {
+      console.error('Failed to send verification email:', emailErr.message);
+      // Don't fail registration - user can resend verification
+    }
 
+    // Return success but NO TOKEN - user must verify email first
     res.status(201).json({
       success: true,
-      token,
-      user: {
-        id: userId,
-        username: usernameClean,
-        email: email.toLowerCase(),
-        display_color: displayColor,
-        subscription_tier: 'free'
-      }
+      requiresVerification: true,
+      message: 'Account created! Please check your email to verify your account.',
+      email: email.toLowerCase()
     });
 
   } catch (err) {
@@ -569,21 +604,233 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
   }
 });
 
+// Verify email with token
+app.post('/api/auth/verify-email', authLimiter, async (req, res) => {
+  let conn;
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ error: 'Verification token is required' });
+    }
+
+    // Hash the token to compare with database
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    conn = await pool.getConnection();
+
+    // Find user with this verification token
+    const users = await conn.query(
+      `SELECT id, username, email, display_color, avatar_url, bio, subscription_tier, is_admin, admin_role, email_verified
+       FROM users WHERE email_verification_token = ?`,
+      [tokenHash]
+    );
+
+    if (users.length === 0) {
+      return res.status(400).json({ error: 'Invalid or expired verification token' });
+    }
+
+    const user = users[0];
+
+    // Check if already verified
+    if (user.email_verified) {
+      return res.status(400).json({ error: 'Email already verified. Please login.' });
+    }
+
+    // Mark email as verified and clear the token
+    await conn.query(
+      `UPDATE users SET email_verified = TRUE, email_verification_token = NULL, last_login_at = NOW() WHERE id = ?`,
+      [user.id]
+    );
+
+    // Generate JWT - user is now logged in
+    const token_jwt = jwt.sign(
+      {
+        userId: Number(user.id),
+        username: user.username,
+        isAdmin: Boolean(user.is_admin),
+        adminRole: user.admin_role || 'none'
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    console.log(`Auth: Email verified - ${user.username}`);
+
+    res.json({
+      success: true,
+      message: 'Email verified successfully!',
+      token: token_jwt,
+      user: {
+        id: Number(user.id),
+        username: user.username,
+        email: user.email,
+        display_color: user.display_color,
+        avatar_url: user.avatar_url || null,
+        bio: user.bio || null,
+        subscription_tier: user.subscription_tier || 'free',
+        is_admin: Boolean(user.is_admin),
+        admin_role: user.admin_role || 'none'
+      }
+    });
+
+  } catch (err) {
+    console.error('Email verification error:', err);
+    res.status(500).json({ error: 'Verification failed', details: err.message });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Resend verification email - rate limited to 1 per 5 minutes per email
+const resendVerificationLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 1,
+  message: { error: 'Please wait 5 minutes before requesting another verification email' },
+  // Rate limit by email only - use 'unknown' fallback to avoid IPv6 validation issues
+  keyGenerator: (req) => req.body.email?.toLowerCase() || 'unknown',
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+app.post('/api/auth/resend-verification', resendVerificationLimiter, async (req, res) => {
+  let conn;
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    conn = await pool.getConnection();
+
+    // Find user by email
+    const users = await conn.query(
+      'SELECT id, username, email, email_verified FROM users WHERE email = ?',
+      [email.toLowerCase()]
+    );
+
+    // Always return success to prevent email enumeration
+    if (users.length === 0) {
+      return res.json({ success: true, message: 'If an unverified account exists, a verification email has been sent' });
+    }
+
+    const user = users[0];
+
+    // Check if already verified
+    if (user.email_verified) {
+      return res.status(400).json({ error: 'Email already verified. Please login.' });
+    }
+
+    // Generate new verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenHash = crypto.createHash('sha256').update(verificationToken).digest('hex');
+
+    // Update token in database
+    await conn.query(
+      'UPDATE users SET email_verification_token = ? WHERE id = ?',
+      [verificationTokenHash, user.id]
+    );
+
+    // Send verification email
+    const verifyUrl = `${SITE_URL}/verify-email.html?token=${verificationToken}`;
+
+    try {
+      await emailTransporter.sendMail({
+        from: SMTP_FROM,
+        to: user.email,
+        subject: `Verify your email - ${SITE_NAME}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f0f; padding: 30px; border-radius: 16px;">
+            <h2 style="color: #f805a7; margin-bottom: 20px;">Verify Your Email</h2>
+            <p style="color: #fff;">Hi ${user.username},</p>
+            <p style="color: #ccc;">Please verify your email address by clicking the button below:</p>
+            <p style="text-align: center; margin: 30px 0;">
+              <a href="${verifyUrl}" style="background: linear-gradient(135deg, #f805a7, #0bd0f3); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">Verify Email</a>
+            </p>
+            <p style="color: #ccc;">This link expires in 24 hours.</p>
+            <p style="color: #888; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+            <hr style="border: none; border-top: 1px solid #333; margin: 20px 0;">
+            <p style="color: #666; font-size: 12px;">${SITE_NAME} - ${SITE_URL}</p>
+          </div>
+        `
+      });
+      console.log(`Verification email resent to ${user.email}`);
+    } catch (emailErr) {
+      console.error('Failed to send verification email:', emailErr.message);
+    }
+
+    res.json({ success: true, message: 'If an unverified account exists, a verification email has been sent' });
+
+  } catch (err) {
+    console.error('Resend verification error:', err);
+    res.status(500).json({ error: 'Failed to resend verification email' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Turnstile verification helper
+async function verifyTurnstile(turnstileToken, remoteIp) {
+  const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET_KEY;
+
+  // Skip verification if Turnstile is not configured
+  if (!TURNSTILE_SECRET) {
+    console.warn('Turnstile: Secret key not configured - skipping verification');
+    return { success: true, skipped: true };
+  }
+
+  if (!turnstileToken) {
+    return { success: false, error: 'Turnstile verification required' };
+  }
+
+  try {
+    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        secret: TURNSTILE_SECRET,
+        response: turnstileToken,
+        remoteip: remoteIp
+      })
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      console.warn('Turnstile verification failed:', data['error-codes']);
+      return { success: false, error: 'Security verification failed. Please try again.' };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Turnstile API error:', err.message);
+    // Allow login if Turnstile API is unreachable (fail open to avoid lockout)
+    return { success: true, error: 'Verification service unavailable' };
+  }
+}
+
 // Login
 app.post('/api/auth/login', authLimiter, async (req, res) => {
   let conn;
   try {
-    const { email, password } = req.body;
+    const { email, password, turnstileToken } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
+    // Verify Turnstile CAPTCHA
+    const turnstileResult = await verifyTurnstile(turnstileToken, req.ip);
+    if (!turnstileResult.success) {
+      return res.status(403).json({ error: turnstileResult.error });
+    }
+
     conn = await pool.getConnection();
 
-    // Find user by email or username
+    // Find user by email or username - include email_verified field
     const users = await conn.query(
-      `SELECT id, username, email, password_hash, display_color, avatar_url, bio, subscription_tier, is_admin, admin_role, force_password_change
+      `SELECT id, username, email, password_hash, display_color, avatar_url, bio, subscription_tier, is_admin, admin_role, force_password_change, email_verified
        FROM users WHERE email = ? OR username = ?`,
       [email.toLowerCase(), email.toLowerCase()]
     );
@@ -598,6 +845,15 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
       return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Check if email is verified
+    if (!user.email_verified) {
+      return res.status(403).json({
+        error: 'Please verify your email before logging in',
+        code: 'EMAIL_NOT_VERIFIED',
+        email: user.email
+      });
     }
 
     // Generate JWT (include is_admin and admin_role for permissions)

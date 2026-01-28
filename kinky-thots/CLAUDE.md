@@ -2,13 +2,14 @@
 
 > **IMPORTANT**: Read this file before starting any work. Document completed work here for future sessions.
 
-## Current Version: 1.9.1
+## Current Version: 1.9.2
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 
 ### Version History (Summary)
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.9.2 | Jan 28, 2026 | Email verification + Cloudflare Turnstile anti-bot |
 | 1.9.1 | Jan 26, 2026 | Reverted to home server with SSH tunnel (lower latency than Linode) |
 | 1.9.0 | Jan 26, 2026 | Temporary migration to Linode (reverted) |
 | 1.8.0 | Jan 20, 2026 | Members page, private messaging (DM), admin nav link |
@@ -319,6 +320,33 @@ Internet
 | Home Server | localhost | Production Docker |
 | SSH Tunnel | localhost:8081, :3003 | Persistent reverse tunnel |
 | Tunnel Service | ssh-tunnel.service | Auto-restart on failure |
+
+## Recent Changes (Jan 28, 2026)
+
+### Email Verification + Cloudflare Turnstile (v1.9.2)
+**Status: Complete and deployed**
+
+Added two anti-bot security measures:
+1. **Email verification** - New users must verify their email before accessing the site
+2. **Cloudflare Turnstile** - Invisible CAPTCHA on login form
+
+**Features:**
+- Registration sends verification email with secure token link
+- Users cannot login until email is verified
+- Resend verification endpoint with 5-minute rate limiting
+- Turnstile CAPTCHA validates on login (managed mode - Cloudflare decides when to challenge)
+- New `/api/config` endpoint provides public site configuration
+
+**Files changed:**
+- `backend/server.js` - New endpoints: `/api/auth/verify-email`, `/api/auth/resend-verification`, `/api/config`
+- `login.html` - Turnstile widget, verification pending UI, updated registration flow
+- `verify-email.html` - New page for email verification
+- `docker-compose.yml` - Added `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` env vars
+- `.env` - Turnstile credentials configured
+
+**Database note:** Existing users were set to `email_verified = TRUE` to allow continued login.
+
+---
 
 ## Recent Changes (Jan 26, 2026)
 
