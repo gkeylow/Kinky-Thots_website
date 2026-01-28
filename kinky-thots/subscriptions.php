@@ -1,0 +1,469 @@
+<?php
+$pageTitle = 'Subscriptions - Kinky Thots';
+$pageRobots = 'noindex,nofollow';
+$pageStyles = '
+        .subscriptions-container {
+            max-width: 1200px;
+            margin: 100px auto 40px;
+            padding: 0 20px;
+        }
+        .subscriptions-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .subscriptions-header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+        .subscriptions-header p {
+            color: #888;
+            font-size: 1.1rem;
+        }
+        .tiers-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        .tier-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+            border: 1px solid rgba(11, 208, 243, 0.3);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+        .tier-card:hover {
+            transform: translateY(-5px);
+            border-color: #0bd0f3;
+        }
+        .tier-card.featured {
+            border-color: #f805a7;
+            position: relative;
+            box-shadow: 0 0 30px rgba(248, 5, 167, 0.2);
+        }
+        .tier-card.featured::before {
+            content: \'MOST POPULAR\';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .tier-card.yearly-mode::before {
+            content: \'BEST VALUE\';
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+        }
+        .tier-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+        .tier-price-container {
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .tier-price {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.1;
+        }
+        .tier-price.yearly {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+        }
+        .tier-price span {
+            font-size: 1rem;
+            color: #888;
+            -webkit-text-fill-color: #888;
+        }
+        .tier-savings {
+            color: #2ecc71;
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+            opacity: 0;
+            height: 0;
+            transition: opacity 0.3s, height 0.3s;
+        }
+        .tier-savings.visible {
+            opacity: 1;
+            height: auto;
+        }
+        .tier-access {
+            color: #0bd0f3;
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+        }
+        .tier-features {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 2rem;
+            text-align: left;
+        }
+        .tier-features li {
+            padding: 0.5rem 0;
+            color: #ccc;
+            font-size: 0.95rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .tier-features li::before {
+            content: \'\2713\';
+            color: #2ecc71;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .tier-features li.disabled {
+            color: #555;
+        }
+        .tier-features li.disabled::before {
+            content: \'\2717\';
+            color: #e74c3c;
+        }
+        .tier-btn {
+            display: inline-block;
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .tier-btn:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+        .tier-btn.current {
+            background: #333;
+            cursor: default;
+        }
+        .tier-btn.current:hover {
+            transform: none;
+        }
+        .tier-btn.yearly {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+        }
+
+        /* Yearly Toggle */
+        .yearly-toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 1rem;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 30px;
+        }
+        .toggle-label {
+            font-size: 0.9rem;
+            color: #888;
+            transition: color 0.3s;
+        }
+        .toggle-label.active {
+            color: #fff;
+        }
+        .yearly-toggle {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .yearly-toggle.active {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+        }
+        .yearly-toggle::after {
+            content: \'\';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        .yearly-toggle.active::after {
+            transform: translateX(24px);
+        }
+
+        .current-tier-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .faq-section {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .faq-section h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #fff;
+        }
+        .faq-item {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        .faq-question {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .faq-question:hover {
+            background: rgba(11, 208, 243, 0.1);
+        }
+        .faq-answer {
+            padding: 0 1.5rem 1rem;
+            color: #888;
+            display: none;
+        }
+        .faq-item.open .faq-answer {
+            display: block;
+        }
+
+        @media (max-width: 900px) {
+            .tiers-grid {
+                grid-template-columns: 1fr;
+                max-width: 400px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .tier-card.featured {
+                order: -1;
+            }
+        }
+        @media (max-width: 768px) {
+            .subscriptions-header h1 { font-size: 2rem; }
+            .tier-price { font-size: 2.5rem; }
+        }
+';
+
+include 'includes/header.php';
+?>
+
+<main class="subscriptions-container">
+    <div class="subscriptions-header">
+        <h1>Choose Your Plan</h1>
+        <p>Unlock exclusive content based on video length</p>
+        <div id="currentTierDisplay"></div>
+    </div>
+
+    <div class="tiers-grid" id="tiersGrid">
+        <!-- Free Tier -->
+        <div class="tier-card" data-tier="free">
+            <h3 class="tier-name">Free</h3>
+            <div class="tier-price-container">
+                <div class="tier-price">$0</div>
+            </div>
+            <div class="tier-access">Videos under 1 minute</div>
+            <ul class="tier-features">
+                <li>Teaser clips &amp; short videos</li>
+                <li>Live stream viewing</li>
+                <li>Chat access</li>
+                <li class="disabled">Extended videos</li>
+                <li class="disabled">Full-length content</li>
+            </ul>
+            <button class="tier-btn current" id="freeBtn">Free Tier</button>
+        </div>
+
+        <!-- Basic Tier -->
+        <div class="tier-card" data-tier="basic">
+            <h3 class="tier-name">Basic</h3>
+            <div class="tier-price-container">
+                <div class="tier-price">$8<span>/mo</span></div>
+            </div>
+            <div class="tier-access">Videos 1-5 minutes</div>
+            <ul class="tier-features">
+                <li>All Free content</li>
+                <li>Extended videos up to 5 min</li>
+                <li>HD streaming quality</li>
+                <li>Chat badge</li>
+                <li class="disabled">Full-length content</li>
+            </ul>
+            <a href="/checkout.php?tier=basic" class="tier-btn" id="basicBtn">Subscribe Now</a>
+        </div>
+
+        <!-- Premium Tier -->
+        <div class="tier-card featured" data-tier="premium" id="premiumCard">
+            <h3 class="tier-name">Premium</h3>
+            <div class="yearly-toggle-container">
+                <span class="toggle-label active" id="monthlyLabel">Monthly</span>
+                <div class="yearly-toggle" id="yearlyToggle"></div>
+                <span class="toggle-label" id="yearlyLabel">Yearly</span>
+            </div>
+            <div class="tier-price-container">
+                <div class="tier-price" id="premiumPrice">$15<span>/mo</span></div>
+                <div class="tier-savings" id="yearlySavings">Save $60/year vs monthly ($10/mo)</div>
+            </div>
+            <div class="tier-access">All videos (5+ minutes)</div>
+            <ul class="tier-features">
+                <li>All Basic content</li>
+                <li>Full-length videos (5+ min)</li>
+                <li>4K streaming quality</li>
+                <li>Exclusive content</li>
+                <li>Direct messaging with models</li>
+            </ul>
+            <a href="/checkout.php?tier=premium" class="tier-btn" id="premiumBtn">Subscribe Now</a>
+        </div>
+    </div>
+
+    <section class="faq-section">
+        <h2>Frequently Asked Questions</h2>
+        <div class="faq-item">
+            <div class="faq-question">What payment methods do you accept? <span>+</span></div>
+            <div class="faq-answer">We accept cryptocurrency payments via NOWPayments. You can pay with Bitcoin, Ethereum, USDT, and 200+ other cryptocurrencies. Payments are secure and private.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">Can I cancel anytime? <span>+</span></div>
+            <div class="faq-answer">Yes! Monthly subscriptions can be cancelled at any time. You'll continue to have access until the end of your billing period. Yearly subscriptions give you 12 months of access upfront.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">How do I upgrade my plan? <span>+</span></div>
+            <div class="faq-answer">Simply click on the plan you want to upgrade to. Your billing will be prorated for the remainder of your current billing cycle.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">What's the difference between tiers? <span>+</span></div>
+            <div class="faq-answer">Tiers are based on video length. Free members can watch clips under 1 minute. Basic ($8/mo) unlocks videos up to 5 minutes. Premium ($15/mo or $120/year) gives you access to all full-length content over 5 minutes.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">Why choose Yearly? <span>+</span></div>
+            <div class="faq-answer">The $120 Yearly option saves you $60 compared to paying monthly ($180/year). That's like getting 4 months free! You get all Premium features for a full year with one payment.</div>
+        </div>
+    </section>
+</main>
+
+<?php include 'includes/footer.php'; ?>
+
+<script>
+    const AUTH_TOKEN_KEY = 'kt_auth_token';
+    const AUTH_USER_KEY = 'kt_auth_user';
+
+    // State
+    let isYearlyMode = false;
+
+    // Elements
+    const toggle = document.getElementById('yearlyToggle');
+    const premiumCard = document.getElementById('premiumCard');
+    const premiumPrice = document.getElementById('premiumPrice');
+    const premiumBtn = document.getElementById('premiumBtn');
+    const yearlySavings = document.getElementById('yearlySavings');
+    const monthlyLabel = document.getElementById('monthlyLabel');
+    const yearlyLabel = document.getElementById('yearlyLabel');
+
+    // Toggle yearly mode
+    toggle.addEventListener('click', () => {
+        isYearlyMode = !isYearlyMode;
+        toggle.classList.toggle('active', isYearlyMode);
+        premiumCard.classList.toggle('yearly-mode', isYearlyMode);
+        monthlyLabel.classList.toggle('active', !isYearlyMode);
+        yearlyLabel.classList.toggle('active', isYearlyMode);
+
+        if (isYearlyMode) {
+            premiumPrice.innerHTML = '$120<span>/year</span>';
+            premiumPrice.classList.add('yearly');
+            premiumBtn.href = '/checkout.php?tier=yearly';
+            premiumBtn.textContent = 'Get Yearly Access';
+            premiumBtn.classList.add('yearly');
+            yearlySavings.classList.add('visible');
+        } else {
+            premiumPrice.innerHTML = '$15<span>/mo</span>';
+            premiumPrice.classList.remove('yearly');
+            premiumBtn.href = '/checkout.php?tier=premium';
+            premiumBtn.textContent = 'Subscribe Now';
+            premiumBtn.classList.remove('yearly');
+            yearlySavings.classList.remove('visible');
+        }
+    });
+
+    // Update buttons based on current user tier
+    function updateButtons() {
+        const user = JSON.parse(localStorage.getItem(AUTH_USER_KEY) || 'null');
+        const currentTier = user?.subscription_tier || 'free';
+
+        // Show current tier badge
+        if (user) {
+            const tierNames = { free: 'Free', basic: 'Basic', premium: 'Premium', yearly: 'Yearly', vip: 'VIP' };
+            document.getElementById('currentTierDisplay').innerHTML =
+                `<span class="current-tier-badge">Current Plan: ${tierNames[currentTier] || currentTier}</span>`;
+        }
+
+        // Update Free button
+        const freeBtn = document.getElementById('freeBtn');
+        if (currentTier === 'free') {
+            freeBtn.textContent = 'Current Plan';
+            freeBtn.classList.add('current');
+        } else {
+            freeBtn.textContent = 'Free Tier';
+            freeBtn.classList.add('current');
+        }
+
+        // Update Basic button
+        const basicBtn = document.getElementById('basicBtn');
+        if (currentTier === 'basic') {
+            basicBtn.textContent = 'Current Plan';
+            basicBtn.classList.add('current');
+            basicBtn.removeAttribute('href');
+        } else if (['premium', 'yearly', 'vip'].includes(currentTier)) {
+            basicBtn.textContent = 'Included';
+            basicBtn.classList.add('current');
+            basicBtn.removeAttribute('href');
+        }
+
+        // Update Premium button
+        if (['premium', 'yearly', 'vip'].includes(currentTier)) {
+            premiumBtn.textContent = currentTier === 'yearly' ? 'Yearly Member' : 'Current Plan';
+            premiumBtn.classList.add('current');
+            premiumBtn.removeAttribute('href');
+            toggle.style.pointerEvents = 'none';
+            toggle.style.opacity = '0.5';
+        }
+    }
+
+    // FAQ toggle
+    document.querySelectorAll('.faq-question').forEach(q => {
+        q.addEventListener('click', () => {
+            q.parentElement.classList.toggle('open');
+            q.querySelector('span').textContent = q.parentElement.classList.contains('open') ? '-' : '+';
+        });
+    });
+
+    updateButtons();
+</script>
+</body>
+</html>

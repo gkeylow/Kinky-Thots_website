@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
 // Handle logout
 if (isset($_GET['logout'])) {
     unset($_SESSION['gallery_admin_auth']);
-    header('Location: /index.html');
+    header('Location: /index.php');
     exit;
 }
 
@@ -147,7 +147,7 @@ if (!$isAuthenticated):
             <input type="password" name="password" placeholder="Enter password" required autofocus>
             <button type="submit">Login</button>
         </form>
-        <a href="/index.html" class="back-link">Back to Home</a>
+        <a href="/index.php" class="back-link">Back to Home</a>
     </div>
     <script>
     // Auto-bypass for admin users
@@ -176,86 +176,14 @@ if (!$isAuthenticated):
 <?php
 exit;
 endif;
+
+// Page configuration for header include
+$pageTitle = 'Kinky Thots - Amateur XXX Gallery';
+$pageRobots = 'noindex,nofollow';
+$pageCss = ['/assets/dist/css/media-gallery.css?v=20260114'];
+
+include __DIR__ . '/includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="author" content="kinky-thots"/>
-    <meta name="copyright" content="kinky-thots"/>
-    <meta name="robots" content="noindex,nofollow"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data: blob:; media-src 'self' http: https: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:; font-src 'self' https:; connect-src 'self' https: wss:;">
-    <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
-    <title>Kinky Thots - Amateur XXX Gallery</title>
-    <!-- Built CSS (Vite + Tailwind) -->
-    <link rel="stylesheet" href="/assets/dist/css/main.css?v=202601120941">
-    <link rel="stylesheet" href="/assets/dist/css/media-gallery.css?v=20260114">
-</head>
-<body>
-<nav id="navbar">
-    <div class="nav-container">
-        <div class="logo">
-            <a href="/index.html">Kinky-Thots<img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></a>
-        </div>
-
-        <ul class="nav-links">
-            <li><a href="/index.html">Home</a></li>
-            <li class="dropdown">
-                <button class="dropdown-toggle">Models</button>
-                <ul class="dropdown-menu">
-                    <li><a href="/sissylonglegs.html">Sissy Long Legs</a></li>
-                    <li><a href="/bustersherry.html">Buster Sherry</a></li>
-                </ul>
-            </li>
-            <li class="dropdown">
-                <button class="dropdown-toggle">Content</button>
-                <ul class="dropdown-menu">
-                    <li><a href="/free-content.php">Free Teasers</a></li>
-                    <li><a href="/basic-content.php">Extended Videos</a></li>
-                    <li><a href="/premium-content.php">Full Access</a></li>
-                    <li><a href="/gallery.php">Photo Gallery</a></li>
-                    <li><a href="/live.html">Live Cam</a></li>
-                </ul>
-            </li>
-            <li class="dropdown" id="userDropdown">
-                <button class="dropdown-toggle" id="userTrigger">Account</button>
-                <ul class="dropdown-menu">
-                    <li><a href="/profile.html">My Profile</a></li>
-                    <li><a href="/profile.html#security">Security</a></li>
-                    <li><a href="/subscriptions.html">Subscription</a></li>
-                    <li><a href="#" id="logoutLink">Logout</a></li>
-                </ul>
-            </li>
-            <li id="loginItem"><a href="/login.html" class="login-btn" id="authTrigger">Login</a></li>
-        </ul>
-
-        <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
-    </div>
-</nav>
-<!-- Built JS (Vite) - Navigation -->
-<script type="module" src="/assets/dist/js/main.js"></script>
-<script>
-(function() {
-    const token = localStorage.getItem('kt_auth_token');
-    const user = JSON.parse(localStorage.getItem('kt_auth_user') || 'null');
-
-    if (token && user) {
-        document.body.classList.add('logged-in');
-        document.getElementById('userTrigger').textContent = user.username;
-        document.getElementById('logoutLink').addEventListener('click', (e) => {
-            e.preventDefault();
-            localStorage.removeItem('kt_auth_token');
-            localStorage.removeItem('kt_auth_user');
-            window.location.reload();
-        });
-    } else {
-        document.body.classList.add('logged-out');
-        if (token && !user) localStorage.removeItem('kt_auth_token');
-        if (!token && user) localStorage.removeItem('kt_auth_user');
-    }
-})();
-</script>
 
 <div class="container" id="mainContainer">
     <div class="header">
@@ -299,20 +227,8 @@ endif;
 <!-- Built JS (Vite) -->
 <script type="module" src="/assets/dist/js/gallery.js?v=20260114"></script>
 
-<footer class="site-footer">
-    <div class="container">
-        <div class="footer-content">
-            <div class="footer-left">
-                <p>&copy; 2025 <a href="/index.html">Kinky-Thots</a> <img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="25px"> All rights reserved.</p>
-            </div>
-            <div class="footer-right">
-                <a href="/terms.html" class="footer-link">Terms & Conditions</a>
-            </div>
-        </div>
-    </div>
-</footer>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 
-<!-- Elfsight Age Verification -->
 <script src="https://static.elfsight.com/platform/platform.js" async></script>
 <div class="elfsight-app-ea2f58c6-6128-4e92-b2d9-c0b5c09769c3" data-elfsight-app-lazy></div>
 </body>

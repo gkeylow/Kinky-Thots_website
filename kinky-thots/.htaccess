@@ -48,9 +48,21 @@ ServerSignature Off
     Header set Cache-Control "public, max-age=31536000, immutable"
 </FilesMatch>
 
-# Cache video/audio (30 days)
-<FilesMatch "\.(mp4|webm|ogg|mp3|m3u8|ts)$">
+# Cache video/audio (30 days) - excludes HLS live stream files
+<FilesMatch "\.(mp4|webm|ogg|mp3)$">
     Header set Cache-Control "public, max-age=2592000"
+</FilesMatch>
+
+# HLS live stream files - no caching (playlist updates every few seconds)
+<FilesMatch "\.(m3u8)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+</FilesMatch>
+
+# HLS segments - short cache (segments are unique per timestamp)
+<FilesMatch "\.(ts)$">
+    Header set Cache-Control "public, max-age=10"
 </FilesMatch>
 
 # =============================================
