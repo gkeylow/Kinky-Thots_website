@@ -1,0 +1,297 @@
+================================================================================
+FRESH LINODE SETUP FOR KINKY-THOTS REVERSE PROXY
+================================================================================
+
+STEP 1: CREATE NEW LINODE
+================================================================================
+- Log into Linode dashboard
+- Create new Linode: Nanode 1GB ($5/mo)
+- Choose: Ubuntu 24.04 LTS
+- Region: Same as current (Dallas or closest to you)
+- Set root password
+- Note the new IP address (replace NEW_LINODE_IP below)
+
+
+STEP 2: SSH INTO NEW LINODE AND UPDATE SYSTEM
+================================================================================
+ssh root@NEW_LINODE_IP
+
+apt update && apt upgrade -y
+apt install -y curl wget git ufw
+
+
+STEP 3: INSTALL WIREGUARD
+================================================================================
+apt install -y wireguard
+
+# Generate server keys
+wg genkey | tee /etc/wireguard/server_private.key | wg pubkey > /etc/wireguard/server_public.key
+chmod 600 /etc/wireguard/server_private.key
+
+# View the keys (you'll need the public key for home server)
+echo "=== LINODE PUBLIC KEY (save this) ==="
+cat /etc/wireguard/server_public.key
+
+# Create WireGuard config
+cat > /etc/wireguard/wg0.conf << 'EOF'
+[Interface]
+Address = 10.100.0.1/24
+ListenPort = 51820
+PrivateKey = PASTE_SERVER_PRIVATE_KEY_HERE
+
+# Enable IP forwarding
+PostUp = sysctl -w net.ipv4.ip_forward=1
+PostUp = iptables -A FORWARD -i wg0 -j ACCEPT
+PostUp = iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+PostDown = iptables -D FORWARD -i wg0 -j ACCEPT
+PostDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+
+[Peer]
+# Home Server
+PublicKey = PASTE_HOME_SERVER_PUBLIC_KEY_HERE
+AllowedIPs = 10.100.0.2/32
+EOF
+
+# Edit the config to paste your keys:
+nano /etc/wireguard/wg0.conf
+# - Replace PASTE_SERVER_PRIVATE_KEY_HERE with content of /etc/wireguard/server_private.key
+# - Replace PASTE_HOME_SERVER_PUBLIC_KEY_HERE with your home server's WireGuard public key
+
+# Enable and start WireGuard
+systemctl enable wg-quick@wg0
+systemctl start wg-quick@wg0
+
+# Verify it's running
+wg show
+
+
+STEP 4: CONFIGURE FIREWALL
+================================================================================
+ufw allow 22/tcp      # SSH
+ufw allow 80/tcp      # HTTP
+ufw allow 443/tcp     # HTTPS
+ufw allow 51820/udp   # WireGuard
+ufw --force enable
+ufw status
+
+
+STEP 5: INSTALL NGINX
+================================================================================
+apt install -y nginx
+
+# Remove default site
+rm -f /etc/nginx/sites-enabled/default
+
+# Create kinky-thots config
+cat > /etc/nginx/sites-available/kinky-thots << 'EOF'
+# Redirect .com to .xxx (primary domain)
+server {
+    listen 80;
+    server_name kinky-thots.com www.kinky-thots.com;
+    return 301 https://kinky-thots.xxx$request_uri;
+}
+
+# HTTP to HTTPS redirect for .xxx
+server {
+    listen 80;
+    server_name kinky-thots.xxx www.kinky-thots.xxx;
+    return 301 https://$host$request_uri;
+}
+EOF
+
+# Enable the site (SSL config added after certbot)
+ln -s /etc/nginx/sites-available/kinky-thots /etc/nginx/sites-enabled/
+
+# Test and reload
+nginx -t && systemctl reload nginx
+
+
+STEP 6: UPDATE DNS RECORDS
+================================================================================
+Go to your DNS provider and update A records:
+
+  kinky-thots.com      A    NEW_LINODE_IP
+  www.kinky-thots.com  A    NEW_LINODE_IP
+  kinky-thots.xxx      A    NEW_LINODE_IP
+  www.kinky-thots.xxx  A    NEW_LINODE_IP
+
+Wait 5-10 minutes for propagation, then verify:
+  dig kinky-thots.xxx +short
+  # Should return NEW_LINODE_IP
+
+
+STEP 7: INSTALL CERTBOT AND GET SSL CERTIFICATES
+================================================================================
+apt install -y certbot python3-certbot-nginx
+
+# Get certificates (run these one at a time)
+certbot --nginx -d kinky-thots.xxx -d www.kinky-thots.xxx --non-interactive --agree-tos -m your-email@example.com
+
+certbot --nginx -d kinky-thots.com -d www.kinky-thots.com --non-interactive --agree-tos -m your-email@example.com
+
+# Verify auto-renewal is set up
+systemctl status certbot.timer
+
+
+STEP 8: UPDATE NGINX WITH FULL PROXY CONFIG
+================================================================================
+# Now replace with full config (certbot already added SSL lines)
+cat > /etc/nginx/sites-available/kinky-thots << 'EOF'
+# Redirect .com to .xxx (primary domain)
+server {
+    listen 443 ssl;
+    server_name kinky-thots.com www.kinky-thots.com;
+
+    ssl_certificate /etc/letsencrypt/live/kinky-thots.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/kinky-thots.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    return 301 https://kinky-thots.xxx$request_uri;
+}
+
+server {
+    listen 80;
+    server_name kinky-thots.com www.kinky-thots.com;
+    return 301 https://kinky-thots.xxx$request_uri;
+}
+
+# Main site - kinky-thots.xxx (primary)
+server {
+    listen 443 ssl;
+    server_name kinky-thots.xxx www.kinky-thots.xxx;
+
+    ssl_certificate /etc/letsencrypt/live/kinky-thots.xxx/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/kinky-thots.xxx/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    location / {
+        proxy_pass http://10.100.0.2:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+    }
+
+    # WebSocket support for chat
+    location /ws/ {
+        proxy_pass http://10.100.0.2:3002;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 86400;
+    }
+
+    # API endpoints
+    location /api/ {
+        proxy_pass http://10.100.0.2:3002;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # HLS streaming
+    location /hls/ {
+        proxy_pass http://10.100.0.2:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Access-Control-Allow-Origin "*";
+    }
+}
+
+# HTTP to HTTPS redirect for .xxx
+server {
+    listen 80;
+    server_name kinky-thots.xxx www.kinky-thots.xxx;
+    return 301 https://$host$request_uri;
+}
+EOF
+
+nginx -t && systemctl reload nginx
+
+
+STEP 9: UPDATE HOME SERVER WIREGUARD CONFIG
+================================================================================
+On your HOME SERVER (not Linode), update WireGuard peer:
+
+sudo nano /etc/wireguard/wg0.conf
+
+# Update the [Peer] section with:
+# - New Linode public key (from Step 3)
+# - New Linode IP (Endpoint)
+
+[Peer]
+PublicKey = NEW_LINODE_PUBLIC_KEY_HERE
+Endpoint = NEW_LINODE_IP:51820
+AllowedIPs = 10.100.0.1/32
+PersistentKeepalive = 25
+
+# Restart WireGuard on home server
+sudo systemctl restart wg-quick@wg0
+
+# Verify connection
+sudo wg show
+# Should show handshake with Linode peer
+
+
+STEP 10: TEST EVERYTHING
+================================================================================
+# From Linode, test VPN connection to home server:
+ping -c 3 10.100.0.2
+
+# Test web proxy:
+curl -I http://10.100.0.2
+
+# From your browser, visit:
+https://kinky-thots.xxx
+
+# Check SSL certificate:
+echo | openssl s_client -connect kinky-thots.xxx:443 -servername kinky-thots.xxx 2>/dev/null | openssl x509 -noout -subject
+# Should show: subject=CN = kinky-thots.xxx
+
+
+STEP 11: (OPTIONAL) MIGRATE MAIL SERVER
+================================================================================
+If you want mail on new Linode too, you'll need to:
+1. Install Docker: apt install -y docker.io docker-compose
+2. Copy docker-mailserver config from old Linode
+3. Update mail.kinky-thots.com DNS to new IP
+4. Get cert: certbot --nginx -d mail.kinky-thots.com
+
+
+STEP 12: DELETE OLD LINODE
+================================================================================
+Once everything is working:
+1. Verify site loads correctly
+2. Verify SSL certificates are valid
+3. Verify WireGuard tunnel is stable
+4. Delete old Linode from dashboard
+
+
+================================================================================
+QUICK REFERENCE - KEY INFO
+================================================================================
+
+Home Server WireGuard IP: 10.100.0.2
+Linode WireGuard IP: 10.100.0.1
+WireGuard Port: 51820/udp
+
+Home Server Ports (proxied via VPN):
+- 80: Apache/PHP web server
+- 3002: Node.js backend (API + WebSocket)
+
+Your home server public key (from existing setup):
+  cat /etc/wireguard/wg0.conf | grep -A1 "\[Interface\]"
+  # Or: sudo wg show wg0
+
+================================================================================

@@ -2707,6 +2707,39 @@ app.put('/api/admin/members/:id', authenticateToken, requireAdmin, async (req, r
   }
 });
 
+// Delete a member
+app.delete('/api/admin/members/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    // Prevent admin from deleting themselves
+    if (parseInt(id) === req.user.userId) {
+      return res.status(400).json({ error: 'Cannot delete your own account' });
+    }
+
+    // Check if user exists
+    const users = await conn.query('SELECT id, username FROM users WHERE id = ?', [id]);
+    if (!users[0]) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const username = users[0].username;
+
+    // Delete user (cascades to related tables via foreign keys)
+    await conn.query('DELETE FROM users WHERE id = ?', [id]);
+
+    console.log(`Admin ${req.user.userId} deleted user ${id} (${username})`);
+    res.json({ success: true, message: `User ${username} deleted` });
+  } catch (err) {
+    console.error('Admin delete user error:', err);
+    res.status(500).json({ error: 'Failed to delete user' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
 // Get transactions list with filtering
 app.get('/api/admin/transactions', authenticateToken, requireAdmin, async (req, res) => {
   const { page = 1, limit = 20, status, tier, dateFrom, dateTo } = req.query;
