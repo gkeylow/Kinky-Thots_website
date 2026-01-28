@@ -214,15 +214,34 @@ class LivePlayer {
     if (typeof Hls === 'undefined') {return;}
 
     if (Hls.isSupported()) {
+      // Low-latency HLS configuration
       const hlsConfig = {
         enableWorker: MobileSupport.supportsWebWorkers(),
         lowLatencyMode: true,
+        // Aggressive low-latency buffer settings
+        liveSyncDurationCount: 2,
+        liveMaxLatencyDurationCount: 4,
+        liveDurationInfinity: true,
+        // Smaller buffers for faster start
+        maxBufferLength: 4,
+        maxMaxBufferLength: 8,
+        maxBufferSize: 0,
+        maxBufferHole: 0.5,
+        // Back buffer (how much played content to keep)
+        backBufferLength: 5,
+        // Faster fragment loading
+        fragLoadingTimeOut: 10000,
+        fragLoadingMaxRetry: 3,
+        fragLoadingRetryDelay: 500,
+        // Start from live edge
+        startPosition: -1,
       };
 
       if (MobileSupport.isMobile()) {
-        hlsConfig.maxBufferLength = 10;
-        hlsConfig.maxMaxBufferLength = 20;
-        hlsConfig.fragLoadingTimeOut = 30000;
+        // Slightly larger buffers for mobile stability
+        hlsConfig.maxBufferLength = 6;
+        hlsConfig.maxMaxBufferLength = 12;
+        hlsConfig.liveSyncDurationCount = 3;
       }
 
       if (this.hls) {
@@ -236,6 +255,8 @@ class LivePlayer {
       this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
         this.setLiveStatus(true);
         this.video?.play().catch(() => {});
+        // Periodically sync to live edge to prevent drift
+        this.startLiveSync();
       });
 
       this.hls.on(Hls.Events.ERROR, (event, data) => {
@@ -291,6 +312,39 @@ class LivePlayer {
       player.requestFullscreen().catch(() => {});
     } else {
       document.exitFullscreen();
+    }
+  }
+
+  /**
+   * Periodically check if viewer has drifted behind live edge and sync back
+   */
+  startLiveSync() {
+    if (this.liveSyncInterval) {
+      clearInterval(this.liveSyncInterval);
+    }
+
+    this.liveSyncInterval = setInterval(() => {
+      if (!this.hls || !this.video || this.video.paused) {return;}
+
+      const liveEdge = this.hls.liveSyncPosition;
+      const currentTime = this.video.currentTime;
+      const latency = liveEdge - currentTime;
+
+      // If more than 5 seconds behind live, jump to live edge
+      if (latency > 5) {
+        this.video.currentTime = liveEdge - 1;
+      }
+    }, 5000);
+  }
+
+  /**
+   * Manual jump to live edge (can be called from UI)
+   */
+  jumpToLive() {
+    if (!this.hls || !this.video) {return;}
+    const liveEdge = this.hls.liveSyncPosition;
+    if (liveEdge) {
+      this.video.currentTime = liveEdge - 0.5;
     }
   }
 }

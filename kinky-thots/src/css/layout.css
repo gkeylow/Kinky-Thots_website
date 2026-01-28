@@ -166,13 +166,13 @@ nav.scrolled {
     color: #0bd0f3;
     text-decoration: none;
     transition: all 0.3s;
+    white-space: nowrap;
     font-size: 0.95rem;
 }
 
 .dropdown-menu a:hover {
     background: rgba(248, 5, 167, 0.2);
     color: #f805a7;
-    padding-left: 2rem;
 }
 
 /* Login Button */

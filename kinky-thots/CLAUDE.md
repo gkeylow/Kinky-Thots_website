@@ -2,14 +2,15 @@
 
 > **IMPORTANT**: Read this file before starting any work. Document completed work here for future sessions.
 
-## Current Version: 1.9.0
+## Current Version: 1.9.1
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 
 ### Version History (Summary)
 | Version | Date | Highlights |
 |---------|------|------------|
-| 1.9.0 | Jan 26, 2026 | Production migrated to Linode, Mac Mini now dev-only |
+| 1.9.1 | Jan 26, 2026 | Reverted to home server with SSH tunnel (lower latency than Linode) |
+| 1.9.0 | Jan 26, 2026 | Temporary migration to Linode (reverted) |
 | 1.8.0 | Jan 20, 2026 | Members page, private messaging (DM), admin nav link |
 | 1.7.2 | Jan 15, 2026 | Inline crypto payments, password toggle, file cleanup |
 | 1.7.1 | Jan 14, 2026 | Login page, lightbox fix, checkout redirect fix |
@@ -39,11 +40,11 @@ See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 - **SSL**: Let's Encrypt via Linode reverse proxy (nginx + certbot)
 
 ### Infrastructure (Jan 26, 2026)
-| Environment | Server | IP | Services |
-|-------------|--------|-----|----------|
-| **Production** | Linode (kinky-thots-web) | 50.116.47.91 | Docker: web, backend, db |
+| Component | Server | IP | Services |
+|-----------|--------|-----|----------|
+| **Production** | Home Server | local | Docker: kinky-web, kinky-backend, kinky-db |
 | **Reverse Proxy** | Linode (mail.kinky-thots) | 45.79.208.9 | nginx, SSL, mail, RTMP |
-| **Development** | Mac Mini (home) | local | Docker: web-dev, backend-dev, db-dev |
+| **Tunnel** | SSH Reverse Tunnel (autossh) | localhost:8081, :3003 | Persistent connection to Linode |
 
 ## CDN Configuration (Pushr/Sonic)
 
@@ -74,39 +75,43 @@ Secret Key: TrwzRLw1U8NPS0g3hDKWNkxBw7ZSw8NYRcNZNFQ1
 
 ### Docker Services
 
-#### Production (Linode - 50.116.47.91)
-```bash
-# SSH to production
-ssh root@50.116.47.91
-
-# View containers
-ssh root@50.116.47.91 "docker ps"
-
-# View logs
-ssh root@50.116.47.91 "docker logs -f kinky-web"
-ssh root@50.116.47.91 "docker logs -f kinky-backend"
-ssh root@50.116.47.91 "docker logs -f kinky-db"
-
-# Restart services
-ssh root@50.116.47.91 "docker compose -f /var/www/kinky-thots/docker-compose.yml restart"
-
-# Portainer Agent: http://50.116.47.91:9001
-```
-
-#### Development (Mac Mini - local)
+#### Production (Home Server - local)
 ```bash
 # View containers
 docker ps
 
 # View logs
-docker logs -f kinky-web-dev
-docker logs -f kinky-backend-dev
-docker logs -f kinky-db-dev
+docker logs -f kinky-web
+docker logs -f kinky-backend
+docker logs -f kinky-db
 
 # Restart services
 docker-compose restart
 
 # Portainer Agent: http://localhost:9001
+```
+
+#### SSH Tunnel Management
+```bash
+# Check tunnel status
+sudo systemctl status ssh-tunnel
+
+# Restart tunnel
+sudo systemctl restart ssh-tunnel
+
+# View tunnel logs
+journalctl -u ssh-tunnel -f
+
+# Manual tunnel test
+ssh root@45.79.208.9 "curl -s http://127.0.0.1:8081/ | head -1"
+```
+
+#### Development (optional - use docker-compose.dev.yml)
+```bash
+# Start dev containers (separate from production)
+docker-compose -f docker-compose.dev.yml up -d
+
+# Dev containers use -dev suffix: kinky-web-dev, kinky-backend-dev, kinky-db-dev
 ```
 
 ### CDN Management
@@ -288,35 +293,66 @@ Internet
     │
     ▼
 ┌─────────────────────────────────────────────────────────┐
-│  Linode 1: mail.kinky-thots (45.79.208.9)               │
+│  Linode: mail.kinky-thots (45.79.208.9)                 │
 │  - nginx reverse proxy (SSL termination)                │
 │  - Mail server (docker-mailserver)                      │
 │  - RTMP streaming (nginx-rtmp → /var/www/hls/)          │
+│  - SSH tunnel endpoints: localhost:8081, :3003          │
 └─────────────────────────────────────────────────────────┘
+                        ▲
+                        │ SSH Reverse Tunnel (autossh)
+                        │ Ports: 8081→80, 3003→3002
                         │
-                        ▼ proxies to
 ┌─────────────────────────────────────────────────────────┐
-│  Linode 2: kinky-thots-web (50.116.47.91)               │
+│  Home Server (Production)                               │
 │  - Docker: kinky-web (Apache/PHP) :80                   │
 │  - Docker: kinky-backend (Node.js) :3002                │
 │  - Docker: kinky-db (MariaDB) :3306                     │
 │  - Portainer Agent :9001                                │
+│  - systemd: ssh-tunnel.service (persistent)             │
 └─────────────────────────────────────────────────────────┘
-
-Mac Mini (Dev) ─── WireGuard VPN ─── Linode 1 (for dev access)
 ```
 
 | Component | IP/Address | Purpose |
 |-----------|------------|---------|
 | Linode Reverse Proxy | 45.79.208.9 | SSL, mail, RTMP |
-| Linode Production | 50.116.47.91 | Web, API, DB |
-| Mac Mini (Dev) | 10.100.0.2 (VPN) | Development |
-| WireGuard Port | 51820/udp | VPN tunnel |
+| Home Server | localhost | Production Docker |
+| SSH Tunnel | localhost:8081, :3003 | Persistent reverse tunnel |
+| Tunnel Service | ssh-tunnel.service | Auto-restart on failure |
 
 ## Recent Changes (Jan 26, 2026)
 
-### Production Migration to Linode
-Migrated production infrastructure from Mac Mini (home server) to dedicated Linode instance for improved reliability and performance.
+### Reverted to Home Server with SSH Tunnel (v1.9.1)
+After benchmarking, reverted production back to home server. The Mac Mini performs better than Linode for this workload. Replaced WireGuard VPN with SSH reverse tunnel for lower overhead.
+
+**SSH Tunnel Setup:**
+- Service: `/etc/systemd/system/ssh-tunnel.service`
+- Tool: autossh (auto-reconnect on failure)
+- Tunneled ports:
+  - `localhost:80` → Linode `localhost:8081` (web)
+  - `localhost:3002` → Linode `localhost:3003` (API)
+- nginx on Linode proxies to tunneled localhost ports
+
+**Commands:**
+```bash
+# Check tunnel status
+sudo systemctl status ssh-tunnel
+
+# Restart tunnel
+sudo systemctl restart ssh-tunnel
+
+# View logs
+journalctl -u ssh-tunnel -f
+```
+
+**Files:**
+- `docker-compose.yml` - Production containers
+- `docker-compose.dev.yml` - Development containers (optional)
+
+---
+
+### Previous: Temporary Migration to Linode (v1.9.0 - Reverted)
+Migrated production infrastructure from Mac Mini (home server) to dedicated Linode instance. Reverted after benchmarks showed home server performs better.
 
 **New Production Server (Linode):**
 - **Label**: kinky-thots-web
@@ -784,23 +820,22 @@ Reorganized CSS into modular, reusable files:
 
 ## Docker Containers
 
-### Production (Linode - 50.116.47.91)
-| Container | Description | Ports |
-|-----------|-------------|-------|
-| kinky-web | Apache/PHP web server | 80 |
-| kinky-backend | Node.js chat/API server | 3002 |
-| kinky-db | MariaDB database | 3306 |
-| portainer_agent | Portainer management | 9001 |
+### Production (Home Server)
+| Container | Description | Ports | Tunneled To |
+|-----------|-------------|-------|-------------|
+| kinky-web | Apache/PHP web server | 80 | Linode :8081 |
+| kinky-backend | Node.js chat/API server | 3002 | Linode :3003 |
+| kinky-db | MariaDB database | 3306 | - |
+| portainer_agent | Portainer management | 9001 | - |
 
-### Development (Mac Mini)
+### Development (optional - docker-compose.dev.yml)
 | Container | Description | Ports |
 |-----------|-------------|-------|
 | kinky-web-dev | Apache/PHP web server | 80 |
 | kinky-backend-dev | Node.js chat/API server | 3002 |
 | kinky-db-dev | MariaDB database | 3306 |
-| portainer_agent | Portainer management | 9001 |
 
-**Note**: RTMP streaming runs on Linode 1 (45.79.208.9) for lower latency.
+**Note**: RTMP streaming runs on Linode (45.79.208.9) for lower latency.
 
 ### Docker Volumes
 | Volume | Purpose |
