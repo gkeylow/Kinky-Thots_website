@@ -243,6 +243,15 @@ nav.scrolled {
     gap: 10px;
 }
 
+.footer-left a {
+    color: #000000;
+    text-decoration: none;
+}
+
+.footer-left a:hover {
+    text-decoration: underline;
+}
+
 .footer-right {
     display: flex;
     gap: 20px;
