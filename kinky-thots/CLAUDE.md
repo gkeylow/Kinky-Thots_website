@@ -2,13 +2,14 @@
 
 > **IMPORTANT**: Read this file before starting any work. Document completed work here for future sessions.
 
-## Current Version: 1.9.2
+## Current Version: 1.9.3
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 
 ### Version History (Summary)
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.9.3 | Jan 30, 2026 | SFW landing page for .com, removed WireGuard |
 | 1.9.2 | Jan 28, 2026 | Email verification + Cloudflare Turnstile anti-bot |
 | 1.9.1 | Jan 26, 2026 | Reverted to home server with SSH tunnel (lower latency than Linode) |
 | 1.9.0 | Jan 26, 2026 | Temporary migration to Linode (reverted) |
@@ -195,6 +196,9 @@ journalctl -u stream-watcher -u rtmp-hls -f
 ## Directory Structure
 ```
 /var/www/kinky-thots/
+├── landing/          # SFW landing page for kinky-thots.com
+│   ├── index.php     # Landing page
+│   └── includes/     # Landing-specific includes
 ├── src/              # Source files (development)
 │   ├── js/           # JavaScript modules (ES6+)
 │   │   ├── main.js   # Navigation/dropdown handler
@@ -231,7 +235,8 @@ journalctl -u stream-watcher -u rtmp-hls -f
 ```
 
 ## Key Pages
-- `index.html` - Homepage
+- `landing/index.php` - SFW landing page (kinky-thots.com only)
+- `index.html` - Homepage (kinky-thots.xxx)
 - `login.html` - Standalone login/register page with redirect support
 - `live.html` - Live streaming page (uses HLS.js + nginx-rtmp)
 - `members.html` - Member list with private messaging (DM) feature
@@ -281,11 +286,11 @@ RTMP streaming moved to Linode for better performance (Jan 25, 2026).
 - `.env` files have 600 permissions
 
 ### SSL/HTTPS & Reverse Proxy
-- **Linode Reverse Proxy** (45.33.100.131) handles all incoming traffic
-- **WireGuard VPN** tunnel connects Linode to home server (CG-NAT bypass)
+- **Linode Reverse Proxy** (45.79.208.9) handles all incoming traffic
+- **SSH Reverse Tunnel** connects home server to Linode (CG-NAT bypass)
 - **Let's Encrypt SSL** for all domains:
-  - kinky-thots.com (redirects to .xxx)
-  - kinky-thots.xxx (primary domain)
+  - kinky-thots.com (SFW landing page)
+  - kinky-thots.xxx (primary adult site)
   - mail.kinky-thots.com (mail webui)
 
 ### Network Architecture (Updated Jan 26, 2026)
@@ -320,6 +325,81 @@ Internet
 | Home Server | localhost | Production Docker |
 | SSH Tunnel | localhost:8081, :3003 | Persistent reverse tunnel |
 | Tunnel Service | ssh-tunnel.service | Auto-restart on failure |
+
+## Recent Changes (Jan 30, 2026)
+
+### SFW Landing Page for kinky-thots.com (v1.9.3)
+**Status: Complete and deployed**
+
+Created a Safe-For-Work landing page on kinky-thots.com to enable mainstream advertising and AI assistance.
+
+**Domain Routing:**
+| Domain | Content | Purpose |
+|--------|---------|---------|
+| kinky-thots.com | SFW landing page | Ads, social media, AI-friendly |
+| kinky-thots.xxx | Full adult site | Main content |
+
+**Landing Page Features:**
+- Same styling as main site (gradients, colors, fonts)
+- Logo-only header (no navigation)
+- Hero section with "Get Access" + "Enter Site" CTAs
+- Features section (Photos, Videos, Live Streams)
+- Stats section (10K+ content, 6+ years)
+- About section with profile card
+- Footer linking to .xxx legal pages
+- 18+ age notice
+- Open Graph meta tags for social sharing
+
+**Files Created:**
+```
+/var/www/kinky-thots/landing/
+├── index.php              # SFW landing page
+└── includes/
+    ├── header-landing.php # Logo-only header (no nav)
+    └── footer.php         # Footer linking to .xxx
+```
+
+**nginx Routing (Linode):**
+- `.com` requests proxy to `/landing/` on home server
+- `.xxx` requests proxy to `/` (main site)
+- Removed Apache-level `.com→.xxx` redirect from `.htaccess`
+
+### Removed WireGuard VPN
+WireGuard was previously used but replaced by SSH tunnel in v1.9.1. Fully removed in this version:
+- Disabled and removed `wg-quick@wg0` systemd service
+- Removed `/etc/wireguard/` config directory
+- Uninstalled `wireguard` and `wireguard-tools` packages
+
+### Docker veth Interface Naming
+Added automatic naming of Docker veth interfaces for easier network debugging.
+
+**Service:** `docker-veth-rename.service`
+**Script:** `/usr/local/bin/docker-veth-rename.sh`
+
+**What it does:**
+- Renames veth interfaces to match container names (e.g., `veth-kinky-web`)
+- Runs on boot and listens for container start events
+- Names persist across container restarts
+
+**Commands:**
+```bash
+# Check service status
+systemctl status docker-veth-rename
+
+# View logs
+journalctl -u docker-veth-rename -f
+```
+
+**Interface names:**
+| Interface | Container |
+|-----------|-----------|
+| veth-kinky-web | kinky-web |
+| veth-backend | kinky-backend |
+| veth-kinky-db | kinky-db |
+| veth-kuma | uptime-kuma |
+| veth-portainer | portainer_agent |
+
+---
 
 ## Recent Changes (Jan 28, 2026)
 
