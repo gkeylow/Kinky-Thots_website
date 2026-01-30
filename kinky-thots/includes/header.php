@@ -28,7 +28,13 @@ $bodyClass = $bodyClass ?? '';
     <link rel="icon" type="image/png" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png">
     <link rel="stylesheet" href="/assets/dist/css/main.css?v=<?php echo date('YmdHi'); ?>">
 <?php foreach ($pageCss as $css): ?>
-    <link rel="stylesheet" href="<?php echo htmlspecialchars($css); ?>">
+<?php
+    // Handle relative CSS names - prepend path if needed
+    if (strpos($css, '/') === false) {
+        $css = '/assets/dist/css/' . $css;
+    }
+?>
+    <link rel="stylesheet" href="<?php echo htmlspecialchars($css); ?>?v=<?php echo date('YmdHi'); ?>">
 <?php endforeach; ?>
 <?php if ($pageStyles): ?>
     <style>
