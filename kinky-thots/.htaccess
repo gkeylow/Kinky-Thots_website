@@ -75,9 +75,48 @@ RewriteEngine On
 RewriteCond %{HTTP_HOST} ^(www\.)?kinky-thots\.com$ [NC]
 RewriteRule ^(.*)$ https://kinky-thots.xxx/$1 [R=301,L]
 
-# Redirect old gallery.html to gallery.php
+# Redirect all HTML pages to PHP (shared header/footer via includes)
+RewriteCond %{REQUEST_URI} ^/index\.html$ [NC]
+RewriteRule ^(.*)$ /index.php [R=301,L]
+
+RewriteCond %{REQUEST_URI} ^/live\.html$ [NC]
+RewriteRule ^(.*)$ /live.php [R=301,L]
+
+RewriteCond %{REQUEST_URI} ^/login\.html$ [NC]
+RewriteRule ^(.*)$ /login.php [R=301,L]
+
 RewriteCond %{REQUEST_URI} ^/gallery\.html$ [NC]
 RewriteRule ^(.*)$ /gallery.php [R=301,L]
+
+RewriteCond %{REQUEST_URI} ^/members\.html$ [NC]
+RewriteRule ^(.*)$ /members.php [R=301,L]
+
+RewriteCond %{REQUEST_URI} ^/profile\.html$ [NC]
+RewriteRule ^(.*)$ /profile.php [R=301,L]
+
+RewriteCond %{REQUEST_URI} ^/subscriptions\.html$ [NC]
+RewriteRule ^(.*)$ /subscriptions.php [R=301,L]
+
+RewriteCond %{REQUEST_URI} ^/checkout\.html$ [NC]
+RewriteRule ^(.*)$ /checkout.php [R=301,L]
+
+RewriteCond %{REQUEST_URI} ^/admin\.html$ [NC]
+RewriteRule ^(.*)$ /admin.php [R=301,L]
+
+RewriteCond %{REQUEST_URI} ^/terms\.html$ [NC]
+RewriteRule ^(.*)$ /terms.php [R=301,L]
+
+RewriteCond %{REQUEST_URI} ^/sissylonglegs\.html$ [NC]
+RewriteRule ^(.*)$ /sissylonglegs.php [R=301,L]
+
+RewriteCond %{REQUEST_URI} ^/bustersherry\.html$ [NC]
+RewriteRule ^(.*)$ /bustersherry.php [R=301,L]
+
+RewriteCond %{REQUEST_URI} ^/verify-email\.html$ [NC]
+RewriteRule ^(.*)$ /verify-email.php [R=301,L]
+
+RewriteCond %{REQUEST_URI} ^/reset-password\.html$ [NC]
+RewriteRule ^(.*)$ /reset-password.php [R=301,L]
 
 # Block direct access to /gallery (without extension)
 RewriteCond %{REQUEST_URI} ^/gallery/?$ [NC]

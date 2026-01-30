@@ -119,6 +119,125 @@ main.container {
 }
 
 /* ===========================================
+   LEGAL PAGE STYLES
+   =========================================== */
+
+.content-main {
+    padding-top: 120px;
+    padding-bottom: 60px;
+    min-height: calc(100vh - 200px);
+}
+
+.content-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.content-container h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    background: linear-gradient(45deg, #f805a7, #0bd0f3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.content-container .effective-date {
+    color: #888;
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #333;
+}
+
+.content-container section {
+    background: #1a1a1a;
+    border-radius: 8px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.content-container h2 {
+    font-size: 1.5rem;
+    color: #f805a7;
+    margin-bottom: 1rem;
+    margin-top: 0;
+}
+
+.content-container h3 {
+    font-size: 1.2rem;
+    color: #0bd0f3;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.content-container p {
+    color: #ccc;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+}
+
+.content-container ul,
+.content-container ol {
+    color: #ccc;
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+    line-height: 1.8;
+}
+
+.content-container li {
+    margin-bottom: 0.5rem;
+}
+
+.content-container a {
+    color: #0bd0f3;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.content-container a:hover {
+    color: #f805a7;
+    text-decoration: underline;
+}
+
+.content-container address {
+    font-style: normal;
+    background: #222;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    border-left: 3px solid #f805a7;
+    margin: 1rem 0;
+    color: #ccc;
+    line-height: 1.8;
+}
+
+.legal-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid #333;
+    justify-content: center;
+}
+
+.legal-nav a {
+    padding: 0.75rem 1.5rem;
+    background: #222;
+    border-radius: 8px;
+    color: #0bd0f3;
+    text-decoration: none;
+    transition: all 0.3s;
+    font-size: 0.9rem;
+}
+
+.legal-nav a:hover {
+    background: #f805a7;
+    color: #fff;
+}
+
+/* ===========================================
    MOBILE RESPONSIVE
    =========================================== */
 
@@ -143,5 +262,34 @@ main.container {
 
     .content-section {
         padding: 1.5rem;
+    }
+
+    .content-main {
+        padding-top: 100px;
+    }
+
+    .content-container {
+        padding: 0 1rem;
+    }
+
+    .content-container h1 {
+        font-size: 1.75rem;
+    }
+
+    .content-container section {
+        padding: 1rem 1.25rem;
+    }
+
+    .content-container h2 {
+        font-size: 1.25rem;
+    }
+
+    .legal-nav {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .legal-nav a {
+        text-align: center;
     }
 }

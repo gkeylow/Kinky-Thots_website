@@ -88,7 +88,6 @@ $pageStyles = '
 
         .auth-field {
             margin-bottom: 1.5rem;
-            text-align: center;
         }
 
         .auth-label {
@@ -96,15 +95,11 @@ $pageStyles = '
             color: #f5f5f5;
             font-weight: 600;
             margin-bottom: 0.5rem;
-            max-width: 320px;
-            margin-left: auto;
-            margin-right: auto;
             text-align: left;
         }
 
         .auth-input {
             width: 100%;
-            max-width: 320px;
             padding: 0.875rem 1rem;
             background: #181818;
             border: 2px solid #333;
@@ -112,8 +107,6 @@ $pageStyles = '
             color: #fff;
             font-size: 1rem;
             transition: border-color 0.3s;
-            display: block;
-            margin: 0 auto;
             box-sizing: border-box;
         }
 
@@ -133,7 +126,6 @@ $pageStyles = '
 
         .auth-submit {
             width: 100%;
-            max-width: 320px;
             padding: 1rem;
             background: linear-gradient(135deg, #f805a7, #0bd0f3);
             border: none;
@@ -143,8 +135,7 @@ $pageStyles = '
             font-weight: bold;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
-            margin: 1rem auto 0;
-            display: block;
+            margin-top: 1rem;
         }
 
         .auth-submit:hover {
@@ -170,9 +161,6 @@ $pageStyles = '
             font-size: 0.9rem;
             margin-top: 0.5rem;
             display: none;
-            max-width: 320px;
-            margin-left: auto;
-            margin-right: auto;
             text-align: left;
         }
 
@@ -181,9 +169,6 @@ $pageStyles = '
             font-size: 0.9rem;
             margin-top: 0.5rem;
             display: none;
-            max-width: 320px;
-            margin-left: auto;
-            margin-right: auto;
             text-align: left;
         }
 
@@ -212,13 +197,10 @@ $pageStyles = '
         .password-wrapper {
             position: relative;
             width: 100%;
-            max-width: 320px;
-            margin: 0 auto;
         }
 
         .password-wrapper .auth-input {
             padding-right: 45px;
-            margin: 0;
         }
 
         .password-toggle {
@@ -569,8 +551,4 @@ include 'includes/header.php';
 })();
 </script>
 
-<!-- Elfsight Age Verification -->
-<script src="https://static.elfsight.com/platform/platform.js" async></script>
-<div class="elfsight-app-ea2f58c6-6128-4e92-b2d9-c0b5c09769c3" data-elfsight-app-lazy></div>
-</body>
-</html>
+<?php include __DIR__ . '/includes/footer-scripts.php'; ?>

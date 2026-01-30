@@ -474,5 +474,4 @@ document.getElementById('logoutLink')?.addEventListener('click', (e) => {
 
 checkAdmin().then(isAdmin => { if (isAdmin) loadStats(); });
 </script>
-</body>
-</html>
+<?php include __DIR__ . '/includes/footer-scripts.php'; ?>
