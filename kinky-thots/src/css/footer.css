@@ -1,0 +1,126 @@
+/* footer.css - Footer styles */
+/* Shared across all pages - loaded via footer.php */
+
+/* ===========================================
+   FOOTER
+   =========================================== */
+
+.site-footer {
+    background: #181818;
+    border-top: 1px solid rgba(11, 208, 243, 0.2);
+    margin-top: auto;
+    padding: 2rem 0;
+    width: 100%;
+}
+
+.site-footer .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.footer-left,
+.footer-right {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.footer-left p {
+    color: #b0b0b0;
+    font-size: 0.9rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.footer-left a {
+    color: #f805a7;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.3s;
+}
+
+.footer-left a:hover {
+    color: #0bd0f3;
+}
+
+.footer-left img {
+    height: 25px;
+    width: auto;
+}
+
+.footer-link {
+    color: #0bd0f3;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s;
+}
+
+.footer-link:hover {
+    color: #f805a7;
+}
+
+/* ===========================================
+   MOBILE RESPONSIVE
+   =========================================== */
+
+@media (max-width: 768px) {
+    .site-footer {
+        padding: 1.5rem 0;
+    }
+
+    .site-footer .container {
+        padding: 0 1rem;
+    }
+
+    .footer-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.75rem;
+    }
+
+    .footer-left,
+    .footer-right {
+        justify-content: center;
+    }
+
+    .footer-left p,
+    .footer-left a {
+        font-size: 0.85rem;
+    }
+
+    .footer-left img {
+        height: 20px;
+    }
+
+    .footer-link {
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .site-footer {
+        padding: 1.25rem 0;
+    }
+
+    .footer-left p,
+    .footer-left a,
+    .footer-link {
+        font-size: 0.8rem;
+    }
+
+    .footer-left img {
+        height: 18px;
+    }
+}

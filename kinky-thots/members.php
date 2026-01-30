@@ -251,5 +251,4 @@ document.getElementById('dmInput').addEventListener('input', function() { this.s
 document.getElementById('dmInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('dmForm').dispatchEvent(new Event('submit')); } });
 init();
 </script>
-</body>
-</html>
+<?php include __DIR__ . '/includes/footer-scripts.php'; ?>
