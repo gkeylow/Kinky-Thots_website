@@ -465,5 +465,4 @@ include 'includes/header.php';
 
     updateButtons();
 </script>
-</body>
-</html>
+<?php include __DIR__ . '/includes/footer-scripts.php'; ?>

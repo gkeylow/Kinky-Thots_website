@@ -694,5 +694,4 @@ include __DIR__ . '/includes/header.php';
 
     init();
 </script>
-</body>
-</html>
+<?php include __DIR__ . '/includes/footer-scripts.php'; ?>

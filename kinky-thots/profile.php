@@ -1043,5 +1043,4 @@ include 'includes/header.php';
         window.history.replaceState({}, document.title, '/profile.php');
     }
 </script>
-</body>
-</html>
+<?php include __DIR__ . '/includes/footer-scripts.php'; ?>

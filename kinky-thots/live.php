@@ -194,9 +194,6 @@ include __DIR__ . '/includes/header.php';
   </div>
 </div>
 
-<script src="https://static.elfsight.com/platform/platform.js" async></script>
-<div class="elfsight-app-ea2f58c6-6128-4e92-b2d9-c0b5c09769c3" data-elfsight-app-lazy></div>
-
 <!-- Tip Modal Script -->
 <script>
 (function() {
@@ -219,5 +216,4 @@ include __DIR__ . '/includes/header.php';
   });
 })();
 </script>
-</body>
-</html>
+<?php include __DIR__ . '/includes/footer-scripts.php'; ?>
