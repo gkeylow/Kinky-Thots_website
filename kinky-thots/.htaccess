@@ -71,10 +71,6 @@ ServerSignature Off
 
 RewriteEngine On
 
-# Redirect kinky-thots.com to kinky-thots.xxx (primary domain)
-RewriteCond %{HTTP_HOST} ^(www\.)?kinky-thots\.com$ [NC]
-RewriteRule ^(.*)$ https://kinky-thots.xxx/$1 [R=301,L]
-
 # Redirect all HTML pages to PHP (shared header/footer via includes)
 RewriteCond %{REQUEST_URI} ^/index\.html$ [NC]
 RewriteRule ^(.*)$ /index.php [R=301,L]
