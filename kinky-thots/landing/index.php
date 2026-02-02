@@ -259,6 +259,6 @@ include __DIR__ . '/includes/header-landing.php';
     </div>
 </section>
 
-<?php include dirname(__DIR__) . '/includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
 </body>
 </html>
