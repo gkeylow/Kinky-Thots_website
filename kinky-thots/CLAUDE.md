@@ -62,16 +62,9 @@ See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 | my-images | 6294 | c5988z6294.r-cdn.com | https://s3.eu-central.r-cdn.com | 6406 |
 | xxx-videos | 6318 | (Sonic S3) | https://s3.nvme.eu-central.r-cdn.com | 6318 |
 
-### Push Zone Credentials
-```
-# my-images (6294)
-Access Key: F7CLSY3KHFVQJYCOLYUNN
-Secret Key: hDg5U1VPw1JHRkM1M1Q3VlU4M1mcTFEzUbbDVE45
-
-# xxx-videos (6318) - Current video storage
-Access Key: Z1Z2BU5WTNB6S28P6OW4M
-Secret Key: TrwzRLw1U8NPS0g3hDKWNkxBw7ZSw8NYRcNZNFQ1
-```
+### Credentials
+All API keys, secrets, and credentials are stored in `config/.credentials.md` (gitignored, 600 permissions).
+This file is the single source of truth for all current and future credentials.
 
 ## Quick Commands
 
