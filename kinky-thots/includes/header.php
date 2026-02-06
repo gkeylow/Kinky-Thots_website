@@ -46,16 +46,16 @@ $bodyClass = $bodyClass ?? '';
 <nav id="navbar">
     <div class="nav-container">
         <div class="logo">
-            <a href="/index.php">Kinky-Thots<img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></a>
+            <a href="/index.html">Kinky-Thots<img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></a>
         </div>
 
         <ul class="nav-links">
-            <li><a href="/index.php">Home</a></li>
+            <li><a href="/index.html">Home</a></li>
             <li class="dropdown">
                 <button class="dropdown-toggle">Models</button>
                 <ul class="dropdown-menu">
-                    <li><a href="/sissylonglegs.php">Sissy Long Legs</a></li>
-                    <li><a href="/bustersherry.php">Buster Sherry</a></li>
+                    <li><a href="/sissylonglegs.html">Sissy Long Legs</a></li>
+                    <li><a href="/bustersherry.html">Buster Sherry</a></li>
                 </ul>
             </li>
             <li class="dropdown">
@@ -64,7 +64,7 @@ $bodyClass = $bodyClass ?? '';
                     <li><a href="/free-content.php">Free Teasers</a></li>
                     <li><a href="/plus-content.php">Plus Videos</a></li>
                     <li><a href="/premium-content.php">Full Access</a></li>
-                    <li><a href="/live.php">Live Cam</a></li>
+                    <li><a href="/live.html">Live Cam</a></li>
                 </ul>
             </li>
             <li class="dropdown">
@@ -80,15 +80,15 @@ $bodyClass = $bodyClass ?? '';
             <li class="dropdown" id="userDropdown">
                 <button class="dropdown-toggle" id="userTrigger">Account</button>
                 <ul class="dropdown-menu">
-                    <li><a href="/profile.php">My Profile</a></li>
-                    <li><a href="/members.php">Members</a></li>
-                    <li><a href="/profile.php#security">Security</a></li>
-                    <li><a href="/subscriptions.php">Subscription</a></li>
-                    <li id="adminLink" style="display:none;"><a href="/admin.php" style="color:#f805a7;">Admin Dashboard</a></li>
+                    <li><a href="/profile.html">My Profile</a></li>
+                    <li><a href="/members.html">Members</a></li>
+                    <li><a href="/profile.html#security">Security</a></li>
+                    <li><a href="/subscriptions.html">Subscription</a></li>
+                    <li id="adminLink" style="display:none;"><a href="/admin.html" style="color:#f805a7;">Admin Dashboard</a></li>
                     <li><a href="#" id="logoutLink">Logout</a></li>
                 </ul>
             </li>
-            <li id="loginItem"><a href="/login.php" class="login-btn" id="authTrigger">Login</a></li>
+            <li id="loginItem"><a href="/login.html" class="login-btn" id="authTrigger">Login</a></li>
         </ul>
 
         <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
