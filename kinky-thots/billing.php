@@ -35,10 +35,10 @@ include __DIR__ . '/includes/header.php';
                         <td>Teaser videos (&lt; 1 minute)</td>
                     </tr>
                     <tr>
-                        <td>Basic</td>
+                        <td>Plus</td>
                         <td>$8</td>
                         <td>Monthly (31 days)</td>
-                        <td>Extended videos (1-5 minutes)</td>
+                        <td>Plus videos (1-5 minutes)</td>
                     </tr>
                     <tr>
                         <td>Premium</td>

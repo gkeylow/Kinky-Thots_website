@@ -334,7 +334,7 @@
                 <button class="dropdown-toggle">Content</button>
                 <ul class="dropdown-menu">
                     <li><a href="/free-content.php">Free Teasers</a></li>
-                    <li><a href="/basic-content.php">Extended Videos</a></li>
+                    <li><a href="/plus-content.php">Plus Videos</a></li>
                     <li><a href="/premium-content.php">Full Access</a></li>
                     <li><a href="/live.html">Live Cam</a></li>
                 </ul>
@@ -620,6 +620,14 @@ function onTurnstileSuccess(token) {
 
     // Login form submission
     const loginBtn = document.querySelector('#loginForm .auth-submit');
+    let turnstileEnabled = false; // Track if Turnstile is configured
+
+    // Update turnstileEnabled when config loads
+    fetch(`${API_URL}/api/config`).then(r => r.json()).then(config => {
+        turnstileEnabled = !!(config.turnstile?.enabled && config.turnstile?.siteKey);
+        console.log('[Turnstile] Enabled:', turnstileEnabled);
+    }).catch(() => {});
+
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         console.log('[Login] Form submitted');
@@ -627,13 +635,20 @@ function onTurnstileSuccess(token) {
         const password = document.getElementById('loginPassword').value;
         const errorDiv = document.getElementById('loginError');
 
+        // Check Turnstile token if enabled
+        if (turnstileEnabled && !turnstileToken) {
+            errorDiv.textContent = 'Please complete the security check first';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
         // Show loading state
         const originalText = loginBtn.textContent;
         loginBtn.textContent = 'Logging in...';
         loginBtn.disabled = true;
         errorDiv.style.display = 'none';
 
-        console.log('[Login] Attempting login for:', emailOrUsername);
+        console.log('[Login] Attempting login for:', emailOrUsername, 'Turnstile token:', turnstileToken ? 'present' : 'missing');
         try {
             const res = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
@@ -866,8 +881,5 @@ function onTurnstileSuccess(token) {
 })();
 </script>
 
-<!-- Elfsight Age Verification -->
-<script src="https://static.elfsight.com/platform/platform.js" async></script>
-<div class="elfsight-app-ea2f58c6-6128-4e92-b2d9-c0b5c09769c3" data-elfsight-app-lazy></div>
 </body>
 </html>

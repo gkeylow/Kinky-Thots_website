@@ -120,7 +120,59 @@ function getCdnBaseUrl($type = 'videos') {
  * @return string The CDN URL
  */
 function getCdnUrl($filename, $type = 'videos') {
+    $config = getS3Config();
+    $secureToken = $config['security']['token'] ?? null;
+
+    // Only apply secure token to videos (not images)
+    if ($secureToken && $type === 'videos') {
+        return generateSecureTokenUrl($filename, $type, $secureToken);
+    }
+
+    // Unsigned URL for images or when no token configured
     $baseUrl = getCdnBaseUrl($type);
-    $encodedFilename = rawurlencode($filename);
-    return $baseUrl . '/' . $encodedFilename;
+    // Encode path segments individually, not the slashes
+    $parts = explode('/', $filename);
+    $encodedPath = implode('/', array_map('rawurlencode', $parts));
+    return $baseUrl . '/' . $encodedPath;
+}
+
+/**
+ * Generate a Pushr secure token URL
+ * Format: https://[cdn-host]/[token]/[expiration]/[path]
+ * Token = base64url(MD5(secret + exp + path + file + ip))
+ */
+function generateSecureTokenUrl($filename, $type = 'videos', $secret = null) {
+    if (!$secret) {
+        $config = getS3Config();
+        $secret = $config['security']['token'] ?? null;
+        if (!$secret) {
+            // No token configured, return unsigned URL
+            return getCdnBaseUrl($type) . '/' . $filename;
+        }
+    }
+
+    $baseUrl = getCdnBaseUrl($type);
+
+    // Parse path and file
+    $pathParts = explode('/', $filename);
+    $file = array_pop($pathParts);
+    $path = '/' . implode('/', $pathParts) . '/';
+
+    // Get visitor IP (use placeholder if CLI)
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+
+    // Expiration: 2 hours from now
+    $exp = time() + 7200;
+
+    // Generate token: MD5(secret + exp + path + file + ip)
+    $md5 = base64_encode(md5($secret . $exp . $path . $file . $ip, true));
+    $md5 = strtr($md5, '+/', '-_');
+    $md5 = str_replace('=', '', $md5);
+
+    // Encode filename for URL
+    $encodedFile = rawurlencode($file);
+    $encodedPath = implode('/', array_map('rawurlencode', $pathParts));
+
+    // Build URL: host/token/exp/path/file
+    return $baseUrl . '/' . $md5 . '/' . $exp . '/' . $encodedPath . '/' . $encodedFile;
 }

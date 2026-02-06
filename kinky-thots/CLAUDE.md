@@ -118,13 +118,32 @@ npm run sonic:test
 
 # List files on CDN
 npm run sonic:list
+npm run sonic:list -- free/      # List free tier videos
+npm run sonic:list -- plus/      # List plus tier videos
+npm run sonic:list -- premium/   # List premium tier videos
 
-# Sync video manifest from CDN (updates data/video-manifest.json)
+# Sync video manifest from CDN (auto-detects tier from folder)
 npm run sonic:sync-manifest
 
-# Upload file to CDN
-npm run sonic:upload -- /path/to/file.mp4
+# Upload file to CDN (specify tier folder!)
+npm run sonic:upload -- /path/to/video.mp4 free/video.mp4
+npm run sonic:upload -- /path/to/video.mp4 plus/video.mp4
+npm run sonic:upload -- /path/to/video.mp4 premium/video.mp4
 ```
+
+### Video Tier Folders (CDN Organization)
+Videos are organized into folders on CDN for automatic tier assignment:
+
+| Folder | Tier | Access |
+|--------|------|--------|
+| `free/` | Free | Open to all visitors |
+| `plus/` | Plus | $8/mo subscribers |
+| `premium/` | Premium | $15/mo subscribers |
+
+**Workflow:**
+1. Upload video to appropriate tier folder on CDN
+2. Run `npm run sonic:sync-manifest` to update the manifest
+3. Videos automatically appear on the correct content page
 
 ### Video Optimization
 ```bash
@@ -234,7 +253,7 @@ journalctl -u stream-watcher -u rtmp-hls -f
 - `live.html` - Live streaming page (uses HLS.js + nginx-rtmp)
 - `members.html` - Member list with private messaging (DM) feature
 - `free-content.php` - Free videos (< 1 min) - open to all
-- `basic-content.php` - Extended videos (1-5 min) - Basic+ subscribers
+- `plus-content.php` - Extended videos (1-5 min) - Plus+ subscribers
 - `premium-content.php` - Full-length videos (> 5 min) - Premium/Lifetime subscribers
 - `gallery.php` - Photo gallery (password protected)
 - `subscriptions.html` - Subscription tiers with Lifetime toggle
@@ -493,14 +512,14 @@ Created `members.html` - a member list page with DM (Direct Messaging) feature:
 **Features**:
 - Lists all registered users with username, avatar, subscription tier, and "last seen" timestamp
 - Search input to filter members by username
-- Tier filter dropdown (All, Free, Basic, Premium, Lifetime, VIP)
+- Tier filter dropdown (All, Free, Plus, Premium, Lifetime, VIP)
 - Responsive card grid layout
 - DM button on each member card
 - Lock icon on DM button for free users (subscription required)
 
 **Access Control**:
 - All registered users can VIEW the member list
-- Only subscribers (Basic+) can USE the DM feature
+- Only subscribers (Plus+) can USE the DM feature
 - Free users see upgrade prompt when clicking DM
 
 **DM Modal**:
@@ -538,7 +557,7 @@ Added to `backend/server.js`:
 | `/api/messages/unread-count` | GET | JWT | Get unread count for nav badge |
 
 **Middleware added**:
-- `requireSubscriber` - Gates DM endpoints to Basic+ subscribers
+- `requireSubscriber` - Gates DM endpoints to Plus+ subscribers
 - `messageLimiter` - Rate limits message sending (30/minute)
 
 **WebSocket Extension**:
@@ -678,7 +697,7 @@ Replaced percentage-based content gating with duration-based access:
 | Tier | Price | Video Access | Duration |
 |------|-------|--------------|----------|
 | Free | $0 | Teasers | < 1 min |
-| Basic | $8/mo | Extended | 1-5 min |
+| Plus | $8/mo | Extended | 1-5 min |
 | Premium | $15/mo | Full Access | > 5 min |
 | Lifetime | $250 one-time | Full Access | > 5 min |
 
@@ -689,8 +708,8 @@ Replaced percentage-based content gating with duration-based access:
 
 **New Content Pages**:
 - `free-content.php` - 14 videos under 1 minute (open access)
-- `basic-content.php` - 4 videos 1-5 minutes (locked for free users)
-- `premium-content.php` - 3 videos over 5 minutes (locked for free/basic)
+- `plus-content.php` - 4 videos 1-5 minutes (locked for free users)
+- `premium-content.php` - 3 videos over 5 minutes (locked for free/plus)
 
 Each page features:
 - Duration badges (MM:SS) on each video thumbnail
@@ -719,7 +738,7 @@ Each page features:
 **Video Manifest** (`data/video-manifest.json`):
 - Added `duration_seconds` field to all 21 videos
 - Probed from CDN using S3 presigned URLs + ffprobe
-- Distribution: 14 free, 4 basic, 3 premium
+- Distribution: 14 free, 4 plus, 3 premium
 
 **Removed**:
 - `porn.php` and `porn.html` - deleted (replaced by content tier pages)
@@ -749,12 +768,12 @@ Each page features:
 
 ### Content Gating by Subscription Tier
 - **UPDATED**: Now uses duration-based access (see "Subscription System Redesign" above)
-- Tier access: free (<60s), basic (60-300s), premium (>300s), lifetime/vip (all)
+- Tier access: free (<60s), plus (60-300s), premium (>300s), lifetime/vip (all)
 - Subscription tiers configuration in `backend/server.js` with `maxDuration` field
 - API endpoints: `/api/subscriptions/tiers`, `/api/content`, `/api/content/:id/access`
 - Created `subscriptions.html` - Subscription plans page with Lifetime toggle
 - Created `checkout.html` - Checkout flow (PayPal placeholder)
-- Created 3 content pages: `free-content.php`, `basic-content.php`, `premium-content.php`
+- Created 3 content pages: `free-content.php`, `plus-content.php`, `premium-content.php`
 - Added locked content CSS to `media-gallery.css` (blur overlay, lock icon, upgrade buttons)
 
 ### Security Audit & Hardening
@@ -791,7 +810,7 @@ Each page features:
   - `NOWPAYMENTS_SANDBOX` - Set to 'true' for sandbox mode
   - `NOWPAYMENTS_EMAIL` - Account email for JWT auth
   - `NOWPAYMENTS_PASSWORD` - Account password for JWT auth
-  - `NOWPAYMENTS_BASIC_PLAN_ID` - Basic subscription plan ID (1682032527)
+  - `NOWPAYMENTS_PLUS_PLAN_ID` - Plus subscription plan ID (1682032527)
   - `NOWPAYMENTS_PREMIUM_PLAN_ID` - Premium subscription plan ID (381801900)
 - Backend endpoints:
   - `GET /api/payments/status` - Check NOWPayments API connection
@@ -800,7 +819,7 @@ Each page features:
   - `POST /api/nowpayments/webhook` - Handle IPN callbacks
   - `POST /api/subscriptions/cancel` - Cancel subscription
 - **Recurring Subscriptions** (Jan 5, 2026):
-  - Basic ($8/31 days) and Premium ($15/31 days) use NOWPayments Subscription API
+  - Plus ($8/31 days) and Premium ($15/31 days) use NOWPayments Subscription API
   - JWT authentication for subscription creation (token cached 4 min)
   - Lifetime uses 3-year plan (NOWPayments doesn't support true one-time)
   - Plan redirect URLs configured in NOWPayments dashboard
@@ -882,7 +901,7 @@ Reorganized CSS into modular, reusable files:
 | bustersherry.html | main.css + index.css + media-gallery.css |
 | gallery.php | main.css + media-gallery.css |
 | free-content.php | main.css + media-gallery.css |
-| basic-content.php | main.css + media-gallery.css |
+| plus-content.php | main.css + media-gallery.css |
 | premium-content.php | main.css + media-gallery.css |
 | live.html | main.css + live.css |
 | members.html | main.css (inline styles) |

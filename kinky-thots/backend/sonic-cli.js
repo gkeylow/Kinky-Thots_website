@@ -13,22 +13,27 @@ const { execSync } = require('child_process');
 const client = new SonicS3Client();
 
 /**
- * Get video duration using ffprobe
- * @param {string} url - CDN URL of the video
- * @returns {number|null} Duration in seconds, or null on error
+ * Detect tier from CDN folder path
+ * Videos should be organized in: .free/, .plus/, .premium/
+ * @param {string} key - S3 object key (e.g., ".free/video.mp4" or ".plus/clip.mp4")
+ * @returns {string} Tier name: 'free', 'plus', 'premium', or 'unassigned'
  */
-function getVideoDuration(url) {
-  try {
-    const result = execSync(
-      `ffprobe -v quiet -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${url}"`,
-      { timeout: 30000, encoding: 'utf8' }
-    );
-    const duration = parseFloat(result.trim());
-    return isNaN(duration) ? null : Math.round(duration);
-  } catch (error) {
-    console.error(`  ⚠ Could not probe duration: ${error.message}`);
-    return null;
-  }
+function detectTierFromPath(key) {
+  const normalizedKey = key.toLowerCase();
+  if (normalizedKey.startsWith('.free/')) return 'free';
+  if (normalizedKey.startsWith('.plus/')) return 'plus';
+  if (normalizedKey.startsWith('.premium/')) return 'premium';
+  // Videos not in a tier folder are unassigned
+  return 'unassigned';
+}
+
+/**
+ * Get just the filename from a path
+ * @param {string} key - Full path like "free/video.mp4"
+ * @returns {string} Just the filename like "video.mp4"
+ */
+function getFilename(key) {
+  return path.basename(key);
 }
 const command = process.argv[2];
 
@@ -107,6 +112,11 @@ async function runCommand() {
 
       case 'sync-manifest':
         console.log('\n🔄 Syncing video manifest from CDN...\n');
+        console.log('Folder-based tier detection:');
+        console.log('  .free/    → Free tier (teasers)');
+        console.log('  .plus/    → Plus tier ($8/mo)');
+        console.log('  .premium/ → Premium tier ($15/mo)\n');
+
         const manifestPath = path.join(__dirname, '../data/video-manifest.json');
 
         // List all objects (increase limit to get all)
@@ -125,27 +135,30 @@ async function runCommand() {
 
         console.log(`Found ${videos.length} video(s) on CDN\n`);
 
-        // Build manifest with duration probing
-        console.log('Probing video durations (this may take a while)...\n');
+        // Build manifest with folder-based tier detection
         const videoData = [];
+        const tierCounts = { free: 0, plus: 0, premium: 0, unassigned: 0 };
 
         for (let i = 0; i < videos.length; i++) {
           const obj = videos[i];
-          const cdnUrl = obj.cdn_url;
-          console.log(`[${i + 1}/${videos.length}] ${obj.key}`);
+          const tier = detectTierFromPath(obj.key);
+          const filename = getFilename(obj.key);
 
-          const duration = getVideoDuration(cdnUrl);
-          if (duration !== null) {
-            console.log(`  ✓ Duration: ${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}`);
-          } else {
-            console.log(`  ⚠ Duration: unknown (defaulting to 60s)`);
-          }
+          tierCounts[tier]++;
+
+          const tierIcon = {
+            free: '🆓',
+            plus: '➕',
+            premium: '⭐',
+            unassigned: '❓'
+          }[tier];
+
+          console.log(`${tierIcon} [${tier.padEnd(10)}] ${obj.key}`);
 
           videoData.push({
-            filename: obj.key,
-            duration_seconds: duration || 60,
-            width: null,
-            height: null,
+            filename: filename,
+            path: obj.key,
+            tier: tier,
             size_bytes: obj.size,
             on_cdn: true
           });
@@ -154,20 +167,26 @@ async function runCommand() {
         const manifest = {
           generated: new Date().toISOString(),
           cdn_base_url: client.getCdnBaseUrl(),
+          tier_folders: ['.free', '.plus', '.premium'],
           videos: videoData
         };
 
         // Write manifest
         fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-        console.log(`✓ Manifest saved to: ${manifestPath}`);
-        console.log(`  Videos: ${manifest.videos.length}`);
-        console.log(`  CDN: ${manifest.cdn_base_url}`);
 
-        // List videos
-        console.log('\nVideos in manifest:');
-        manifest.videos.forEach((v, i) => {
-          console.log(`  ${i + 1}. ${v.filename}`);
-        });
+        console.log('\n' + '='.repeat(50));
+        console.log('✓ Manifest saved to:', manifestPath);
+        console.log('  CDN:', manifest.cdn_base_url);
+        console.log('\nTier Summary:');
+        console.log(`  🆓 Free:       ${tierCounts.free} videos`);
+        console.log(`  ➕ Plus:       ${tierCounts.plus} videos`);
+        console.log(`  ⭐ Premium:    ${tierCounts.premium} videos`);
+        if (tierCounts.unassigned > 0) {
+          console.log(`  ❓ Unassigned: ${tierCounts.unassigned} videos`);
+          console.log('\n⚠️  Warning: Some videos are not in tier folders.');
+          console.log('   Move them to .free/, .plus/, or .premium/ folders on CDN.');
+        }
+        console.log('='.repeat(50));
 
         process.exit(0);
         break;
@@ -184,23 +203,29 @@ Commands:
   list [prefix]             List objects in bucket (optional prefix filter)
   info <key>                Get object information
   delete <key>              Delete an object
+  sync-manifest             Sync video manifest from CDN (folder-based tiers)
   help                      Show this help message
 
 Environment:
   Config file: ${path.join(__dirname, '../config/sonic-s3-cdn.json')}
 
+Video Tier Folders:
+  Organize videos on CDN into these folders for automatic tier assignment:
+    .free/     → Free tier (teasers, open to all)
+    .plus/     → Plus tier ($8/mo subscribers)
+    .premium/  → Premium tier ($15/mo subscribers)
+
 Examples:
   npm run sonic:test
-  npm run sonic:upload -- /tmp/video.mp4
-  npm run sonic:upload -- /tmp/video.mp4 videos/myfile.mp4
-  npm run sonic:list -- images/
-  npm run sonic:info -- images/photo.jpg
-  npm run sonic:delete -- images/photo.jpg
-
-For use in upload workflows:
-  - Files are organized as: <type>s/<filename> (e.g., images/photo.jpg, videos/clip.mp4)
-  - CDN URLs are automatically generated
-  - Responses include both S3 and CDN URLs
+  npm run sonic:sync-manifest
+  npm run sonic:upload -- /tmp/video.mp4 .free/teaser.mp4
+  npm run sonic:upload -- /tmp/video.mp4 .plus/extended.mp4
+  npm run sonic:upload -- /tmp/video.mp4 .premium/full-video.mp4
+  npm run sonic:list -- .free/
+  npm run sonic:list -- .plus/
+  npm run sonic:list -- .premium/
+  npm run sonic:info -- .free/video.mp4
+  npm run sonic:delete -- .free/video.mp4
 `);
         break;
     }
