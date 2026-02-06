@@ -116,7 +116,7 @@ $pageStyles = '
         text-transform: uppercase;
     }
     .tier-badge.free { background: #333; color: #888; }
-    .tier-badge.basic { background: linear-gradient(135deg, #4ECDC4, #45B7D1); color: #000; }
+    .tier-badge.plus { background: linear-gradient(135deg, #4ECDC4, #45B7D1); color: #000; }
     .tier-badge.premium { background: linear-gradient(135deg, #f805a7, #0bd0f3); color: #fff; }
     .tier-badge.yearly { background: linear-gradient(135deg, #9b59b6, #8e44ad); color: #fff; }
     .tier-badge.lifetime { background: linear-gradient(135deg, #f39c12, #e67e22); color: #000; }
@@ -200,7 +200,7 @@ include __DIR__ . '/includes/header.php';
                     <select id="memberTierFilter">
                         <option value="">All Tiers</option>
                         <option value="free">Free</option>
-                        <option value="basic">Basic</option>
+                        <option value="plus">Plus</option>
                         <option value="premium">Premium</option>
                         <option value="yearly">Yearly</option>
                         <option value="lifetime">Lifetime</option>
@@ -234,7 +234,7 @@ include __DIR__ . '/includes/header.php';
                     </select>
                     <select id="txTierFilter">
                         <option value="">All Tiers</option>
-                        <option value="basic">Basic</option>
+                        <option value="plus">Plus</option>
                         <option value="premium">Premium</option>
                         <option value="yearly">Yearly</option>
                         <option value="lifetime">Lifetime</option>
@@ -265,7 +265,7 @@ include __DIR__ . '/includes/header.php';
                 <label>Subscription Tier</label>
                 <select id="editTier">
                     <option value="free">Free</option>
-                    <option value="basic">Basic</option>
+                    <option value="plus">Plus</option>
                     <option value="premium">Premium</option>
                     <option value="yearly">Yearly</option>
                     <option value="lifetime">Lifetime</option>
@@ -409,7 +409,7 @@ async function loadContent() {
             document.getElementById('contentTable').innerHTML = '<p class="empty-state">No videos found</p>';
             return;
         }
-        document.getElementById('contentTable').innerHTML = `<table class="data-table"><thead><tr><th>Filename</th><th>Duration</th><th>Tier Access</th><th>Size</th></tr></thead><tbody>${data.videos.map(v => { const mins = Math.floor(v.duration_seconds / 60); const secs = v.duration_seconds % 60; const tierAccess = v.duration_seconds < 60 ? 'free' : v.duration_seconds <= 300 ? 'basic' : 'premium'; return `<tr><td>${v.filename}</td><td>${mins}:${secs.toString().padStart(2, '0')}</td><td><span class="tier-badge ${tierAccess}">${tierAccess}</span></td><td>${v.size ? (v.size / 1024 / 1024).toFixed(1) + ' MB' : '-'}</td></tr>`; }).join('')}</tbody></table>`;
+        document.getElementById('contentTable').innerHTML = `<table class="data-table"><thead><tr><th>Filename</th><th>Duration</th><th>Tier Access</th><th>Size</th></tr></thead><tbody>${data.videos.map(v => { const mins = Math.floor(v.duration_seconds / 60); const secs = v.duration_seconds % 60; const tierAccess = v.duration_seconds < 60 ? 'free' : v.duration_seconds <= 300 ? 'plus' : 'premium'; return `<tr><td>${v.filename}</td><td>${mins}:${secs.toString().padStart(2, '0')}</td><td><span class="tier-badge ${tierAccess}">${tierAccess}</span></td><td>${v.size ? (v.size / 1024 / 1024).toFixed(1) + ' MB' : '-'}</td></tr>`; }).join('')}</tbody></table>`;
     } catch (err) { document.getElementById('contentTable').innerHTML = '<p class="empty-state">Failed to load content</p>'; }
 }
 

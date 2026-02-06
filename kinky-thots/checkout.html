@@ -368,7 +368,7 @@
                 <button class="dropdown-toggle">Content</button>
                 <ul class="dropdown-menu">
                     <li><a href="/free-content.php">Free Teasers</a></li>
-                    <li><a href="/basic-content.php">Extended Videos</a></li>
+                    <li><a href="/plus-content.php">Plus Videos</a></li>
                     <li><a href="/premium-content.php">Full Access</a></li>
                     <li><a href="/live.html">Live Cam</a></li>
                 </ul>
@@ -500,7 +500,7 @@
 
     // Get params from URL
     const urlParams = new URLSearchParams(window.location.search);
-    const selectedTier = urlParams.get('tier') || 'basic';
+    const selectedTier = urlParams.get('tier') || 'plus';
     const isSuccess = urlParams.get('status') === 'success';
     const isFailed = urlParams.get('status') === 'failed';
     const isPartial = urlParams.get('status') === 'partial';
@@ -567,7 +567,7 @@
             // Check if already subscribed to this tier or higher
             if (user.subscription_tier === selectedTier ||
                 user.subscription_tier === 'yearly' ||
-                (user.subscription_tier === 'premium' && selectedTier === 'basic') ||
+                (user.subscription_tier === 'premium' && selectedTier === 'plus') ||
                 user.subscription_tier === 'vip') {
                 showError('You already have this subscription or better');
                 document.getElementById('paymentContainer').innerHTML =

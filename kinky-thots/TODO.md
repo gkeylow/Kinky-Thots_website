@@ -46,34 +46,90 @@
 
 ---
 
-## 📋 HIGH PRIORITY
+## 🔒 SECURITY HARDENING (Post-Compromise — Feb 5, 2026)
 
-### Email Migration - Google Workspace to Self-Hosted SMTP
-Research and implement self-hosted email server in Docker to replace Google Workspace.
+Following the Feb 4, 2026 mail server compromise (see `docs/2026-02-04-mail-server-compromise.md`).
+Full audit: `docs/security-audit-2026-02-05.md`
 
-**Options to Research:**
-- [ ] **Mailcow** - Full-featured, Docker-native, includes Roundcube/SOGo webmail
-- [ ] **docker-mailserver** - Lightweight, production-ready, well-documented
-- [ ] **Postal** - High-volume sending, good for transactional email
-- [ ] **iRedMail** - Feature-rich, supports multiple domains
-- [ ] **Mailu** - Lightweight alternative to Mailcow
+### Already Completed
+- [x] Changed compromised mail password
+- [x] Blocked attacker IP (iptables + fail2ban 180-day ban)
+- [x] Flushed spam from mail queue
+- [x] Tightened fail2ban (3 retries / 10 min)
+- [x] Added Postfix rate limiting (30 msg/min, 50 rcpt/msg, 100 conn/min)
+- [x] Updated DMARC to `p=reject` with strict alignment
+- [x] Fixed SPF to correct IP with hard fail (`-all`)
+- [x] Updated backend SMTP credentials
+- [x] Disabled SSH password auth on Linode (key-only)
+- [x] Installed fail2ban for SSH on Linode host
+- [x] Restricted Portainer Agent to localhost (127.0.0.1:9001)
+- [x] Enabled unattended-upgrades on Linode
 
-**Migration Tasks:**
-- [ ] Choose SMTP solution based on research
-- [ ] Set up DNS records (MX, SPF, DKIM, DMARC)
-- [ ] Configure SSL certificates for mail server
-- [ ] Set up Docker container for mail server
-- [ ] Create mailboxes (admin@kinky-thots.com)
-- [ ] Migrate existing emails from Google Workspace
-- [ ] Update application SMTP settings in `.env`
-- [ ] Test transactional emails (password reset, subscription confirmations)
+### Remaining Hardening Tasks
 
-**Current Email Setup:**
-```
-Provider: Google Workspace
-SMTP: smtp.gmail.com:587
-Email: admin@kinky-thots.com
-```
+**1. Install rkhunter on Linode** — LOW ✅
+- [x] Install and configure rkhunter (rootkit scanner)
+- [x] Run initial baseline scan (clean — 0 warnings)
+- [x] Set up weekly automated scan via cron (`/etc/cron.weekly/rkhunter-scan`)
+- [x] Disabled host postfix (installed as dependency, masked via systemd)
+- [x] Auto-updates on apt install (`APT_AUTOGEN=true`)
+
+**2. Fix MX record for kinky-thots.com** — HIGH ✅
+- [x] Fixed MX record: `kinky-thots.com MX 10 mail.kinky-thots.com` (→ 45.79.208.9)
+- [x] Was: MX on `mail` subdomain pointing backwards to `kinky-thots.com` (wrong IP)
+- [x] Verified: MX, SPF, DKIM, DMARC all correct
+
+**3. Move Linode API token out of docs** — MEDIUM ✅
+- [x] Token added to `config/.credentials.md`
+- [x] Redacted `docs/.linode-api.md` (kept non-sensitive reference info only)
+
+**4. Restrict MariaDB user `gkeylow` host** — HIGH ✅
+- [x] Changed `gkeylow` Host from `%` → `172.%` (Docker network only)
+- [x] Dropped `root@%` (wildcard) — `root@localhost` retained
+- [x] Verified backend still connects (3 users in DB)
+
+**5. CDN API key rotation** — N/A
+- Pushr CDN only issues one API key per account; no rotation mechanism available
+- No action needed
+
+**6. Daily/Weekly security cron scripts** — MEDIUM ✅
+- [x] Created `/etc/cron.daily/security-check` (mail queue, fail2ban, container health, disk)
+- [x] Created `/etc/cron.weekly/security-review` (SSH attacks, fail2ban, SSL expiry, mail volume, packages)
+- [x] Tested both scripts — all checks passing
+- Logs: `/var/log/security-daily.log`, `/var/log/security-weekly.log`
+
+**7. CSP/Security headers** — MEDIUM ✅
+- [x] `.xxx` — nginx snippet `/etc/nginx/snippets/security-headers.conf` on Linode (45.79.208.9)
+- [x] `.com` — Apache conf `/etc/apache2/conf-available/security-headers.conf` on NJ Linode (192.155.91.241)
+- [x] Headers: X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS, CSP
+- [x] CSP whitelists CDN, Turnstile, NOWPayments, jsdelivr, Google Fonts
+- [x] Removed duplicate headers (Apache upstream stripped via proxy_hide_header on Linode)
+- [ ] Monitor browser console for CSP violations — may need tuning
+
+**8. Linode Cloud Firewall** — MEDIUM ✅
+- [x] Created "NotYourFirewall" (ID: 3774058) via API
+- [x] Attached to mail.kinky-thots (90512880)
+- [x] Inbound: SSH(22), HTTP(80), HTTPS(443), SMTP(25), SMTPS(465), Submission(587), IMAPS(993), RTMP(1935)
+- [x] Default inbound: DROP — all other ports blocked at network level
+- [x] Outbound: ACCEPT all
+
+### Spamhaus Delisting (manual)
+- [ ] Request removal at https://check.spamhaus.org/listed/?searchterm=45.79.208.9
+- [ ] IP `45.79.208.9` listed as SBL CSS (127.0.0.3) due to compromise spam
+- [ ] Monitor delisting — may take 24-48 hours after request
+
+---
+
+## ✅ COMPLETED (Jan 2026)
+
+### Email Server (docker-mailserver)
+- [x] docker-mailserver deployed on Linode (45.79.208.9)
+- [x] DNS records: SPF, DKIM, DMARC configured
+- [x] Let's Encrypt SSL for mail
+- [x] Mailboxes: admin@, sissylonglegs@, lilsexfreak@
+- [x] Aliases: info@ → admin@, gkeylow@ → admin@
+- [x] Rspamd spam filtering active
+- [x] Application SMTP updated in `.env`
 
 ---
 
@@ -155,14 +211,7 @@ Email: admin@kinky-thots.com
 ## Reference
 
 ### NOWPayments Configuration
-```bash
-# .env
-NOWPAYMENTS_API_KEY=DNF2V49-EF7MTCW-JHHWBNN-3T1AGQZ
-NOWPAYMENTS_IPN_SECRET=rnuWG3MSWP3wn5j3asK1N0I39cCWOrRc
-NOWPAYMENTS_EMAIL=admin@kinky-thots.com
-NOWPAYMENTS_BASIC_PLAN_ID=1682032527
-NOWPAYMENTS_PREMIUM_PLAN_ID=381801900
-```
+Credentials stored in `config/.credentials.md` (gitignored, 600 perms).
 
 ### NOWPayments Dashboard URLs
 | Setting | URL |
@@ -172,12 +221,10 @@ NOWPAYMENTS_PREMIUM_PLAN_ID=381801900
 | Failed Page | `https://kinky-thots.xxx/checkout.html?status=failed` |
 | Partial Payment | `https://kinky-thots.xxx/checkout.html?status=partial` |
 
-IPN Secret: `rnuWG3MSWP3wn5j3asK1N0I39cCWOrRc`
-
 ### Key Files
 | Feature | Files |
 |---------|-------|
 | Payments | `backend/server.js`, `checkout.html` |
 | Auth | `src/js/auth.js`, `live.html` |
 | Subscriptions | `subscriptions.html`, `profile.html` |
-| Content | `free-content.php`, `basic-content.php`, `premium-content.php` |
+| Content | `free-content.php`, `plus-content.php`, `premium-content.php` |

@@ -224,8 +224,8 @@ const SUBSCRIPTION_TIERS = {
     maxDuration: 60, // Videos under 1 minute
     features: ['Teaser videos under 1 min', 'Chat access', 'Stream viewing']
   },
-  basic: {
-    name: 'Basic',
+  plus: {
+    name: 'Plus',
     price: 8,
     maxDuration: 300, // Videos 1-5 minutes
     features: ['Videos up to 5 minutes', 'HD streams', 'Chat badge', 'Priority support']
@@ -781,8 +781,11 @@ async function verifyTurnstile(turnstileToken, remoteIp) {
   }
 
   if (!turnstileToken) {
+    console.warn('Turnstile: No token provided');
     return { success: false, error: 'Turnstile verification required' };
   }
+
+  console.log('Turnstile: Verifying token (length:', turnstileToken.length, ') from IP:', remoteIp);
 
   try {
     const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
@@ -796,12 +799,14 @@ async function verifyTurnstile(turnstileToken, remoteIp) {
     });
 
     const data = await response.json();
+    console.log('Turnstile: Cloudflare response:', JSON.stringify(data));
 
     if (!data.success) {
       console.warn('Turnstile verification failed:', data['error-codes']);
       return { success: false, error: 'Security verification failed. Please try again.' };
     }
 
+    console.log('Turnstile: Verification successful');
     return { success: true };
   } catch (err) {
     console.error('Turnstile API error:', err.message);
@@ -1036,10 +1041,10 @@ app.post('/api/auth/avatar', authenticateToken, async (req, res) => {
     const ext = path.extname(file.name).toLowerCase() || '.jpg';
     const filename = `avatars/user-${userId}-${Date.now()}${ext}`;
 
-    // Upload to CDN via S3
+    // Upload to CDN via S3 (avatars go to images bucket, not videos)
     let s3Client;
     try {
-      s3Client = new SonicS3Client();
+      s3Client = new SonicS3Client(null, 'images');
     } catch (configErr) {
       console.error('S3 config error:', configErr.message);
       return res.status(500).json({ error: 'CDN configuration error' });
@@ -1118,10 +1123,10 @@ app.delete('/api/auth/avatar', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'No avatar to delete' });
     }
 
-    // Delete from CDN if it's our avatar
+    // Delete from CDN if it's our avatar (avatars are in images bucket)
     if (avatarUrl.includes('avatars/user-')) {
       try {
-        const s3Client = new SonicS3Client();
+        const s3Client = new SonicS3Client(null, 'images');
         const key = avatarUrl.split('/').slice(-2).join('/'); // Get 'avatars/user-xxx.jpg'
         await s3Client.deleteFile(key);
       } catch (deleteErr) {
@@ -1452,7 +1457,7 @@ app.get('/api/content', async (req, res) => {
         file_type: fileType,
         accessible: isAccessible,
         locked: !isAccessible,
-        requiredTier: !isAccessible ? (index < Math.ceil(totalContent * 0.6) ? 'basic' : 'premium') : null,
+        requiredTier: !isAccessible ? (index < Math.ceil(totalContent * 0.6) ? 'plus' : 'premium') : null,
         thumbnail: isAccessible ? `/uploads/${encodeURIComponent(row.filename)}` : '/assets/locked-content.jpg',
         upload_time: row.upload_time ? row.upload_time.toISOString() : null
       };
@@ -1485,7 +1490,7 @@ const NOWPAYMENTS_CONFIG = {
   sandbox: process.env.NOWPAYMENTS_SANDBOX === 'true',
   email: process.env.NOWPAYMENTS_EMAIL,
   password: process.env.NOWPAYMENTS_PASSWORD,
-  basicPlanId: process.env.NOWPAYMENTS_BASIC_PLAN_ID,
+  plusPlanId: process.env.NOWPAYMENTS_PLUS_PLAN_ID,
   premiumPlanId: process.env.NOWPAYMENTS_PREMIUM_PLAN_ID,
   yearlyPlanId: process.env.NOWPAYMENTS_YEARLY_PLAN_ID,
   jwtToken: null,
@@ -1775,13 +1780,13 @@ app.post('/api/subscriptions/checkout', authenticateToken, async (req, res) => {
 
   try {
     const isYearly = tier === 'yearly';
-    const isSubscription = tier === 'basic' || tier === 'premium' || tier === 'yearly';
+    const isSubscription = tier === 'plus' || tier === 'premium' || tier === 'yearly';
     let paymentUrl, paymentId;
 
     if (isSubscription) {
-      // Use subscription API for all subscription tiers (Basic/Premium/Yearly)
-      const planId = tier === 'basic'
-        ? NOWPAYMENTS_CONFIG.basicPlanId
+      // Use subscription API for all subscription tiers (Plus/Premium/Yearly)
+      const planId = tier === 'plus'
+        ? NOWPAYMENTS_CONFIG.plusPlanId
         : tier === 'premium'
           ? NOWPAYMENTS_CONFIG.premiumPlanId
           : NOWPAYMENTS_CONFIG.yearlyPlanId;
@@ -2290,7 +2295,7 @@ app.get('/api/content/:id/access', async (req, res) => {
     res.json({
       accessible,
       userTier,
-      requiredTier: !accessible ? (contentIndex < Math.ceil(totalContent * 0.6) ? 'basic' : 'premium') : null
+      requiredTier: !accessible ? (contentIndex < Math.ceil(totalContent * 0.6) ? 'plus' : 'premium') : null
     });
 
   } catch (err) {

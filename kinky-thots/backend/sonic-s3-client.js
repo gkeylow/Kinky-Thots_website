@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, DeleteObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 
 /**
@@ -73,7 +74,8 @@ class SonicS3Client {
 
       await this.s3Client.send(command);
 
-      const cdnUrl = `${this.cdnBaseUrl}/${encodeURIComponent(key)}`;
+      // Encode path segments individually, not the slashes
+      const cdnUrl = `${this.cdnBaseUrl}/${key.split('/').map(s => encodeURIComponent(s)).join('/')}`;
       
       console.log(`[Sonic S3] ✓ Upload successful: ${cdnUrl}`);
 
@@ -276,14 +278,63 @@ class SonicS3Client {
   }
 
   /**
-   * Get CDN URL for a key
+   * Get CDN URL for a key (with optional secure token for videos only)
    * @param {string} key - S3 object key
+   * @param {string} clientIp - Client IP for secure token (optional)
    * @returns {string} Full CDN URL
    */
-  getCdnUrl(key) {
+  getCdnUrl(key, clientIp = '127.0.0.1') {
+    // Only apply secure token to videos bucket
+    const secureToken = this.config.security?.token;
+
+    if (secureToken && this.bucketType === 'videos') {
+      return this.generateSecureUrl(key, clientIp);
+    }
+
     // Encode each path segment separately to preserve slashes
     const encodedPath = key.replace(/^\//, '').split('/').map(segment => encodeURIComponent(segment)).join('/');
     return `${this.cdnBaseUrl}/${encodedPath}`;
+  }
+
+  /**
+   * Generate a Pushr secure token URL
+   * Format: https://[cdn-host]/[token]/[expiration]/[path]
+   * Token = base64url(MD5(secret + exp + path + file + ip))
+   * @param {string} key - S3 object key
+   * @param {string} clientIp - Client IP address
+   * @returns {string} Signed URL
+   */
+  generateSecureUrl(key, clientIp = '127.0.0.1') {
+    const secret = this.config.security?.token;
+    const expirySeconds = this.config.security?.expiry_seconds || 7200;
+
+    if (!secret) {
+      // No token configured, return unsigned URL
+      const encodedPath = key.replace(/^\//, '').split('/').map(segment => encodeURIComponent(segment)).join('/');
+      return `${this.cdnBaseUrl}/${encodedPath}`;
+    }
+
+    // Parse path and file from key
+    const parts = key.replace(/^\//, '').split('/');
+    const file = parts.pop();
+    const pathDir = '/' + parts.join('/') + '/';
+
+    // Expiration timestamp
+    const exp = Math.floor(Date.now() / 1000) + expirySeconds;
+
+    // Generate token: MD5(secret + exp + path + file + ip)
+    const hashInput = secret + exp + pathDir + file + clientIp;
+    const md5Hash = crypto.createHash('md5').update(hashInput).digest('base64');
+
+    // Make URL-safe: replace +/ with -_, remove =
+    const token = md5Hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+    // Encode path segments
+    const encodedPath = parts.map(segment => encodeURIComponent(segment)).join('/');
+    const encodedFile = encodeURIComponent(file);
+
+    // Build URL: host/token/exp/path/file
+    return `${this.cdnBaseUrl}/${token}/${exp}/${encodedPath}/${encodedFile}`;
   }
 
   /**

@@ -62,7 +62,7 @@ $bodyClass = $bodyClass ?? '';
                 <button class="dropdown-toggle">Content</button>
                 <ul class="dropdown-menu">
                     <li><a href="/free-content.php">Free Teasers</a></li>
-                    <li><a href="/basic-content.php">Extended Videos</a></li>
+                    <li><a href="/plus-content.php">Plus Videos</a></li>
                     <li><a href="/premium-content.php">Full Access</a></li>
                     <li><a href="/live.php">Live Cam</a></li>
                 </ul>

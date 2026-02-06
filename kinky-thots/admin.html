@@ -146,7 +146,7 @@
             text-transform: uppercase;
         }
         .tier-badge.free { background: #333; color: #888; }
-        .tier-badge.basic { background: linear-gradient(135deg, #4ECDC4, #45B7D1); color: #000; }
+        .tier-badge.plus { background: linear-gradient(135deg, #4ECDC4, #45B7D1); color: #000; }
         .tier-badge.premium { background: linear-gradient(135deg, #f805a7, #0bd0f3); color: #fff; }
         .tier-badge.yearly { background: linear-gradient(135deg, #9b59b6, #8e44ad); color: #fff; }
         .tier-badge.lifetime { background: linear-gradient(135deg, #f39c12, #e67e22); color: #000; }
@@ -319,7 +319,7 @@
                 <button class="dropdown-toggle">Content</button>
                 <ul class="dropdown-menu">
                     <li><a href="/free-content.php">Free Teasers</a></li>
-                    <li><a href="/basic-content.php">Extended Videos</a></li>
+                    <li><a href="/plus-content.php">Plus Videos</a></li>
                     <li><a href="/premium-content.php">Full Access</a></li>
                     <li><a href="/live.html">Live Cam</a></li>
                 </ul>
@@ -416,7 +416,7 @@
                     <select id="memberTierFilter">
                         <option value="">All Tiers</option>
                         <option value="free">Free</option>
-                        <option value="basic">Basic</option>
+                        <option value="plus">Plus</option>
                         <option value="premium">Premium</option>
                         <option value="yearly">Yearly</option>
                         <option value="lifetime">Lifetime</option>
@@ -450,7 +450,7 @@
                     </select>
                     <select id="txTierFilter">
                         <option value="">All Tiers</option>
-                        <option value="basic">Basic</option>
+                        <option value="plus">Plus</option>
                         <option value="premium">Premium</option>
                         <option value="yearly">Yearly</option>
                         <option value="lifetime">Lifetime</option>
@@ -490,7 +490,7 @@
                 <label>Subscription Tier</label>
                 <select id="editTier">
                     <option value="free">Free</option>
-                    <option value="basic">Basic</option>
+                    <option value="plus">Plus</option>
                     <option value="premium">Premium</option>
                     <option value="yearly">Yearly</option>
                     <option value="lifetime">Lifetime</option>
@@ -757,22 +757,22 @@ async function loadContent() {
                 <thead>
                     <tr>
                         <th>Filename</th>
-                        <th>Duration</th>
-                        <th>Tier Access</th>
+                        <th>CDN Path</th>
+                        <th>Tier</th>
                         <th>Size</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${data.videos.map(v => {
-                        const mins = Math.floor(v.duration_seconds / 60);
-                        const secs = v.duration_seconds % 60;
-                        const tierAccess = v.duration_seconds < 60 ? 'free' : v.duration_seconds <= 300 ? 'basic' : 'premium';
+                        const tier = v.tier || 'free';
+                        const sizeBytes = v.size_bytes || v.size || 0;
+                        const sizeMB = sizeBytes ? (sizeBytes / 1024 / 1024).toFixed(1) + ' MB' : '-';
                         return `
                             <tr>
                                 <td>${v.filename}</td>
-                                <td>${mins}:${secs.toString().padStart(2, '0')}</td>
-                                <td><span class="tier-badge ${tierAccess}">${tierAccess}</span></td>
-                                <td>${v.size ? (v.size / 1024 / 1024).toFixed(1) + ' MB' : '-'}</td>
+                                <td>${v.path || '-'}</td>
+                                <td><span class="tier-badge ${tier}">${tier}</span></td>
+                                <td>${sizeMB}</td>
                             </tr>
                         `;
                     }).join('')}

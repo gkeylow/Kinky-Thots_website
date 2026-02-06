@@ -360,6 +360,21 @@
 }
 
 /* ===========================================
+   SISSY SKILLS - Hover Images
+   =========================================== */
+.sissy-skills .skill-card:nth-child(1) .hover-image {
+    background-image: url('https://i.ibb.co/R4H2CH8Y/sissy7.jpg');
+}
+
+.sissy-skills .skill-card:nth-child(2) .hover-image {
+    background-image: url('https://i.ibb.co/dgH4SyX/Sexy-Up.gif');
+}
+
+.sissy-skills .skill-card:nth-child(3) .hover-image {
+    background-image: url('https://i.ibb.co/pBc7Ygkj/sissy9.jpg');
+}
+
+/* ===========================================
    PORTFOLIO SECTION
    =========================================== */
 
