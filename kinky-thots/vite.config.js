@@ -16,7 +16,6 @@ export default defineConfig({
         index: resolve(__dirname, 'src/js/index.js'),
         live: resolve(__dirname, 'src/js/live.js'),
         gallery: resolve(__dirname, 'src/js/gallery.js'),
-        porn: resolve(__dirname, 'src/js/porn.js'),
         sissylonglegs: resolve(__dirname, 'src/js/sissylonglegs.js'),
         content: resolve(__dirname, 'src/js/content.js'),
       },
