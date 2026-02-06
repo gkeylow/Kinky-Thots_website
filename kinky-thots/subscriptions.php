@@ -296,27 +296,27 @@ include 'includes/header.php';
                 <li>Teaser clips &amp; short videos</li>
                 <li>Live stream viewing</li>
                 <li>Chat access</li>
-                <li class="disabled">Extended videos</li>
+                <li class="disabled">Plus videos</li>
                 <li class="disabled">Full-length content</li>
             </ul>
             <button class="tier-btn current" id="freeBtn">Free Tier</button>
         </div>
 
-        <!-- Basic Tier -->
-        <div class="tier-card" data-tier="basic">
-            <h3 class="tier-name">Basic</h3>
+        <!-- Plus Tier -->
+        <div class="tier-card" data-tier="plus">
+            <h3 class="tier-name">Plus</h3>
             <div class="tier-price-container">
                 <div class="tier-price">$8<span>/mo</span></div>
             </div>
             <div class="tier-access">Videos 1-5 minutes</div>
             <ul class="tier-features">
                 <li>All Free content</li>
-                <li>Extended videos up to 5 min</li>
+                <li>Plus videos up to 5 min</li>
                 <li>HD streaming quality</li>
                 <li>Chat badge</li>
                 <li class="disabled">Full-length content</li>
             </ul>
-            <a href="/checkout.php?tier=basic" class="tier-btn" id="basicBtn">Subscribe Now</a>
+            <a href="/checkout.php?tier=plus" class="tier-btn" id="plusBtn">Subscribe Now</a>
         </div>
 
         <!-- Premium Tier -->
@@ -333,7 +333,7 @@ include 'includes/header.php';
             </div>
             <div class="tier-access">All videos (5+ minutes)</div>
             <ul class="tier-features">
-                <li>All Basic content</li>
+                <li>All Plus content</li>
                 <li>Full-length videos (5+ min)</li>
                 <li>4K streaming quality</li>
                 <li>Exclusive content</li>
@@ -359,7 +359,7 @@ include 'includes/header.php';
         </div>
         <div class="faq-item">
             <div class="faq-question">What's the difference between tiers? <span>+</span></div>
-            <div class="faq-answer">Tiers are based on video length. Free members can watch clips under 1 minute. Basic ($8/mo) unlocks videos up to 5 minutes. Premium ($15/mo or $120/year) gives you access to all full-length content over 5 minutes.</div>
+            <div class="faq-answer">Tiers are based on video length. Free members can watch clips under 1 minute. Plus ($8/mo) unlocks videos up to 5 minutes. Premium ($15/mo or $120/year) gives you access to all full-length content over 5 minutes.</div>
         </div>
         <div class="faq-item">
             <div class="faq-question">Why choose Yearly? <span>+</span></div>
@@ -418,7 +418,7 @@ include 'includes/header.php';
 
         // Show current tier badge
         if (user) {
-            const tierNames = { free: 'Free', basic: 'Basic', premium: 'Premium', yearly: 'Yearly', vip: 'VIP' };
+            const tierNames = { free: 'Free', plus: 'Plus', premium: 'Premium', yearly: 'Yearly', vip: 'VIP' };
             document.getElementById('currentTierDisplay').innerHTML =
                 `<span class="current-tier-badge">Current Plan: ${tierNames[currentTier] || currentTier}</span>`;
         }
@@ -433,16 +433,16 @@ include 'includes/header.php';
             freeBtn.classList.add('current');
         }
 
-        // Update Basic button
-        const basicBtn = document.getElementById('basicBtn');
-        if (currentTier === 'basic') {
-            basicBtn.textContent = 'Current Plan';
-            basicBtn.classList.add('current');
-            basicBtn.removeAttribute('href');
+        // Update Plus button
+        const plusBtn = document.getElementById('plusBtn');
+        if (currentTier === 'plus') {
+            plusBtn.textContent = 'Current Plan';
+            plusBtn.classList.add('current');
+            plusBtn.removeAttribute('href');
         } else if (['premium', 'yearly', 'vip'].includes(currentTier)) {
-            basicBtn.textContent = 'Included';
-            basicBtn.classList.add('current');
-            basicBtn.removeAttribute('href');
+            plusBtn.textContent = 'Included';
+            plusBtn.classList.add('current');
+            plusBtn.removeAttribute('href');
         }
 
         // Update Premium button

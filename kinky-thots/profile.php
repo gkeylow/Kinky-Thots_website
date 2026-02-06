@@ -62,7 +62,7 @@ $pageStyles = '
             background: #333;
             color: #888;
         }
-        .tier-badge.basic {
+        .tier-badge.plus {
             background: linear-gradient(135deg, #4ECDC4, #45B7D1);
             color: #000;
         }

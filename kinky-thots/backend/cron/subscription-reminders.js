@@ -113,7 +113,7 @@ async function runReminders() {
       SELECT id, username, email, subscription_tier, subscription_expires_at
       FROM users
       WHERE subscription_status = 'active'
-        AND subscription_tier IN ('basic', 'premium')
+        AND subscription_tier IN ('plus', 'premium')
         AND subscription_expires_at IS NOT NULL
         AND (
           DATE(subscription_expires_at) = DATE_ADD(CURDATE(), INTERVAL 7 DAY)

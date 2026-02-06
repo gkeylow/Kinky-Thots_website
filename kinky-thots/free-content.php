@@ -1,6 +1,6 @@
 <?php
-// Free Content - Videos under 1 minute
-// Duration-based content tier: Free (< 60 seconds)
+// Free Content - Free tier videos
+// Folder-based content tier: free/ folder on CDN
 
 require_once __DIR__ . '/includes/s3-helper.php';
 
@@ -8,33 +8,34 @@ $manifestFile = __DIR__ . '/data/video-manifest.json';
 $thumbnailDir = '/assets/thumbnails/';
 $thumbnailPath = __DIR__ . '/assets/thumbnails/';
 
-// Load and filter videos
+// Load and filter videos by tier
 $videos = [];
 if (file_exists($manifestFile)) {
     $manifest = json_decode(file_get_contents($manifestFile), true);
 
     foreach ($manifest['videos'] ?? [] as $video) {
-        $duration = $video['duration_seconds'] ?? 60;
-        // Free tier: videos under 60 seconds
-        if ($duration < 60 && ($video['on_cdn'] ?? true)) {
+        $tier = $video['tier'] ?? 'unassigned';
+        // Free tier: videos in free/ folder
+        if ($tier === 'free' && ($video['on_cdn'] ?? true)) {
             $filename = $video['filename'];
+            $path = $video['path'] ?? $filename;
             $thumbFilename = pathinfo($filename, PATHINFO_FILENAME) . '.jpg';
 
             $videos[] = [
                 'filename' => $filename,
-                'url' => getCdnUrl($filename), // CDN pull zone URL
+                'path' => $path,
+                'url' => getCdnUrl($path), // CDN pull zone URL with full path
                 'thumbnailUrl' => file_exists($thumbnailPath . $thumbFilename)
                     ? $thumbnailDir . rawurlencode($thumbFilename)
                     : null,
-                'duration' => $duration,
                 'size_bytes' => $video['size_bytes'] ?? 0
             ];
         }
     }
 }
 
-// Sort by duration (shortest first)
-usort($videos, fn($a, $b) => $a['duration'] - $b['duration']);
+// Sort alphabetically by filename
+usort($videos, fn($a, $b) => strcasecmp($a['filename'], $b['filename']));
 $videoCount = count($videos);
 
 // Format duration as MM:SS
@@ -182,7 +183,7 @@ include __DIR__ . '/includes/header.php';
 
     <div class="content-nav">
         <a href="/free-content.php" class="active">Free Teasers</a>
-        <a href="/basic-content.php" id="basicNav">Extended <span class="nav-lock"></span></a>
+        <a href="/plus-content.php" id="plusNav">Plus <span class="nav-lock"></span></a>
         <a href="/premium-content.php" id="premiumNav">Full Access <span class="nav-lock"></span></a>
     </div>
 
@@ -194,9 +195,9 @@ include __DIR__ . '/includes/header.php';
 
     <div class="sort-bar">
         <select id="sortSelect">
-            <option value="shortest">Shortest First</option>
-            <option value="longest">Longest First</option>
             <option value="name">Alphabetical</option>
+            <option value="size-asc">Smallest First</option>
+            <option value="size-desc">Largest First</option>
         </select>
     </div>
 
@@ -205,10 +206,9 @@ include __DIR__ . '/includes/header.php';
         <div class="video-container"
              data-video-url="<?php echo htmlspecialchars($video['url']); ?>"
              data-video-type="video/mp4"
-             data-duration="<?php echo $video['duration']; ?>"
              data-name="<?php echo htmlspecialchars($video['filename']); ?>"
+             data-size="<?php echo $video['size_bytes']; ?>"
              data-index="<?php echo $index; ?>">
-            <span class="duration-badge"><?php echo formatDuration($video['duration']); ?></span>
             <?php if ($video['thumbnailUrl']): ?>
             <div class="video-thumbnail" onclick="openLightbox(this)">
                 <img src="<?php echo htmlspecialchars($video['thumbnailUrl']); ?>"
@@ -237,7 +237,7 @@ include __DIR__ . '/includes/header.php';
 
     <div class="upgrade-cta">
         <h3>Want longer videos?</h3>
-        <p>Subscribe to Basic ($8/mo) for videos up to 5 minutes, or Premium ($15/mo) for full access!</p>
+        <p>Subscribe to Plus ($8/mo) for videos up to 5 minutes, or Premium ($15/mo) for full access!</p>
         <a href="/subscriptions.php" class="upgrade-btn">View Subscription Plans</a>
     </div>
 </div>
@@ -253,12 +253,12 @@ document.getElementById('sortSelect').addEventListener('change', function() {
 
     containers.sort((a, b) => {
         switch(this.value) {
-            case 'shortest':
-                return parseInt(a.dataset.duration) - parseInt(b.dataset.duration);
-            case 'longest':
-                return parseInt(b.dataset.duration) - parseInt(a.dataset.duration);
             case 'name':
                 return a.dataset.name.localeCompare(b.dataset.name);
+            case 'size-asc':
+                return parseInt(a.dataset.size) - parseInt(b.dataset.size);
+            case 'size-desc':
+                return parseInt(b.dataset.size) - parseInt(a.dataset.size);
         }
     });
 
@@ -270,14 +270,14 @@ document.getElementById('sortSelect').addEventListener('change', function() {
     const user = JSON.parse(localStorage.getItem('kt_auth_user') || 'null');
     const tier = user?.subscription_tier || 'free';
 
-    const basicNav = document.getElementById('basicNav');
+    const plusNav = document.getElementById('plusNav');
     const premiumNav = document.getElementById('premiumNav');
 
     if (['free'].includes(tier)) {
-        basicNav.querySelector('.nav-lock').textContent = '🔒';
-        basicNav.classList.add('locked');
+        plusNav.querySelector('.nav-lock').textContent = '🔒';
+        plusNav.classList.add('locked');
     }
-    if (['free', 'basic'].includes(tier)) {
+    if (['free', 'plus'].includes(tier)) {
         premiumNav.querySelector('.nav-lock').textContent = '🔒';
         premiumNav.classList.add('locked');
     }

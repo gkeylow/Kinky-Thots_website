@@ -1,6 +1,6 @@
 <?php
-// Premium Content - Videos over 5 minutes
-// Duration-based content tier: Premium (> 300 seconds)
+// Premium Content - Premium tier videos
+// Folder-based content tier: premium/ folder on CDN
 
 require_once __DIR__ . '/includes/s3-helper.php';
 
@@ -8,52 +8,48 @@ $manifestFile = __DIR__ . '/data/video-manifest.json';
 $thumbnailDir = '/assets/thumbnails/';
 $thumbnailPath = __DIR__ . '/assets/thumbnails/';
 
-// Load and filter videos
+// Load and filter videos by tier
 $videos = [];
+$totalSize = 0;
 if (file_exists($manifestFile)) {
     $manifest = json_decode(file_get_contents($manifestFile), true);
 
     foreach ($manifest['videos'] ?? [] as $video) {
-        $duration = $video['duration_seconds'] ?? 60;
-        // Premium tier: videos over 300 seconds (5+ minutes)
-        if ($duration > 300 && ($video['on_cdn'] ?? true)) {
+        $tier = $video['tier'] ?? 'unassigned';
+        // Premium tier: videos in premium/ folder
+        if ($tier === 'premium' && ($video['on_cdn'] ?? true)) {
             $filename = $video['filename'];
+            $path = $video['path'] ?? $filename;
             $thumbFilename = pathinfo($filename, PATHINFO_FILENAME) . '.jpg';
+            $size = $video['size_bytes'] ?? 0;
+            $totalSize += $size;
 
             $videos[] = [
                 'filename' => $filename,
-                'url' => getCdnUrl($filename), // CDN pull zone URL
+                'path' => $path,
+                'url' => getCdnUrl($path), // CDN pull zone URL with full path
                 'thumbnailUrl' => file_exists($thumbnailPath . $thumbFilename)
                     ? $thumbnailDir . rawurlencode($thumbFilename)
                     : null,
-                'duration' => $duration,
-                'size_bytes' => $video['size_bytes'] ?? 0
+                'size_bytes' => $size
             ];
         }
     }
 }
 
-// Sort by duration (longest first for premium)
-usort($videos, fn($a, $b) => $b['duration'] - $a['duration']);
+// Sort alphabetically by filename
+usort($videos, fn($a, $b) => strcasecmp($a['filename'], $b['filename']));
 $videoCount = count($videos);
 
-// Format duration as MM:SS or H:MM:SS
-function formatDuration($seconds) {
-    if ($seconds >= 3600) {
-        $hours = floor($seconds / 3600);
-        $mins = floor(($seconds % 3600) / 60);
-        $secs = $seconds % 60;
-        return sprintf('%d:%02d:%02d', $hours, $mins, $secs);
+// Format file size
+function formatSize($bytes) {
+    if ($bytes >= 1073741824) {
+        return number_format($bytes / 1073741824, 1) . ' GB';
     }
-    $mins = floor($seconds / 60);
-    $secs = $seconds % 60;
-    return sprintf('%d:%02d', $mins, $secs);
+    return number_format($bytes / 1048576, 1) . ' MB';
 }
 
-// Calculate total content duration
-$totalDuration = array_sum(array_column($videos, 'duration'));
-$totalHours = floor($totalDuration / 3600);
-$totalMins = floor(($totalDuration % 3600) / 60);
+$totalSizeFormatted = formatSize($totalSize);
 
 // Page configuration for header include
 $pageTitle = 'Premium Content - Kinky Thots';
@@ -281,15 +277,15 @@ include __DIR__ . '/includes/header.php';
     <div class="tier-header">
         <span class="tier-badge">PREMIUM - <span class="price">$15/mo</span></span>
         <span class="tier-badge lifetime">LIFETIME $250</span>
-        <h1>Full-Length Videos</h1>
-        <p>Exclusive content over 5 minutes - Our best videos</p>
+        <h1>Premium Videos</h1>
+        <p>Exclusive full-length content - Our best videos</p>
         <div class="content-stats">
             <div class="stat">
                 <div class="stat-value"><?php echo $videoCount; ?></div>
                 <div class="stat-label">Premium Videos</div>
             </div>
             <div class="stat">
-                <div class="stat-value"><?php echo $totalHours > 0 ? $totalHours . 'h ' . $totalMins . 'm' : $totalMins . ' min'; ?></div>
+                <div class="stat-value"><?php echo $totalSizeFormatted; ?></div>
                 <div class="stat-label">Total Content</div>
             </div>
         </div>
@@ -297,12 +293,12 @@ include __DIR__ . '/includes/header.php';
 
     <div class="content-nav">
         <a href="/free-content.php">Free Teasers</a>
-        <a href="/basic-content.php">Extended</a>
-        <a href="/premium-content.php" class="active">Full Access</a>
+        <a href="/plus-content.php">Plus</a>
+        <a href="/premium-content.php" class="active">Premium</a>
     </div>
 
     <div id="subscribeCta" class="subscribe-cta" style="display: none;">
-        <h3>Unlock Full-Length Content</h3>
+        <h3>Unlock Premium Content</h3>
         <p>Get unlimited access to all premium videos with a Premium subscription</p>
         <div class="subscribe-btns">
             <a href="/subscriptions.php?tier=premium" class="subscribe-btn">Subscribe $15/mo</a>
@@ -312,15 +308,15 @@ include __DIR__ . '/includes/header.php';
 
     <div class="video-stats">
         <div class="video-count">
-            <?php echo $videoCount; ?> full-length video<?php echo $videoCount !== 1 ? 's' : ''; ?> available
+            <?php echo $videoCount; ?> premium video<?php echo $videoCount !== 1 ? 's' : ''; ?> available
         </div>
     </div>
 
     <div class="sort-bar">
         <select id="sortSelect">
-            <option value="longest">Longest First</option>
-            <option value="shortest">Shortest First</option>
             <option value="name">Alphabetical</option>
+            <option value="size-desc">Largest First</option>
+            <option value="size-asc">Smallest First</option>
         </select>
     </div>
 
@@ -329,8 +325,8 @@ include __DIR__ . '/includes/header.php';
         <div class="video-container"
              data-video-url="<?php echo htmlspecialchars($video['url']); ?>"
              data-video-type="video/mp4"
-             data-duration="<?php echo $video['duration']; ?>"
              data-name="<?php echo htmlspecialchars($video['filename']); ?>"
+             data-size="<?php echo $video['size_bytes']; ?>"
              data-index="<?php echo $index; ?>">
             <div class="lock-overlay">
                 <div class="lock-icon">&#128274;</div>
@@ -339,7 +335,6 @@ include __DIR__ . '/includes/header.php';
                 <a href="/subscriptions.php" class="lock-upgrade-btn">Subscribe</a>
             </div>
             <span class="exclusive-badge">Premium</span>
-            <span class="duration-badge<?php echo $video['duration'] >= 600 ? ' long' : ''; ?>"><?php echo formatDuration($video['duration']); ?></span>
             <?php if ($video['thumbnailUrl']): ?>
             <div class="video-thumbnail" onclick="openLightbox(this)">
                 <img src="<?php echo htmlspecialchars($video['thumbnailUrl']); ?>"
@@ -397,12 +392,12 @@ document.getElementById('sortSelect').addEventListener('change', function() {
 
     containers.sort((a, b) => {
         switch(this.value) {
-            case 'shortest':
-                return parseInt(a.dataset.duration) - parseInt(b.dataset.duration);
-            case 'longest':
-                return parseInt(b.dataset.duration) - parseInt(a.dataset.duration);
             case 'name':
                 return a.dataset.name.localeCompare(b.dataset.name);
+            case 'size-asc':
+                return parseInt(a.dataset.size) - parseInt(b.dataset.size);
+            case 'size-desc':
+                return parseInt(b.dataset.size) - parseInt(a.dataset.size);
         }
     });
 

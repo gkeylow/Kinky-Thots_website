@@ -260,7 +260,7 @@ include __DIR__ . '/includes/header.php';
 
     // Get params from URL
     const urlParams = new URLSearchParams(window.location.search);
-    const selectedTier = urlParams.get('tier') || 'basic';
+    const selectedTier = urlParams.get('tier') || 'plus';
     const isSuccess = urlParams.get('status') === 'success';
     const isFailed = urlParams.get('status') === 'failed';
     const isPartial = urlParams.get('status') === 'partial';
@@ -327,7 +327,7 @@ include __DIR__ . '/includes/header.php';
             // Check if already subscribed to this tier or higher
             if (user.subscription_tier === selectedTier ||
                 user.subscription_tier === 'yearly' ||
-                (user.subscription_tier === 'premium' && selectedTier === 'basic') ||
+                (user.subscription_tier === 'premium' && selectedTier === 'plus') ||
                 user.subscription_tier === 'vip') {
                 showError('You already have this subscription or better');
                 document.getElementById('paymentContainer').innerHTML =

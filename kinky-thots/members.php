@@ -18,7 +18,7 @@ $pageStyles = '
     .member-username { font-size: 1.1rem; font-weight: 600; color: #fff; margin-bottom: 0.5rem; }
     .member-tier { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem; }
     .member-tier.free { background: #333; color: #888; }
-    .member-tier.basic { background: linear-gradient(135deg, #4ECDC4, #45B7D1); color: #000; }
+    .member-tier.plus { background: linear-gradient(135deg, #4ECDC4, #45B7D1); color: #000; }
     .member-tier.premium { background: linear-gradient(135deg, #f805a7, #0bd0f3); color: #fff; }
     .member-tier.yearly, .member-tier.vip { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; }
     .member-tier.lifetime { background: linear-gradient(135deg, #9b59b6, #8e44ad); color: #fff; }
@@ -90,7 +90,7 @@ include __DIR__ . '/includes/header.php';
             <input type="text" class="filter-input" id="searchInput" placeholder="Search members...">
             <select class="filter-select" id="tierFilter">
                 <option value="">All Tiers</option>
-                <option value="basic">Basic</option>
+                <option value="plus">Plus</option>
                 <option value="premium">Premium</option>
                 <option value="yearly">Yearly</option>
                 <option value="vip">VIP</option>
