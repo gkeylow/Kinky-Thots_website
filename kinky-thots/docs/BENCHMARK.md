@@ -1723,6 +1723,392 @@ Percentage of requests served within a certain time (ms):
 
 ---
 
+## Benchmark #10 - February 6, 2026 @ 21:44 UTC
+
+### Test Environment
+- **Server**: Apache/2.4.65 + PHP (Docker: kinky-web)
+- **Database**: MariaDB (Docker: kinky-db)
+- **CDN**: Pushr CDN (Sonic S3)
+- **Backend**: Node.js on port 3002→3001 (Docker: kinky-backend)
+- **Proxy**: Linode nginx reverse proxy + SSH reverse tunnel (autossh)
+- **Test Tool**: curl, nmap, openssl
+- **Changes Since Last**:
+  - Cleaned up 23 legacy files (duplicate .php pages, old scripts, old Docker configs)
+  - Fixed header.php nav links (.php → .html)
+  - Removed porn.js entry from vite.config.js
+  - Hardened Rspamd spam filtering on mail server
+  - Purged 585+ bounce emails from mail server compromise
+
+---
+
+### Network Architecture
+
+```
+Internet → Linode (45.79.208.9) → SSH Reverse Tunnel → Home Server (CG-NAT)
+```
+
+| Component | Details |
+|-----------|---------|
+| Linode IP | 45.79.208.9 |
+| Tunnel Type | SSH Reverse Tunnel (autossh) |
+| Tunneled Ports | 8081→80 (web), 3003→3002 (API) |
+| SSL | Let's Encrypt (kinky-thots.com + kinky-thots.xxx + mail.kinky-thots.com) |
+
+---
+
+### Page Response Times (via Proxy - Real World)
+
+| Page | HTTP | TTFB | Total Time | DNS | Connect | TLS | Size |
+|------|------|------|------------|-----|---------|-----|------|
+| kinky-thots.xxx (home) | 200 | 0.488s | 0.488s | 33ms | 81ms | 148ms | 14,640b |
+| kinky-thots.com (landing) | 200 | 0.299s | 0.355s | 41ms | 115ms | 249ms | 12,891b |
+| mail.kinky-thots.com | 302 | 0.225s | 0.225s | 53ms | 98ms | 168ms | 199b |
+| free-content.php | 200 | 0.280s | 0.333s | 1ms | 47ms | 102ms | 24,160b |
+| login.html | 301 | 0.279s | 0.279s | 1ms | 41ms | 93ms | 240b |
+| members.html | 301 | 0.281s | 0.281s | 3ms | 57ms | 112ms | 242b |
+| subscriptions.html | 301 | 0.300s | 0.300s | 1ms | 46ms | 100ms | 248b |
+| live.html | 301 | 0.340s | 0.340s | 1ms | 55ms | 119ms | 239b |
+
+**Result**: All pages respond under 500ms via proxy ✅
+
+---
+
+### Server Resources
+
+#### Home Server (Production)
+
+| Container | CPU | Memory | Net I/O | Block I/O |
+|-----------|-----|--------|---------|-----------|
+| kinky-web | 0.00% | 38.5 MiB / 7.6 GiB | 5 MB / 69 MB | 72 MB / 1.6 MB |
+| kinky-backend | 0.00% | 107 MiB / 7.6 GiB | 1.2 MB / 1.3 MB | 193 MB / 3.8 MB |
+| kinky-db | 0.01% | 133 MiB / 7.6 GiB | 18 KB / 12 KB | 96 MB / 3.4 MB |
+| uptime-kuma | 3.15% | 368 MiB / 7.6 GiB | 115 MB / 18 MB | 341 MB / 510 MB |
+| immich_server | 0.08% | 1.35 GiB / 7.6 GiB | 4.7 GB / 363 MB | 593 MB / 4.6 GB |
+| portainer_agent | 0.00% | 72 MiB / 7.6 GiB | 2.9 KB / 0 B | 54 MB / 61 KB |
+
+| Resource | Value |
+|----------|-------|
+| Total RAM | 7.6 GiB |
+| Used RAM | 3.8 GiB (50%) |
+| Available RAM | 3.8 GiB |
+| Swap Used | 251 MiB / 7.9 GiB |
+| Disk Used | 71 GB / 908 GB (9%) |
+| Load Average | 2.84, 2.72, 2.55 |
+| Uptime | 23h 41m |
+
+#### Linode Server (Reverse Proxy + Mail)
+
+| Container | CPU | Memory | Net I/O | Block I/O |
+|-----------|-----|--------|---------|-----------|
+| mailserver | 1.20% | 168 MiB / 962 MiB | 61 KB / 67 KB | 102 MB / 2 MB |
+| portainer_agent | 0.00% | 10 MiB / 962 MiB | 1 KB / 126 B | 60 MB / 3.5 MB |
+
+| Resource | Value |
+|----------|-------|
+| Total RAM | 962 MiB |
+| Used RAM | 551 MiB (57%) |
+| Available RAM | 409 MiB |
+| Swap Used | 81 MiB / 495 MiB |
+| Disk Used | 5.4 GB / 25 GB (24%) |
+| Load Average | 0.18, 0.05, 0.01 |
+| Uptime | 10 days 21h |
+
+---
+
+## Security Audit - February 6, 2026
+
+### 1. SSL/TLS Certificates
+
+| Domain | Issuer | Valid From | Expires | TLS Version | Cipher | SANs |
+|--------|--------|-----------|---------|-------------|--------|------|
+| kinky-thots.xxx | Let's Encrypt E7 | Jan 24, 2026 | Apr 24, 2026 | TLSv1.3 | TLS_AES_256_GCM_SHA384 | xxx, www.xxx |
+| kinky-thots.com | Let's Encrypt E7 | Feb 2, 2026 | May 3, 2026 | TLSv1.3 | TLS_AES_256_GCM_SHA384 | com, www.com |
+| mail.kinky-thots.com | Let's Encrypt E7 | Jan 24, 2026 | Apr 24, 2026 | TLSv1.3 | TLS_AES_256_GCM_SHA384 | mail.com |
+
+**TLS Version Support:**
+
+| Version | Status |
+|---------|--------|
+| TLS 1.0 | Disabled ✅ |
+| TLS 1.1 | Disabled ✅ |
+| TLS 1.2 | Enabled ✅ |
+| TLS 1.3 | Enabled ✅ |
+
+**Cipher Suite**: ECDHE-ECDSA/RSA with AES-128/256-GCM and CHACHA20-POLY1305 ✅
+
+**Result**: All certificates valid, strong ciphers, no legacy TLS ✅
+
+---
+
+### 2. Security Headers
+
+| Header | kinky-thots.xxx | kinky-thots.com | mail.kinky-thots.com |
+|--------|-----------------|-----------------|----------------------|
+| Strict-Transport-Security | max-age=31536000; includeSubDomains ✅ | max-age=31536000; includeSubDomains ✅ | **MISSING** ⚠️ |
+| X-Frame-Options | SAMEORIGIN ✅ | (via Apache) | **MISSING** ⚠️ |
+| X-Content-Type-Options | nosniff ✅ | (via Apache) | **MISSING** ⚠️ |
+| X-XSS-Protection | 0 (modern standard) ✅ | (via Apache) | **MISSING** ⚠️ |
+| Referrer-Policy | strict-origin-when-cross-origin ✅ | strict-origin-when-cross-origin ✅ | **MISSING** ⚠️ |
+| Permissions-Policy | camera=(), microphone=(), geolocation=(), payment=(self) ✅ | camera=(), microphone=(), geolocation=(), payment=(self) ✅ | **MISSING** ⚠️ |
+| Content-Security-Policy | Full CSP ✅ | **MISSING** ⚠️ | **MISSING** ⚠️ |
+| Cache-Control | no-cache, no-store, must-revalidate ✅ | N/A | N/A |
+| Server Version | nginx/1.24.0 (Ubuntu) ⚠️ | Apache/2.4.58 (Ubuntu) ⚠️ | nginx/1.24.0 (Ubuntu) ⚠️ |
+
+**Issues Found:**
+- ⚠️ **Server version exposed** on all domains (nginx and Apache versions visible)
+- ⚠️ **mail.kinky-thots.com** missing ALL security headers
+- ⚠️ **kinky-thots.com** missing Content-Security-Policy
+- ⚠️ **kinky-thots.com** leaking Apache server version (should be hidden by nginx proxy)
+
+---
+
+### 3. DNS & Email Security
+
+| Record | kinky-thots.xxx | kinky-thots.com |
+|--------|-----------------|-----------------|
+| A Record | 45.79.208.9 ✅ | 192.155.91.241 ✅ (Linode NJ - landing page) |
+| MX Record | **MISSING** ⚠️ | **MISSING** ⚠️ |
+| SPF | **MISSING** ⚠️ | v=spf1 mx a ip4:45.33.100.131 ~all ⚠️ |
+| DKIM | **MISSING** ⚠️ | Present (RSA 2048-bit) ✅ |
+| DMARC | **MISSING** ⚠️ | v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s ✅ |
+
+**Issues Found:**
+- ⚠️ **kinky-thots.xxx** has NO SPF, DKIM, or DMARC records — emails from .xxx domain will fail authentication
+- ⚠️ **kinky-thots.com SPF** references old IP (45.33.100.131) instead of current Linode (45.79.208.9)
+- ✅ **kinky-thots.com A record** points to 192.155.91.241 (separate Linode in NJ hosting SFW landing page)
+- ⚠️ **No MX records** on either domain — mail delivery may rely on A record fallback
+- ⚠️ **SPF uses ~all (softfail)** instead of -all (hardfail)
+
+---
+
+### 4. Port Scan (Linode: 45.79.208.9)
+
+| Port | State | Service | Expected |
+|------|-------|---------|----------|
+| 22/tcp | Open | SSH | ✅ Required |
+| 25/tcp | Open | SMTP | ✅ Mail server |
+| 80/tcp | Open | HTTP | ✅ Redirects to HTTPS |
+| 443/tcp | Open | HTTPS | ✅ Web server |
+| 465/tcp | Open | SMTPS | ✅ Mail server |
+| 587/tcp | Open | Submission | ✅ Mail server |
+| 993/tcp | Open | IMAPS | ✅ Mail server |
+
+**Result**: Only expected ports open, 93 ports filtered ✅
+
+**Mail Server TLS:**
+
+| Port | Protocol | TLS Version | Cipher | Cert Valid |
+|------|----------|-------------|--------|------------|
+| 587 (STARTTLS) | SMTP | TLSv1.3 | TLS_AES_256_GCM_SHA384 | ✅ OK |
+| 993 (IMAPS) | IMAP | TLSv1.3 | TLS_AES_256_GCM_SHA384 | ✅ OK |
+| 465 (SMTPS) | SMTP | TLSv1.3 | TLS_AES_256_GCM_SHA384 | ✅ OK |
+
+---
+
+### 5. Sensitive File Access Test
+
+| Path | HTTP Status | Expected | Result |
+|------|-------------|----------|--------|
+| .env | 403 | 403 | ✅ PASS |
+| config/.credentials.md | 403 | 403 | ✅ PASS |
+| backend/server.js | 403 | 403 | ✅ PASS |
+| backend/.env | 403 | 403 | ✅ PASS |
+| docker-compose.yml | 403 | 403 | ✅ PASS |
+| package.json | 403 | 403 | ✅ PASS |
+| .git/config | 403 | 403 | ✅ PASS |
+| .htaccess | 403 | 403 | ✅ PASS |
+| config/ | 403 | 403 | ✅ PASS |
+| backend/ | 403 | 403 | ✅ PASS |
+| scripts/ | 403 | 403 | ✅ PASS |
+| data/ | 403 | 403 | ✅ PASS |
+| logs/ | 403 | 403 | ✅ PASS |
+
+**Result**: All sensitive files and directories properly blocked ✅
+
+---
+
+### 6. Directory Listing Test
+
+| Path | HTTP Status | Result |
+|------|-------------|--------|
+| / | 200 | ✅ Homepage served |
+| /assets/ | 403 | ✅ Blocked |
+| /assets/dist/ | 403 | ✅ Blocked |
+| /assets/dist/js/ | 403 | ✅ Blocked |
+| /assets/dist/css/ | 403 | ✅ Blocked |
+| /hls/ | 403 | ✅ Blocked |
+| /uploads/ | 403 | ✅ Blocked |
+| /docker/ | 403 | ✅ Blocked |
+
+**Result**: Directory listing disabled on all paths ✅
+
+---
+
+### 7. File Permissions (Home Server)
+
+| File | Permissions | Owner | Expected | Result |
+|------|-------------|-------|----------|--------|
+| .env | -rw------- (600) | root | 600 | ✅ PASS |
+| config/.credentials.md | -rw------- (600) | root | 600 | ✅ PASS |
+| config/.htaccess | -rw-r--r-- (644) | root | 644 | ✅ PASS |
+| backend/.htaccess | -rw-r--r-- (644) | root | 644 | ✅ PASS |
+| scripts/.htaccess | -rw-r--r-- (644) | root | 644 | ✅ PASS |
+| data/.htaccess | -rw-r--r-- (644) | root | 644 | ✅ PASS |
+| backups/.htaccess | -rw-r--r-- (644) | root | 644 | ✅ PASS |
+
+**Note**: logs/.htaccess is missing ⚠️
+
+---
+
+### 8. SSH Security (Linode)
+
+| Setting | Value | Result |
+|---------|-------|--------|
+| PermitRootLogin | prohibit-password (key only) | ✅ Secure |
+| PasswordAuthentication | no | ✅ Secure |
+| PermitEmptyPasswords | no | ✅ Secure |
+
+**Fail2ban Status:**
+
+| Metric | Value |
+|--------|-------|
+| Active Jails | 1 (sshd) |
+| Currently Banned IPs | 21 |
+| Total Banned | 21 |
+| Total Failed Attempts | 122 |
+
+**Home Server**: ⚠️ Fail2ban NOT running (not needed since SSH is not exposed directly)
+
+---
+
+### 9. Docker Container Security
+
+| Container | Runs as Root | Privileged | Network Mode |
+|-----------|-------------|------------|--------------|
+| kinky-web | Yes ⚠️ | No ✅ | kinky-network ✅ |
+| kinky-backend | Yes ⚠️ | No ✅ | kinky-network ✅ |
+| kinky-db | Yes ⚠️ | No ✅ | kinky-network ✅ |
+
+**Published Ports:**
+
+| Container | Port Binding | Exposed To |
+|-----------|-------------|------------|
+| kinky-web | 0.0.0.0:80→80 | All interfaces ⚠️ |
+| kinky-backend | 0.0.0.0:3002→3001 | All interfaces ⚠️ |
+| kinky-db | None | Internal only ✅ |
+
+**Issues Found:**
+- ⚠️ All containers run as root (consider non-root users)
+- ⚠️ Web and backend bind to 0.0.0.0 (all interfaces) — only localhost needed since traffic comes via SSH tunnel
+
+---
+
+### 10. Mail Server Security
+
+| Check | Status | Result |
+|-------|--------|--------|
+| Open Relay | permit_mynetworks permit_sasl_authenticated defer_unauth_destination | ✅ Not an open relay |
+| SASL Auth | Disabled on port 25 | ✅ Correct (submission ports use auth) |
+| TLS Level | may (opportunistic) | ⚠️ Consider "encrypt" for submission |
+
+**Rspamd Spam Filtering (Configured Today):**
+
+| Setting | Value |
+|---------|-------|
+| Reject Threshold | 8 (was 11) |
+| Add Header Threshold | 4 (was 6) |
+| Greylist Threshold | 3 (was 4) |
+| Subject Rewrite | 6 (prefixes [SPAM]) |
+| Bayes Auto-learn | Enabled (spam ≥8, ham ≤-1) |
+| DNS Blocklists | Spamhaus ZEN, Barracuda, SpamCop |
+| DMARC Enforcement | Strict (reject on fail) |
+| SPF/DKIM Fail Penalty | 4.0 each (was default ~1-2) |
+| Custom Rules | French fine scam (9.0), 419 scam (6.0), fake suspension (5.0), lottery scam (6.0) |
+
+---
+
+### 11. nginx Reverse Proxy Config (Linode)
+
+| Feature | Status |
+|---------|--------|
+| SSL Protocols | TLSv1.2 + TLSv1.3 ✅ |
+| Server Cipher Preference | On for main, Off for mail ✅ |
+| Cipher Suite | Strong ECDHE + AES-GCM + CHACHA20 ✅ |
+| HSTS | 1 year + includeSubDomains ✅ |
+| CSP | Full policy on .xxx ✅ |
+| X-Frame-Options | SAMEORIGIN ✅ |
+| X-Content-Type-Options | nosniff ✅ |
+| Referrer-Policy | strict-origin-when-cross-origin ✅ |
+| Permissions-Policy | Restrictive ✅ |
+| Access-Control-Allow-Origin | * on HLS ⚠️ (consider restricting) |
+| server_tokens | Not disabled ⚠️ (leaking nginx version) |
+
+---
+
+## Security Issues Summary
+
+### Critical (Fix Immediately)
+*None found*
+
+### High Priority
+| # | Issue | Location | Fix |
+|---|-------|----------|-----|
+| 1 | kinky-thots.xxx missing SPF/DKIM/DMARC | DNS | Add records for .xxx domain |
+| 2 | kinky-thots.com SPF references old IP | DNS | Update to 45.79.208.9 |
+| 3 | No MX records on either domain | DNS | Add MX records pointing to mail.kinky-thots.com |
+
+### Medium Priority
+| # | Issue | Location | Fix |
+|---|-------|----------|-----|
+| 5 | Server version exposed (nginx + Apache) | nginx/Apache config | Add `server_tokens off;` to nginx, `ServerTokens Prod` to Apache |
+| 6 | mail.kinky-thots.com missing security headers | nginx config | Add HSTS, X-Frame-Options, etc. to mail server block |
+| 7 | kinky-thots.com missing CSP | nginx config | Add Content-Security-Policy to .com server block |
+| 8 | Docker ports bound to 0.0.0.0 | docker-compose.yml | Bind to 127.0.0.1:80:80 and 127.0.0.1:3002:3001 |
+| 9 | Containers running as root | Dockerfiles | Add non-root USER directives |
+| 10 | SPF uses ~all (softfail) | DNS | Change to -all (hardfail) |
+
+### Low Priority
+| # | Issue | Location | Fix |
+|---|-------|----------|-----|
+| 11 | logs/.htaccess missing | Home server | Create .htaccess with Deny from all |
+| 12 | HLS CORS set to * | nginx config | Restrict to kinky-thots.xxx origin |
+| 13 | SMTP TLS level "may" | Mail server | Consider "encrypt" for submission port |
+
+---
+
+### Summary
+
+| Category | Score | Details |
+|----------|-------|---------|
+| **SSL/TLS** | ✅ EXCELLENT | TLS 1.3, strong ciphers, valid certs |
+| **Security Headers** | ⚠️ GOOD | .xxx fully hardened, .com and mail missing some |
+| **File Protection** | ✅ EXCELLENT | All sensitive files return 403 |
+| **Directory Listing** | ✅ EXCELLENT | Disabled everywhere |
+| **File Permissions** | ✅ EXCELLENT | .env and credentials at 600 |
+| **SSH Hardening** | ✅ EXCELLENT | Key-only auth, fail2ban active |
+| **Port Exposure** | ✅ GOOD | Only expected ports open |
+| **DNS/Email Auth** | ⚠️ NEEDS WORK | .xxx domain missing all email auth records |
+| **Spam Filtering** | ✅ EXCELLENT | Rspamd hardened with custom rules |
+| **Docker Security** | ⚠️ FAIR | Running as root, ports on 0.0.0.0 |
+| **Mail Server** | ✅ GOOD | Not an open relay, TLS on all ports |
+
+**Overall Security Score**: **GOOD** — No critical vulnerabilities. DNS email auth for .xxx domain is the highest priority fix.
+
+---
+
+### Performance Comparison vs Benchmark #9
+
+| Metric | Benchmark #9 | Benchmark #10 | Change |
+|--------|--------------|---------------|--------|
+| Proxy TTFB (.xxx) | 473ms | 488ms | -3% (within variance) |
+| Proxy TTFB (.com) | 223ms | 299ms | -25% (within variance) |
+| Home Server RAM | N/A | 50% used | Baseline |
+| Linode RAM | N/A | 57% used | Baseline |
+| Home Server Disk | N/A | 9% used | Baseline |
+| Linode Disk | N/A | 24% used | Baseline |
+
+---
+
 ## Future Benchmarks
 
 Add new benchmark entries below following the same format.

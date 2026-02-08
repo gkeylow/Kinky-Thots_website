@@ -55,6 +55,11 @@ Thumbs.db
 db_data/
 .docker-data/
 
+# Pi-hole data (except custom.list DNS records)
+pihole/etc-pihole/*
+!pihole/etc-pihole/custom.list
+pihole/etc-dnsmasq.d/
+
 # Local logs
 .logs/
 
