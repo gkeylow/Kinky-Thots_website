@@ -16,6 +16,11 @@
     Require all denied
 </FilesMatch>
 
+# Block access to build config files
+<FilesMatch "^(vite|tailwind|postcss)\.config\.">
+    Require all denied
+</FilesMatch>
+
 # Disable directory listing
 Options -Indexes
 
@@ -71,48 +76,13 @@ ServerSignature Off
 
 RewriteEngine On
 
-# Redirect all HTML pages to PHP (shared header/footer via includes)
-RewriteCond %{REQUEST_URI} ^/index\.html$ [NC]
-RewriteRule ^(.*)$ /index.php [R=301,L]
+# Block access to node_modules
+RewriteRule ^node_modules/ - [F,L]
 
-RewriteCond %{REQUEST_URI} ^/live\.html$ [NC]
-RewriteRule ^(.*)$ /live.php [R=301,L]
-
-RewriteCond %{REQUEST_URI} ^/login\.html$ [NC]
-RewriteRule ^(.*)$ /login.php [R=301,L]
-
-RewriteCond %{REQUEST_URI} ^/gallery\.html$ [NC]
-RewriteRule ^(.*)$ /gallery.php [R=301,L]
-
-RewriteCond %{REQUEST_URI} ^/members\.html$ [NC]
-RewriteRule ^(.*)$ /members.php [R=301,L]
-
-RewriteCond %{REQUEST_URI} ^/profile\.html$ [NC]
-RewriteRule ^(.*)$ /profile.php [R=301,L]
-
-RewriteCond %{REQUEST_URI} ^/subscriptions\.html$ [NC]
-RewriteRule ^(.*)$ /subscriptions.php [R=301,L]
-
-RewriteCond %{REQUEST_URI} ^/checkout\.html$ [NC]
-RewriteRule ^(.*)$ /checkout.php [R=301,L]
-
-RewriteCond %{REQUEST_URI} ^/admin\.html$ [NC]
-RewriteRule ^(.*)$ /admin.php [R=301,L]
-
-RewriteCond %{REQUEST_URI} ^/terms\.html$ [NC]
-RewriteRule ^(.*)$ /terms.php [R=301,L]
-
-RewriteCond %{REQUEST_URI} ^/sissylonglegs\.html$ [NC]
-RewriteRule ^(.*)$ /sissylonglegs.php [R=301,L]
-
-RewriteCond %{REQUEST_URI} ^/bustersherry\.html$ [NC]
-RewriteRule ^(.*)$ /bustersherry.php [R=301,L]
-
-RewriteCond %{REQUEST_URI} ^/verify-email\.html$ [NC]
-RewriteRule ^(.*)$ /verify-email.php [R=301,L]
-
-RewriteCond %{REQUEST_URI} ^/reset-password\.html$ [NC]
-RewriteRule ^(.*)$ /reset-password.php [R=301,L]
+# Redirect .php to .html for pages that only exist as HTML
+# (fixes browser-cached 301s from previous config)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.+)\.php$ /$1.html [R=302,L]
 
 # Block direct access to /gallery (without extension)
 RewriteCond %{REQUEST_URI} ^/gallery/?$ [NC]
@@ -150,7 +120,7 @@ RewriteRule ^(.*)$ /gallery.php [R=302,L]
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
-    Header always set X-XSS-Protection "1; mode=block"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
 </IfModule>
 

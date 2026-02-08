@@ -2,13 +2,14 @@
 
 > **IMPORTANT**: Read this file before starting any work. Document completed work here for future sessions.
 
-## Current Version: 1.9.3
+## Current Version: 1.9.4
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 
 ### Version History (Summary)
 | Version | Date | Highlights |
 |---------|------|------------|
+| 1.9.4 | Feb 8, 2026 | Owncast streaming server, live.html → chat-only, Pi-hole DNS |
 | 1.9.3 | Jan 30, 2026 | SFW landing page for .com, removed WireGuard |
 | 1.9.2 | Jan 28, 2026 | Email verification + Cloudflare Turnstile anti-bot |
 | 1.9.1 | Jan 26, 2026 | Reverted to home server with SSH tunnel (lower latency than Linode) |
@@ -36,16 +37,17 @@ See [CHANGELOG.md](./CHANGELOG.md) for detailed release notes.
 - **Web Server**: Apache2 with PHP (Docker: kinky-web)
 - **Backend**: Node.js WebSocket chat server on port 3002 (Docker: kinky-backend)
 - **Database**: MariaDB 10.11 (Docker: kinky-db)
-- **Streaming**: nginx-rtmp on Linode (45.79.208.9:1935) - direct HLS delivery
+- **Streaming**: Owncast v0.2.4 on Linode (170.187.144.130) - RTMP ingest + HLS delivery
 - **CDN**: Pushr CDN with S3-compatible storage (Sonic)
 - **Build Tools**: Vite, Tailwind CSS, ESLint, Prettier
 - **SSL**: Let's Encrypt via Linode reverse proxy (nginx + certbot)
 
-### Infrastructure (Jan 26, 2026)
+### Infrastructure (Feb 8, 2026)
 | Component | Server | IP | Services |
 |-----------|--------|-----|----------|
-| **Production** | Home Server | local | Docker: kinky-web, kinky-backend, kinky-db |
-| **Reverse Proxy** | Linode (mail.kinky-thots) | 45.79.208.9 | nginx, SSL, mail, RTMP |
+| **Production** | Home Server | local | Docker: kinky-web, kinky-backend, kinky-db, pihole |
+| **Reverse Proxy** | Linode (mail.kinky-thots) | 45.79.208.9 | nginx, SSL, mail |
+| **Streaming** | Linode (owncast) | 170.187.144.130 | Owncast v0.2.4 (RTMP + HLS) |
 | **Tunnel** | SSH Reverse Tunnel (autossh) | localhost:8081, :3003 | Persistent connection to Linode |
 
 ## CDN Configuration (Pushr/Sonic)
@@ -264,24 +266,40 @@ journalctl -u stream-watcher -u rtmp-hls -f
 - `bustersherry.html` - Model page with skills hover images
 - `terms.html` - Terms & conditions
 
-## Streaming Architecture (Linode)
-RTMP streaming moved to Linode for better performance (Jan 25, 2026).
+## Streaming Architecture (Owncast on Linode)
+Streaming migrated from nginx-rtmp to Owncast v0.2.4 (Feb 8, 2026).
 
-1. **OBS/Broadcaster** → `rtmp://45.79.208.9:1935/live/stream`
-2. **nginx-rtmp on Linode** receives RTMP and converts to HLS
-3. **HLS output** → `/var/www/hls/` on Linode
-4. **live.html** fetches HLS directly from Linode (no VPN hop)
+1. **OBS/Broadcaster** → `rtmp://170.187.144.130/live`
+2. **Owncast on Linode** receives RTMP, transcodes to HLS
+3. **HLS output** served directly by Owncast on port 8080
+4. **nginx on Owncast server** handles SSL (Let's Encrypt) and proxies to Owncast
+5. **Web UI** at `https://owncast.kinky-thots.xxx`
+6. **live.html** converted to chat-only (no embedded video player)
 
-### OBS Settings
-- Server: `rtmp://45.79.208.9/live`
-- Stream Key: `stream`
+### Owncast Server
+| Detail | Value |
+|--------|-------|
+| Server | Linode g6-standard-2 (2 vCPU, 4GB RAM) |
+| IP | 170.187.144.130 |
+| Web UI | https://owncast.kinky-thots.xxx |
+| Admin | https://owncast.kinky-thots.xxx/admin |
+| RTMP Ingest | rtmp://170.187.144.130/live |
+| SSL | Let's Encrypt (auto-renews via certbot) |
+| Service | systemd: owncast.service |
 
-### OBS Low-Latency Settings (Recommended)
-- **Keyframe Interval**: 1 second (critical for low latency)
+### OBS Settings (Optimized for 2 vCPU)
+- **Server**: `rtmp://170.187.144.130/live`
+- **Output Resolution**: 1280x720
+- **Downscale Filter**: Lanczos
+- **FPS**: 30
 - **Rate Control**: CBR
-- **Bitrate**: 3000-6000 Kbps
-- **Encoder Preset**: veryfast or superfast
-- **Tune**: zerolatency (if using x264)
+- **Bitrate**: 2500 Kbps
+- **Keyframe Interval**: 2 seconds (matches HLS segment length)
+- **CPU Preset**: veryfast
+- **Profile**: high
+- **Tune**: zerolatency
+- **x264 Options**: `bframes=0 scenecut=0`
+- **Custom Buffer Size**: 2500 Kbps
 
 ## Security
 - All sensitive directories protected via .htaccess (config/, backend/, scripts/, data/, logs/)
@@ -305,38 +323,110 @@ RTMP streaming moved to Linode for better performance (Jan 25, 2026).
   - kinky-thots.xxx (primary adult site)
   - mail.kinky-thots.com (mail webui)
 
-### Network Architecture (Updated Jan 26, 2026)
+### Network Architecture (Updated Feb 8, 2026)
 ```
 Internet
     │
-    ▼
-┌─────────────────────────────────────────────────────────┐
-│  Linode: mail.kinky-thots (45.79.208.9)                 │
-│  - nginx reverse proxy (SSL termination)                │
-│  - Mail server (docker-mailserver)                      │
-│  - RTMP streaming (nginx-rtmp → /var/www/hls/)          │
-│  - SSH tunnel endpoints: localhost:8081, :3003          │
-└─────────────────────────────────────────────────────────┘
-                        ▲
-                        │ SSH Reverse Tunnel (autossh)
-                        │ Ports: 8081→80, 3003→3002
-                        │
-┌─────────────────────────────────────────────────────────┐
-│  Home Server (Production)                               │
-│  - Docker: kinky-web (Apache/PHP) :80                   │
-│  - Docker: kinky-backend (Node.js) :3002                │
-│  - Docker: kinky-db (MariaDB) :3306                     │
-│  - Portainer Agent :9001                                │
-│  - systemd: ssh-tunnel.service (persistent)             │
-└─────────────────────────────────────────────────────────┘
+    ├──────────────────────────────────────┐
+    ▼                                      ▼
+┌──────────────────────────────┐  ┌──────────────────────────────┐
+│  Linode: mail.kinky-thots    │  │  Linode: owncast             │
+│  (45.79.208.9)               │  │  (170.187.144.130)           │
+│  - nginx reverse proxy (SSL) │  │  - Owncast v0.2.4           │
+│  - Mail server               │  │  - nginx + SSL              │
+│  - SSH tunnel endpoints      │  │  - RTMP ingest (:1935)      │
+│    localhost:8081, :3003     │  │  - HLS delivery (:8080)     │
+└──────────────────────────────┘  └──────────────────────────────┘
+              ▲
+              │ SSH Reverse Tunnel (autossh)
+              │ Ports: 8081→80, 3003→3002
+              │
+┌──────────────────────────────────────────────────────────┐
+│  Home Server (Production)                                │
+│  - Docker: kinky-web (Apache/PHP) :80                    │
+│  - Docker: kinky-backend (Node.js) :3002                 │
+│  - Docker: kinky-db (MariaDB) :3306                      │
+│  - Docker: pihole (DNS) :53, :8089                       │
+│  - Portainer Agent :9001                                 │
+│  - systemd: ssh-tunnel.service (persistent)              │
+└──────────────────────────────────────────────────────────┘
 ```
 
 | Component | IP/Address | Purpose |
 |-----------|------------|---------|
-| Linode Reverse Proxy | 45.79.208.9 | SSL, mail, RTMP |
+| Linode Reverse Proxy | 45.79.208.9 | SSL, mail |
+| Linode Owncast | 170.187.144.130 | Streaming (RTMP + HLS) |
 | Home Server | localhost | Production Docker |
 | SSH Tunnel | localhost:8081, :3003 | Persistent reverse tunnel |
 | Tunnel Service | ssh-tunnel.service | Auto-restart on failure |
+
+## Recent Changes (Feb 8, 2026)
+
+### Owncast Streaming Server (v1.9.4)
+**Status: Complete and deployed**
+
+Migrated live streaming from nginx-rtmp (on mail server) to a dedicated Owncast instance on a new Linode.
+
+**Owncast Server:**
+| Detail | Value |
+|--------|-------|
+| Linode ID | 91280301 |
+| Label | owncast |
+| IP | 170.187.144.130 |
+| Type | g6-standard-2 (2 vCPU, 4GB RAM, 80GB) |
+| Region | us-southeast |
+| OS | Ubuntu 24.04 |
+| Domain | owncast.kinky-thots.xxx |
+| SSL | Let's Encrypt (certbot + nginx) |
+| Cost | $24/mo |
+
+**Setup:**
+- Owncast v0.2.4 installed as systemd service
+- nginx reverse proxy on same server (SSL termination)
+- Let's Encrypt certificate with auto-renewal
+- Custom CSS theme matching kinky-thots.xxx styling
+- Custom markdown page content with site links
+
+**OBS Settings (Optimized):**
+- Output: 1280x720, CBR 2500kbps, 30fps
+- Encoder: x264, veryfast, high profile, zerolatency
+- Keyframe interval: 2s (matches HLS segment length)
+- x264 options: `bframes=0 scenecut=0`
+- Buffer: 2500kbps (1x ratio)
+
+### live.html Converted to Chat-Only
+- Removed HLS video player (streaming now on Owncast)
+- Removed HLS.js dependency
+- Renamed page title to "Chat - Kinky Thots"
+- Added members-only gate (login required to access chat)
+- Chat status shows Online/Offline based on WebSocket connection
+- Replaced innerHTML with safe DOM methods (XSS hardening)
+- Changed "watching" labels to "online"
+
+### Pi-hole DNS Added
+- Added Pi-hole container to docker-compose.yml
+- Local DNS resolution for LAN access to services
+- Admin UI at http://192.168.12.227:8089/admin
+- Added pihole data directories to .gitignore
+
+### .htaccess Updates
+- Blocked access to build config files (vite, tailwind, postcss)
+- Blocked node_modules directory
+- Removed old HTML→PHP redirect rules
+- Added fallback PHP→HTML redirect for cached 301s
+- Replaced deprecated X-XSS-Protection with Permissions-Policy header
+
+### Apache Config Updates
+- Added SFW VirtualHost for kinky-thots.com (landing page)
+- Restricted HLS CORS to kinky-thots.xxx origin
+- Blocked node_modules directory access
+
+### Benchmark #10
+- Full security audit with SSL, headers, DNS, ports, file access tests
+- Rspamd spam filtering hardened with custom rules
+- All findings documented in docs/BENCHMARK.md
+
+---
 
 ## Recent Changes (Jan 30, 2026)
 

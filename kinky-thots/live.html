@@ -6,14 +6,13 @@
     <meta name="copyright" content="kinky-thots"/>
     <meta name="robots" content="noindex,nofollow"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0, user-scalable=yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Live - Kinky Thots">
+    <meta name="apple-mobile-web-app-title" content="Chat - Kinky Thots">
     <meta name="theme-color" content="#000000">
     <meta name="format-detection" content="telephone=no">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data:; media-src 'self' http: https: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https: blob:; font-src 'self' https:; connect-src 'self' https: http: wss: ws:; worker-src blob:; frame-src https: blob:;">
     <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
-    <title>Live Cam - Kinky Thots</title>
+    <title>Chat - Kinky Thots</title>
     <!-- Built CSS (Vite + Tailwind) -->
     <link rel="stylesheet" href="/assets/dist/css/main.css?v=202601120941">
     <link rel="stylesheet" href="/assets/dist/css/live.css">
@@ -41,7 +40,7 @@
                     <li><a href="/free-content.php">Free Teasers</a></li>
                     <li><a href="/plus-content.php">Plus Videos</a></li>
                     <li><a href="/premium-content.php">Full Access</a></li>
-                    <li><a href="/live.html">Live Cam</a></li>
+                    <li><a href="/live.html">Chat Room</a></li>
                 </ul>
             </li>
             <li class="dropdown">
@@ -100,83 +99,31 @@
 </script>
 
 <main class="live-container">
-    <div class="live-content">
-        <!-- Video Player Section -->
-        <section class="video-section">
-            <div class="video-wrapper">
-                <div class="video-player" id="videoPlayer">
-                    <!-- Offline placeholder -->
-                    <div class="offline-placeholder" id="offlinePlaceholder">
-                        <div class="offline-icon">📺</div>
-                        <h2>Stream Currently Offline</h2>
-                        <p>Check back soon for live content!</p>
-                        <div class="schedule-info">
-                            <p>Follow us to get notified when we go live</p>
-                        </div>
-                    </div>
-                    <!-- HLS.js player for Red5 stream -->
-                    <video id="liveVideo" controls playsinline style="width: 100%; height: 100%; display: block; background: #000;">
-                        Your browser does not support the video tag.
-                    </video>
-                </div>
-
-                <!-- Stream Info Bar -->
-                <div class="stream-info">
-                    <div class="stream-title">
-                        <h3 id="streamTitle">Kinky-Thots Live</h3>
-                        <span class="viewer-count" id="viewerCount">0 viewers</span>
-                    </div>
-                    <div class="stream-actions">
-                        <button class="action-btn" id="fullscreenBtn" title="Fullscreen" aria-label="Toggle fullscreen mode">
-                            <span>&#x26F6;</span>
-                        </button>
-                        <button class="action-btn" id="theaterBtn" title="Theater Mode" aria-label="Toggle theater mode">
-                            <span>&#x25A2;</span>
-                        </button>
-                        <button class="action-btn" id="settingsBtn" title="Settings" aria-label="Open settings menu">
-                            <span>⚙</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Mobile Settings Panel -->
-                <div class="settings-panel" id="settingsPanel" style="display: none;">
-                    <div class="settings-header">
-                        <h4>Stream Settings</h4>
-                        <button class="close-btn" id="closeSettings" aria-label="Close settings">×</button>
-                    </div>
-                    <div class="settings-content">
-                        <label class="setting-item">
-                            <input type="checkbox" id="autoBitrate" checked>
-                            <span>Auto Bitrate</span>
-                        </label>
-                        <label class="setting-item">
-                            <input type="checkbox" id="lowDataMode">
-                            <span>Low Data Mode</span>
-                        </label>
-                        <div class="volume-control">
-                            <label>Volume:</label>
-                            <input type="range" id="volumeControl" min="0" max="100" value="70">
-                        </div>
-                    </div>
-                </div>
+    <div class="live-content chat-only">
+        <!-- Login Required Message (shown to non-members) -->
+        <div class="chat-login-required" id="chatLoginRequired" style="display:none;">
+            <div class="login-prompt">
+                <h2>Members Only Chat</h2>
+                <p>You must be logged in to access the chat room.</p>
+                <a href="/login.html?redirect=/live.html" class="cta-button primary">Login</a>
+                <a href="/login.html?redirect=/live.html" class="cta-button secondary">Register</a>
             </div>
-        </section>
+        </div>
 
-        <!-- Chat Section -->
-        <section class="chat-section">
+        <!-- Chat Section (shown to logged-in members) -->
+        <section class="chat-section" id="chatSection" style="display:none;">
             <div class="chat-container">
                 <div class="chat-header">
-                    <h4>Live Chat</h4>
+                    <h4>Members Chat</h4>
                     <div class="chat-status">
                         <span class="status-dot offline" id="chatStatusDot"></span>
-                        <span class="status-label" id="chatStatusLabel">Offline</span>
+                        <span class="status-label" id="chatStatusLabel">Connecting...</span>
                     </div>
                     <button class="tip-btn" id="tipBtn" title="Send a tip">💰 Tip</button>
-                    <span class="chat-viewers" id="chatViewers">0 watching</span>
+                    <span class="chat-viewers" id="chatViewers">0 online</span>
                 </div>
                 <div class="chat-messages" id="chatMessages">
-                    <div class="chat-welcome">Welcome to the live chat!</div>
+                    <div class="chat-welcome">Welcome to the members chat!</div>
                 </div>
                 <div class="chat-input-area">
                     <div class="reaction-bar">
@@ -205,7 +152,7 @@
         <div class="tip-modal-content">
             <button class="tip-modal-close" id="tipModalClose">&times;</button>
             <h3>Send a Tip</h3>
-            <p>Support the stream with crypto!</p>
+            <p>Support us with crypto!</p>
             <iframe
                 src="https://nowpayments.io/embeds/donation-widget?api_key=227cc9af-e05b-46a6-a096-e66717e299ac"
                 width="286"
@@ -234,8 +181,6 @@
     </div>
 </footer>
 
-<!-- HLS.js for RTMP/HLS playback -->
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <!-- Built JS (Vite) -->
 <script type="module" src="/assets/dist/js/live.js"></script>
 
@@ -301,7 +246,6 @@
   </div>
 </div>
 
-
 <!-- Tip Modal Script -->
 <script>
 (function() {
@@ -322,6 +266,24 @@
       tipModal.classList.remove('active');
     }
   });
+})();
+</script>
+
+<!-- Member-only gate -->
+<script>
+(function() {
+  const token = localStorage.getItem('kt_auth_token');
+  const user = JSON.parse(localStorage.getItem('kt_auth_user') || 'null');
+  const chatSection = document.getElementById('chatSection');
+  const loginRequired = document.getElementById('chatLoginRequired');
+
+  if (token && user) {
+    chatSection.style.display = '';
+    loginRequired.style.display = 'none';
+  } else {
+    chatSection.style.display = 'none';
+    loginRequired.style.display = 'flex';
+  }
 })();
 </script>
 </body>

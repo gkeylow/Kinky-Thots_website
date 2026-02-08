@@ -110,6 +110,28 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  # Pi-hole - Local DNS Server
+  # Admin UI: http://192.168.12.227:8089/admin
+  # Resolves photos.kinky-thots.xxx to LAN IP when on local network
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8089:80/tcp"
+    environment:
+      - TZ=America/New_York
+      - WEBPASSWORD=${PIHOLE_WEBPASSWORD}
+      - DNSMASQ_LISTENING=all
+      - PIHOLE_DNS_=1.1.1.1;1.0.0.1
+    volumes:
+      - ./pihole/etc-pihole:/etc/pihole
+      - ./pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+    networks:
+      - kinky-network
+    restart: unless-stopped
+
   # Uptime Kuma - Monitoring Dashboard
   # Access via https://status.kinky-thots.xxx
   uptime-kuma:
