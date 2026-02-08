@@ -3,352 +3,6 @@ import '../css/chat.css';
 import '../css/auth-modal.css';
 import { auth } from './auth.js';
 
-const CONFIG = {
-  stream: {
-    hlsUrl: '/hls/stream.m3u8',
-    retryInterval: 10000,
-    maxRetries: 5,
-  },
-  rtmp: {
-    server: 'rtmp://YOUR_SERVER_IP:1935/live',
-    streamKey: 'stream',
-  },
-};
-
-const MobileSupport = {
-  isMobile: () =>
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-
-  isTablet: () => /iPad|Android(?!.*Mobile)|(Silk)|(Windows.*Touch)/i.test(navigator.userAgent),
-
-  getDeviceType: () => {
-    if (MobileSupport.isTablet()) {return 'tablet';}
-    if (MobileSupport.isMobile()) {return 'mobile';}
-    return 'desktop';
-  },
-
-  getOrientation: () => (window.innerHeight > window.innerWidth ? 'portrait' : 'landscape'),
-
-  supportsWebWorkers: () => typeof Worker !== 'undefined',
-
-  supportsLocalStorage: () => {
-    try {
-      localStorage.setItem('test', 'test');
-      localStorage.removeItem('test');
-      return true;
-    } catch {
-      return false;
-    }
-  },
-
-  getConnectionSpeed: async () => {
-    if ('connection' in navigator) {
-      const connection = /** @type {any} */ (navigator).connection;
-      return {
-        type: connection.effectiveType,
-        downlink: connection.downlink,
-        rtt: connection.rtt,
-        saveData: connection.saveData,
-      };
-    }
-    return null;
-  },
-};
-
-class LivePlayer {
-  constructor() {
-    this.video = document.getElementById('liveVideo');
-    this.placeholder = document.getElementById('offlinePlaceholder');
-    this.hls = null;
-    this.isLive = false;
-    this.retryCount = 0;
-    this.init();
-  }
-
-  init() {
-    this.bindEvents();
-    this.setupMobileOptimizations();
-    this.setupOrientationDetection();
-
-    if (CONFIG.stream.hlsUrl) {
-      this.loadStream();
-    }
-  }
-
-  setupMobileOptimizations() {
-    const deviceType = MobileSupport.getDeviceType();
-    document.documentElement.setAttribute('data-device', deviceType);
-
-    MobileSupport.getConnectionSpeed().then((conn) => {
-      if (conn?.saveData) {
-        CONFIG.stream.lowDataMode = true;
-        const lowDataEl = document.getElementById('lowDataMode');
-        if (lowDataEl) {lowDataEl.checked = true;}
-      }
-    });
-
-    document.addEventListener(
-      'touchmove',
-      (e) => {
-        if (e.touches.length > 1) {e.preventDefault();}
-      },
-      { passive: false }
-    );
-  }
-
-  setupOrientationDetection() {
-    const handleOrientationChange = () => {
-      const orientation = MobileSupport.getOrientation();
-      document.documentElement.setAttribute('data-orientation', orientation);
-
-      const container = document.querySelector('.live-container');
-      if (orientation === 'landscape' && MobileSupport.isMobile() && container) {
-        container.style.marginTop = '50px';
-      } else if (container) {
-        container.style.marginTop = '';
-      }
-    };
-
-    window.addEventListener('orientationchange', handleOrientationChange);
-    window.addEventListener('resize', handleOrientationChange);
-    handleOrientationChange();
-  }
-
-  bindEvents() {
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    const theaterBtn = document.getElementById('theaterBtn');
-    const settingsBtn = document.getElementById('settingsBtn');
-    const closeSettings = document.getElementById('closeSettings');
-    const lowDataMode = document.getElementById('lowDataMode');
-    const volumeControl = document.getElementById('volumeControl');
-
-    if (fullscreenBtn) {
-      fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
-    }
-
-    if (theaterBtn) {
-      theaterBtn.addEventListener('click', () => {
-        document.querySelector('.live-content')?.classList.toggle('theater-mode');
-      });
-    }
-
-    if (settingsBtn) {
-      settingsBtn.addEventListener('click', () => {
-        const panel = document.getElementById('settingsPanel');
-        if (panel) {panel.style.display = panel.style.display === 'none' ? 'block' : 'none';}
-      });
-    }
-
-    if (closeSettings) {
-      closeSettings.addEventListener('click', () => {
-        const panel = document.getElementById('settingsPanel');
-        if (panel) {panel.style.display = 'none';}
-      });
-    }
-
-    if (lowDataMode) {
-      lowDataMode.addEventListener('change', (e) => {
-        CONFIG.stream.lowDataMode = e.target.checked;
-        if (this.hls) {this.adjustHLSQuality();}
-      });
-    }
-
-    if (volumeControl) {
-      volumeControl.addEventListener('change', (e) => {
-        if (this.video) {this.video.volume = e.target.value / 100;}
-      });
-    }
-
-    this.setupTouchGestures();
-  }
-
-  setupTouchGestures() {
-    if (!this.video) {return;}
-
-    let touchStartX = 0;
-    let touchStartY = 0;
-
-    this.video.addEventListener('touchstart', (e) => {
-      touchStartX = e.touches[0].clientX;
-      touchStartY = e.touches[0].clientY;
-    });
-
-    this.video.addEventListener('touchend', (e) => {
-      const touchEndX = e.changedTouches[0].clientX;
-      const touchEndY = e.changedTouches[0].clientY;
-      const diffX = touchEndX - touchStartX;
-      const diffY = touchEndY - touchStartY;
-
-      if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 30) {
-        const volumeControl = document.getElementById('volumeControl');
-        let newVolume = this.video.volume * 100 + (diffY > 0 ? -10 : 10);
-        newVolume = Math.max(0, Math.min(100, newVolume));
-        this.video.volume = newVolume / 100;
-        if (volumeControl) {volumeControl.value = newVolume;}
-      }
-
-      if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
-        if (this.video.paused) {
-          this.video.play();
-        } else {
-          this.video.pause();
-        }
-      }
-    });
-  }
-
-  adjustHLSQuality() {
-    if (!this.hls) {return;}
-
-    if (CONFIG.stream.lowDataMode) {
-      this.hls.currentLevel =
-        this.hls.levels.map((l, i) => ({ level: i, height: l.height })).filter((l) => l.height <= 480)[0]
-          ?.level || 0;
-    } else {
-      this.hls.currentLevel = -1;
-    }
-  }
-
-  loadStream() {
-    const streamUrl = CONFIG.stream.hlsUrl;
-    if (typeof Hls === 'undefined') {return;}
-
-    if (Hls.isSupported()) {
-      // Low-latency HLS configuration
-      const hlsConfig = {
-        enableWorker: MobileSupport.supportsWebWorkers(),
-        lowLatencyMode: true,
-        // Aggressive low-latency buffer settings
-        liveSyncDurationCount: 2,
-        liveMaxLatencyDurationCount: 4,
-        liveDurationInfinity: true,
-        // Smaller buffers for faster start
-        maxBufferLength: 4,
-        maxMaxBufferLength: 8,
-        maxBufferSize: 0,
-        maxBufferHole: 0.5,
-        // Back buffer (how much played content to keep)
-        backBufferLength: 5,
-        // Faster fragment loading
-        fragLoadingTimeOut: 10000,
-        fragLoadingMaxRetry: 3,
-        fragLoadingRetryDelay: 500,
-        // Start from live edge
-        startPosition: -1,
-      };
-
-      if (MobileSupport.isMobile()) {
-        // Slightly larger buffers for mobile stability
-        hlsConfig.maxBufferLength = 6;
-        hlsConfig.maxMaxBufferLength = 12;
-        hlsConfig.liveSyncDurationCount = 3;
-      }
-
-      if (this.hls) {
-        this.hls.destroy();
-      }
-      this.hls = new Hls(hlsConfig);
-
-      this.hls.loadSource(streamUrl);
-      this.hls.attachMedia(this.video);
-
-      this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        this.setLiveStatus(true);
-        this.video?.play().catch(() => {});
-        // Periodically sync to live edge to prevent drift
-        this.startLiveSync();
-      });
-
-      this.hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          this.handleStreamError();
-        }
-      });
-    } else if (this.video?.canPlayType('application/vnd.apple.mpegurl')) {
-      this.video.src = streamUrl;
-      this.video.addEventListener('loadedmetadata', () => {
-        this.setLiveStatus(true);
-        this.video?.play();
-      });
-      this.video.addEventListener('error', () => {
-        this.handleStreamError();
-      });
-    }
-  }
-
-  setLiveStatus(isLive) {
-    this.isLive = isLive;
-    const chatStatusDot = document.getElementById('chatStatusDot');
-    const chatStatusLabel = document.getElementById('chatStatusLabel');
-
-    if (isLive) {
-      if (this.placeholder) {this.placeholder.style.display = 'none';}
-      if (this.video) {this.video.style.display = 'block';}
-      chatStatusDot?.classList.replace('offline', 'live');
-      chatStatusLabel?.classList.replace('offline', 'live');
-      if (chatStatusLabel) {chatStatusLabel.textContent = 'LIVE';}
-    } else {
-      if (this.placeholder) {this.placeholder.style.display = 'flex';}
-      if (this.video) {this.video.style.display = 'none';}
-      chatStatusDot?.classList.replace('live', 'offline');
-      chatStatusLabel?.classList.replace('live', 'offline');
-      if (chatStatusLabel) {chatStatusLabel.textContent = 'Offline';}
-    }
-  }
-
-  handleStreamError() {
-    this.setLiveStatus(false);
-    if (this.retryCount < CONFIG.stream.maxRetries) {
-      this.retryCount++;
-      setTimeout(() => this.loadStream(), CONFIG.stream.retryInterval);
-    }
-  }
-
-  toggleFullscreen() {
-    const player = document.querySelector('.video-wrapper');
-    if (!player) {return;}
-
-    if (!document.fullscreenElement) {
-      player.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen();
-    }
-  }
-
-  /**
-   * Periodically check if viewer has drifted behind live edge and sync back
-   */
-  startLiveSync() {
-    if (this.liveSyncInterval) {
-      clearInterval(this.liveSyncInterval);
-    }
-
-    this.liveSyncInterval = setInterval(() => {
-      if (!this.hls || !this.video || this.video.paused) {return;}
-
-      const liveEdge = this.hls.liveSyncPosition;
-      const currentTime = this.video.currentTime;
-      const latency = liveEdge - currentTime;
-
-      // If more than 5 seconds behind live, jump to live edge
-      if (latency > 5) {
-        this.video.currentTime = liveEdge - 1;
-      }
-    }, 5000);
-  }
-
-  /**
-   * Manual jump to live edge (can be called from UI)
-   */
-  jumpToLive() {
-    if (!this.hls || !this.video) {return;}
-    const liveEdge = this.hls.liveSyncPosition;
-    if (liveEdge) {
-      this.video.currentTime = liveEdge - 0.5;
-    }
-  }
-}
-
 class LiveChat {
   constructor() {
     /** @type {WebSocket|null} */
@@ -368,7 +22,11 @@ class LiveChat {
     this.authManager = auth.init();
     this.authManager.onAuthChange = () => this.reconnectWithAuth();
 
-    this.connect();
+    // Only connect if logged in
+    const token = localStorage.getItem('kt_auth_token');
+    if (token) {
+      this.connect();
+    }
     this.bindEvents();
   }
 
@@ -387,6 +45,11 @@ class LiveChat {
     this.ws.onopen = () => {
       this.reconnectAttempts = 0;
       this.addSystemMessage('Connected to chat');
+      const chatStatusDot = document.getElementById('chatStatusDot');
+      const chatStatusLabel = document.getElementById('chatStatusLabel');
+      chatStatusDot?.classList.replace('offline', 'live');
+      chatStatusLabel?.classList.replace('offline', 'live');
+      if (chatStatusLabel) {chatStatusLabel.textContent = 'Online';}
     };
 
     this.ws.onmessage = (event) => {
@@ -395,6 +58,11 @@ class LiveChat {
 
     this.ws.onclose = () => {
       this.addSystemMessage('Disconnected from chat');
+      const chatStatusDot = document.getElementById('chatStatusDot');
+      const chatStatusLabel = document.getElementById('chatStatusLabel');
+      chatStatusDot?.classList.replace('live', 'offline');
+      chatStatusLabel?.classList.replace('live', 'offline');
+      if (chatStatusLabel) {chatStatusLabel.textContent = 'Offline';}
       this.tryReconnect();
     };
 
@@ -409,9 +77,6 @@ class LiveChat {
     }
   }
 
-  /**
-   * Reconnect with fresh auth state (called after login/logout)
-   */
   reconnectWithAuth() {
     if (this.ws) {
       this.ws.close();
@@ -456,9 +121,6 @@ class LiveChat {
     }
   }
 
-  /**
-   * Handle moderation actions
-   */
   handleModAction(data) {
     switch (data.action) {
       case 'ban':
@@ -487,9 +149,6 @@ class LiveChat {
     }
   }
 
-  /**
-   * Add moderation message
-   */
   addModMessage(text) {
     if (!this.messagesContainer) {return;}
     const msgEl = document.createElement('div');
@@ -499,12 +158,13 @@ class LiveChat {
     this.scrollToBottom();
   }
 
-  /**
-   * Clear all chat messages
-   */
   clearChat() {
     if (!this.messagesContainer) {return;}
-    this.messagesContainer.innerHTML = '<div class="chat-welcome">Chat was cleared</div>';
+    this.messagesContainer.textContent = '';
+    const welcome = document.createElement('div');
+    welcome.className = 'chat-welcome';
+    welcome.textContent = 'Chat was cleared';
+    this.messagesContainer.appendChild(welcome);
   }
 
   bindEvents() {
@@ -551,16 +211,35 @@ class LiveChat {
     const msgEl = document.createElement('div');
     msgEl.className = 'chat-message';
 
-    // Build badge HTML for subscription tiers
-    let badge = '';
+    // Build message using safe DOM methods
     if (tier && tier !== 'free') {
-      badge = `<span class="chat-badge chat-badge-${tier}">${tier.toUpperCase()}</span>`;
+      const badge = document.createElement('span');
+      badge.className = `chat-badge chat-badge-${this.escapeHtml(tier)}`;
+      badge.textContent = tier.toUpperCase();
+      msgEl.appendChild(badge);
     }
 
-    // Add verified checkmark for authenticated users
-    const verified = isAuthenticated ? '<span class="chat-verified" title="Verified User">✓</span>' : '';
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'chat-username';
+    nameSpan.style.color = color;
+    nameSpan.textContent = username;
+    if (isAuthenticated) {
+      const verified = document.createElement('span');
+      verified.className = 'chat-verified';
+      verified.title = 'Verified User';
+      verified.textContent = '\u2713';
+      nameSpan.appendChild(verified);
+    }
+    nameSpan.appendChild(document.createTextNode(':'));
+    msgEl.appendChild(nameSpan);
 
-    msgEl.innerHTML = `${badge}<span class="chat-username" style="color: ${color}">${this.escapeHtml(username)}${verified}:</span> <span class="chat-text">${this.escapeHtml(message)}</span>`;
+    msgEl.appendChild(document.createTextNode(' '));
+
+    const textSpan = document.createElement('span');
+    textSpan.className = 'chat-text';
+    textSpan.textContent = message;
+    msgEl.appendChild(textSpan);
+
     this.messagesContainer.appendChild(msgEl);
     this.scrollToBottom();
   }
@@ -575,9 +254,7 @@ class LiveChat {
   }
 
   updateViewers(count) {
-    if (this.viewersDisplay) {this.viewersDisplay.textContent = `${count} watching`;}
-    const mainViewer = document.getElementById('viewerCount');
-    if (mainViewer) {mainViewer.textContent = `${count} viewers`;}
+    if (this.viewersDisplay) {this.viewersDisplay.textContent = `${count} online`;}
   }
 
   scrollToBottom() {
@@ -589,7 +266,7 @@ class LiveChat {
   escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
-    return div.innerHTML;
+    return div.textContent;
   }
 
   showFloatingEmoji(emoji) {
@@ -608,6 +285,5 @@ class LiveChat {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  new LivePlayer();
   new LiveChat();
 });
