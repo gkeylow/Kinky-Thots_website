@@ -14,7 +14,6 @@ export default defineConfig({
         main: resolve(__dirname, 'src/js/main.js'),
         // Page-specific entries
         index: resolve(__dirname, 'src/js/index.js'),
-        live: resolve(__dirname, 'src/js/live.js'),
         gallery: resolve(__dirname, 'src/js/gallery.js'),
         sissylonglegs: resolve(__dirname, 'src/js/sissylonglegs.js'),
         content: resolve(__dirname, 'src/js/content.js'),
