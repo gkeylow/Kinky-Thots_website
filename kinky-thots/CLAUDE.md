@@ -54,8 +54,14 @@ npm run lint
 npm run format
 ```
 
-## Rules
-- **NEVER add credentials (passwords, API keys, secrets, tokens) to any file that is committed to git.** All credentials go in `config/.credentials.md` (gitignored). Reference that file instead.
+## Rules — OPSEC
+- **NEVER add credentials** (passwords, API keys, secrets, tokens) to any git-tracked file. All credentials go in `config/.credentials.md` (gitignored). Reference that file instead.
+- **NEVER commit debug logging** that exposes user input, tokens, request bodies, or auth data. If debug logging is added temporarily, it MUST be removed before committing.
+- **Verify .gitignore** before creating any new config, credential, or environment file. Confirm it's covered BEFORE staging or committing.
+- **No internal infrastructure in client-facing code.** Never expose internal IPs, Docker container names, DB hostnames, or admin API paths in HTML/JS/CSS served to browsers.
+- **Clean up temp files** before committing. Remove `.save` files, debug scripts, test dumps, and any throwaway files from the working tree.
+
+## Rules — Code Style
 - 4-space indent: PHP
 - 2-space indent: JS/CSS
 - ES6+ modules, Tailwind utility classes preferred
