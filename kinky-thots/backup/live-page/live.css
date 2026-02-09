@@ -1,0 +1,280 @@
+/* live.css - Live stream + Owncast chat layout */
+/* Modeled after Owncast: chat fixed to viewport, left column scrolls */
+
+/* Hide footer on live page */
+.site-footer {
+  display: none;
+}
+
+/* ========== Base (mobile-first, stacked) ========== */
+html, body {
+  overflow: hidden;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.live-container {
+  margin: 0;
+  padding: 0;
+  padding-top: 48px;
+  box-sizing: border-box;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.live-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Video Section */
+.stream-section {
+  width: 100%;
+  background: #000;
+  overflow: hidden;
+  flex-shrink: 0;
+  height: 35%;
+}
+
+.stream-section iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* Chat Section */
+.chat-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  background: rgba(11, 208, 243, 0.1);
+  border: 1px solid rgba(11, 208, 243, 0.3);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.chat-header h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #f5f5f5;
+}
+
+.chat-wrapper {
+  position: relative;
+  flex: 1;
+  border: 1px solid rgba(11, 208, 243, 0.3);
+  border-radius: 0 0 10px 10px;
+  overflow: hidden;
+  background: #111;
+  box-sizing: border-box;
+}
+
+.chat-wrapper iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Login overlay - only visible for logged-out users */
+.chat-login-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+body.logged-out .chat-login-overlay {
+  display: flex;
+}
+
+.chat-login-overlay a {
+  color: #0bd0f3;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 0.4rem 1rem;
+  border: 1px solid #0bd0f3;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.chat-login-overlay a:hover {
+  background: rgba(11, 208, 243, 0.2);
+}
+
+/* Tip Button */
+.tip-btn {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #000;
+  border: none;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.tip-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+/* Tip Modal */
+.tip-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 9999;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 20px;
+  overflow-y: auto;
+}
+
+.tip-modal.active {
+  display: flex;
+}
+
+.tip-modal-content {
+  background: linear-gradient(135deg, #1a1a1a, #0f0f0f);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 16px;
+  padding: 20px;
+  padding-top: 45px;
+  text-align: center;
+  position: relative;
+  max-width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.tip-modal-content h3 {
+  color: #FFD700;
+  margin-bottom: 5px;
+  font-size: 1.3rem;
+}
+
+.tip-modal-content p {
+  color: #888;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+}
+
+.tip-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #444;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.tip-modal-close:hover {
+  background: rgba(255, 0, 0, 0.5);
+  border-color: #f00;
+}
+
+/* ========== Desktop (1024px+): Owncast-style layout ========== */
+/* Chat pinned to right side of viewport, left column scrolls independently */
+@media (min-width: 1024px) {
+  .live-content {
+    flex-direction: row;
+  }
+
+  /* Left column: video fills available space */
+  .stream-section {
+    flex: 1;
+    min-width: 0;
+    height: auto;
+    border-radius: 0;
+  }
+
+  /* Right column: chat, fixed width */
+  .chat-section {
+    width: 340px;
+    flex-shrink: 0;
+    border-left: 1px solid rgba(11, 208, 243, 0.15);
+    border-radius: 0;
+  }
+
+  .chat-header {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+  }
+
+  .chat-wrapper {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+  }
+}
+
+@media (min-width: 1400px) {
+  .chat-section {
+    width: 400px;
+  }
+}
+
+/* ========== Mobile: video takes less space on small screens ========== */
+@media (max-width: 480px) {
+  .stream-section {
+    height: 30%;
+  }
+}
+
+/* ========== Print ========== */
+@media print {
+  nav, .site-footer, .tip-btn, .tip-modal { display: none; }
+  .live-container { margin: 0; padding: 0; }
+}
+
+/* ========== Reduced motion ========== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

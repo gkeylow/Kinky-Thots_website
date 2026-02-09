@@ -20,7 +20,7 @@ body {
 }
 
 main.container {
-    padding-top: 120px;
+    padding-top: 85px;
     padding-bottom: 60px;
     min-height: calc(100vh - 200px);
 }
@@ -123,7 +123,7 @@ main.container {
    =========================================== */
 
 .content-main {
-    padding-top: 140px;
+    padding-top: 105px;
     padding-bottom: 60px;
     min-height: calc(100vh - 200px);
 }
@@ -243,7 +243,7 @@ main.container {
 
 @media (max-width: 768px) {
     main.container {
-        padding-top: 100px;
+        padding-top: 68px;
         padding-left: 1rem;
         padding-right: 1rem;
     }
@@ -265,7 +265,7 @@ main.container {
     }
 
     .content-main {
-        padding-top: 120px;
+        padding-top: 85px;
     }
 
     .content-container {
