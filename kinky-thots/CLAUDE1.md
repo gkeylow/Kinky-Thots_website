@@ -779,8 +779,7 @@ Replaced localtonet with self-hosted Linode reverse proxy:
 - IMAP/SMTP now use trusted SSL (no security warnings)
 
 ### Mail Server Credentials
-- Webui: https://mail.kinky-thots.com (admin / REDACTED_OLD_MAIL_PASSWORD)
-- IMAP/SMTP: admin@kinky-thots.com (same password)
+- See `config/.credentials.md` for all mail server credentials
 
 ### Bug Fixes (Jan 14, 2026)
 
