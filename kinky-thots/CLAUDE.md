@@ -54,7 +54,8 @@ npm run lint
 npm run format
 ```
 
-## Code Style
+## Rules
+- **NEVER add credentials (passwords, API keys, secrets, tokens) to any file that is committed to git.** All credentials go in `config/.credentials.md` (gitignored). Reference that file instead.
 - 4-space indent: PHP
 - 2-space indent: JS/CSS
 - ES6+ modules, Tailwind utility classes preferred
