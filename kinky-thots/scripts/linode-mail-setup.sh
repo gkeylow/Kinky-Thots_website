@@ -77,8 +77,9 @@ echo "=== Waiting for mailserver to initialize ==="
 sleep 30
 
 echo "=== Creating email accounts ==="
-docker exec mailserver setup email add admin@kinky-thots.com REDACTED_DB_PASSWORD
-docker exec mailserver setup email add sissylonglegs@kinky-thots.com REDACTED_DB_PASSWORD
+echo "Run these commands manually with your chosen passwords:"
+echo "  docker exec mailserver setup email add admin@kinky-thots.com YOUR_PASSWORD"
+echo "  docker exec mailserver setup email add sissylonglegs@kinky-thots.com YOUR_PASSWORD"
 
 echo "=== Generating DKIM keys ==="
 docker exec mailserver setup config dkim
