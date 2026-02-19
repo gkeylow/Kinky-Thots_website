@@ -4,7 +4,7 @@
 
 UPLOADS_DIR="/var/www/kinky-thots/uploads"
 DB_USER="gkeylow"
-DB_PASS="REDACTED_DB_PASSWORD"
+DB_PASS="${MARIADB_PASSWORD:?Set MARIADB_PASSWORD env var}"
 DB_NAME="gallery_db"
 
 echo "=== Gallery Cleanup Utility ==="

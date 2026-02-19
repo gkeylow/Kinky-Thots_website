@@ -2,7 +2,7 @@
 # PushrCDN Configuration Checker
 # Tests if CDN zones are properly configured and serving content
 
-API_KEY="REDACTED_PUSHR_API_KEY"
+API_KEY="${PUSHR_API_KEY:?Set PUSHR_API_KEY env var}"
 API_URL="https://www.pushrcdn.com/api/v3"
 ORIGIN_URL="https://kinky-thots.com"
 

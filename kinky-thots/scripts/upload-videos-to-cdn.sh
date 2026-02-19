@@ -2,7 +2,7 @@
 # Upload videos from /media/porn to PushrCDN storage zone
 # This saves local storage by hosting videos on the CDN
 
-API_KEY="REDACTED_PUSHR_API_KEY"
+API_KEY="${PUSHR_API_KEY:?Set PUSHR_API_KEY env var}"
 API_URL="https://www.pushrcdn.com/api/v3"
 ZONE_ID="6295"  # my-videos storage zone
 SOURCE_DIR="/media/porn"

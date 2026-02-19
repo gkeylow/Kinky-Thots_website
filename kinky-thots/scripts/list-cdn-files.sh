@@ -1,7 +1,7 @@
 #!/bin/bash
 # List all files in PushrCDN storage zone
 
-API_KEY="REDACTED_PUSHR_API_KEY"
+API_KEY="${PUSHR_API_KEY:?Set PUSHR_API_KEY env var}"
 ZONE_ID="${1:-6295}"  # Default to my-videos zone
 OUTPUT_FILE="/var/www/kinky-thots/cdn-files-zone-${ZONE_ID}.json"
 

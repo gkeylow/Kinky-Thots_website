@@ -13,7 +13,7 @@ SITE_DIR="/var/www/kinky-thots"
 SMTP_HOST="mail.kinky-thots.com"
 SMTP_PORT="587"
 SMTP_USER="admin@kinky-thots.com"
-SMTP_PASS="REDACTED_OLD_MAIL_PASSWORD"
+SMTP_PASS="${SMTP_PASSWORD:?Set SMTP_PASSWORD env var}"
 EMAIL_TO="admin@kinky-thots.com"
 EMAIL_FROM="backup@kinky-thots.com"
 
@@ -25,7 +25,7 @@ echo "[$(date)] Starting backup: $DATE"
 
 # 1. Database dump
 echo "[$(date)] Dumping database..."
-docker exec kinky-db mysqldump -u root -pREDACTED_DB_PASSWORD --all-databases > "$BACKUP_DIR/database.sql" 2>/dev/null
+docker exec kinky-db mysqldump -u root -p"${MARIADB_PASSWORD:?Set MARIADB_PASSWORD env var}" --all-databases > "$BACKUP_DIR/database.sql" 2>/dev/null
 
 # 2. Copy critical config files
 echo "[$(date)] Copying config files..."

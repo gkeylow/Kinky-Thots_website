@@ -136,7 +136,7 @@ docker network inspect kinky-thots_kinky-network
 
 ```bash
 # 1. Defined in .env file
-MARIADB_PASSWORD=REDACTED_DB_PASSWORD
+MARIADB_PASSWORD=<see config/.credentials.md>
 
 # 2. Referenced in docker-compose.yml
 environment:
@@ -643,7 +643,7 @@ docker-compose logs -f backend
 docker-compose exec backend bash
 
 # Access database
-docker-compose exec db mysql -u root -pREDACTED_DB_PASSWORD kinky_thots
+docker-compose exec db mysql -u root -p<see config/.credentials.md> kinky_thots
 
 # Check all services health
 docker-compose ps
@@ -691,7 +691,7 @@ alias dcb='docker-compose build'
 alias kt-up='cd /var/www/kinky-thots && docker-compose up -d'
 alias kt-down='cd /var/www/kinky-thots && docker-compose down'
 alias kt-logs='cd /var/www/kinky-thots && docker-compose logs -f'
-alias kt-db='cd /var/www/kinky-thots && docker-compose exec db mysql -u root -pREDACTED_DB_PASSWORD kinky_thots'
+alias kt-db='cd /var/www/kinky-thots && docker-compose exec db mysql -u root -p<see config/.credentials.md> kinky_thots'
 alias kt-backend='cd /var/www/kinky-thots && docker-compose exec backend bash'
 ```
 
@@ -740,7 +740,7 @@ docker-compose logs -f backend
 
 ```bash
 # 1. Backup database first
-docker-compose exec db mysqldump -u root -pREDACTED_DB_PASSWORD kinky_thots > backup.sql
+docker-compose exec db mysqldump -u root -p<see config/.credentials.md> kinky_thots > backup.sql
 
 # 2. Run migration
 docker-compose exec backend npm run migrate

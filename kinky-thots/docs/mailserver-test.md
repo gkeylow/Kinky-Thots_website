@@ -55,7 +55,7 @@ docker exec mailserver swaks \
   --from admin@kinky-thots.com \
   --server localhost \
   --auth-user admin@kinky-thots.com \
-  --auth-password REDACTED_DB_PASSWORD
+  --auth-password <see config/.credentials.md>
 ```
 
 ### 7. Check Mail Queue
