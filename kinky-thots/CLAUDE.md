@@ -16,7 +16,7 @@
 ## Infrastructure
 | Component | IP | Details |
 |-----------|-----|---------|
-| **Reverse Proxy** | 45.79.208.9 | Linode — nginx, SSL, mail server |
+| **Reverse Proxy** | 173.230.140.170 | Linode — nginx, SSL, mail server (IP changed Feb 2026) |
 | **Streaming** | 170.187.144.130 | Linode — Owncast (RTMP + HLS) |
 | **Production** | local | Home server Docker: kinky-web, kinky-backend, kinky-db, pihole |
 | **Tunnel** | localhost:8081, :3003 | SSH reverse tunnel (autossh) to Linode |

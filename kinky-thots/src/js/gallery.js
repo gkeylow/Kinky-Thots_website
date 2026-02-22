@@ -246,7 +246,15 @@ async function handleUpload(e) {
           showStatus('Upload failed: ' + (data.error || 'Unknown error'), 'error');
         }
       } else {
-        showStatus('Upload failed: Server error', 'error');
+        let errMsg = `Server error (${xhr.status})`;
+        try {
+          const errData = JSON.parse(xhr.responseText);
+          if (errData.error) errMsg += ': ' + errData.error;
+          if (errData.details) errMsg += ' — ' + errData.details;
+        } catch (_) {
+          if (xhr.responseText) errMsg += ': ' + xhr.responseText.substring(0, 200);
+        }
+        showStatus('Upload failed: ' + errMsg, 'error');
       }
     };
 

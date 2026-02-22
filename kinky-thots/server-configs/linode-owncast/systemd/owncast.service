@@ -1,0 +1,12 @@
+[Unit]
+Description=Owncast Streaming Server
+
+[Service]
+Type=simple
+RestartSec=5
+WorkingDirectory=/usr/share/owncast/
+ExecStart=/usr/share/owncast/owncast
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

@@ -33,9 +33,9 @@ $pageCss = $pageCss ?? [];
     <title><?php echo htmlspecialchars($pageTitle); ?></title>
     <link rel="icon" type="image/png" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png">
     <link rel="canonical" href="https://kinky-thots.com">
-    <link rel="stylesheet" href="https://kinky-thots.xxx/assets/dist/css/main.css?v=<?php echo date('YmdHi'); ?>">
+    <link rel="stylesheet" href="/assets/dist/css/main.css?v=<?php echo date('YmdHi'); ?>">
 <?php foreach ($pageCss as $css): ?>
-    <link rel="stylesheet" href="https://kinky-thots.xxx<?php echo htmlspecialchars($css); ?>?v=<?php echo date('YmdHi'); ?>">
+    <link rel="stylesheet" href="<?php echo htmlspecialchars($css); ?>?v=<?php echo date('YmdHi'); ?>">
 <?php endforeach; ?>
 </head>
 <body>
