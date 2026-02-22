@@ -1,0 +1,11 @@
+[postfix]
+enabled = true
+maxretry = 3
+findtime = 600
+bantime = 604800
+
+[dovecot]
+enabled = true
+maxretry = 3
+findtime = 600
+bantime = 604800
