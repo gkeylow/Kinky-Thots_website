@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="author" content="kinky-thots"/>
+    <meta name="copyright" content="kinky-thots"/>
+    <meta name="robots" content="noindex,nofollow"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png" type="image/x-icon">
+    <title>Register - Kinky Thots</title>
+    <link rel="stylesheet" href="/assets/dist/css/main.css?v=202601280001">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .login-main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            margin-top: 80px;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h1 {
+            color: #f805a7;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-header p {
+            color: #b0b0b0;
+            font-size: 1.1rem;
+        }
+
+        .auth-modal {
+            background: #222;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #333;
+        }
+
+        .auth-tab {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .auth-tab.active {
+            color: #f805a7;
+            border-bottom-color: #f805a7;
+        }
+
+        .auth-tab:hover {
+            color: #fff;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .auth-field {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .auth-label {
+            display: block;
+            color: #f5f5f5;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+
+        .auth-input {
+            width: 100%;
+            max-width: 320px;
+            padding: 0.875rem 1rem;
+            background: #181818;
+            border: 2px solid #333;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            display: block;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: #f805a7;
+        }
+
+        .auth-input:-webkit-autofill,
+        .auth-input:-webkit-autofill:hover,
+        .auth-input:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 1000px #181818 inset !important;
+            -webkit-text-fill-color: #fff !important;
+            caret-color: #fff;
+        }
+
+        .auth-submit {
+            width: 100%;
+            max-width: 320px;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f805a7, #0bd0f3);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 1rem auto 0;
+            display: block;
+        }
+
+        .auth-submit:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(248, 5, 167, 0.4);
+        }
+
+        .auth-error {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #333;
+        }
+
+        .auth-footer p {
+            color: #888;
+            font-size: 0.95rem;
+        }
+
+        .auth-footer a {
+            color: #f805a7;
+            text-decoration: none;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .password-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+
+        .password-wrapper .auth-input {
+            padding-right: 45px;
+            margin: 0;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            transition: color 0.2s;
+        }
+
+        .password-toggle:hover {
+            color: #f805a7;
+        }
+
+        .password-toggle svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .verification-pending {
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        .verification-pending h3 {
+            color: #0bd0f3;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .verification-pending p {
+            color: #ccc;
+            margin-bottom: 1rem;
+        }
+
+        .verification-pending .email-highlight {
+            color: #f805a7;
+            font-weight: bold;
+        }
+
+        .resend-link {
+            color: #0bd0f3;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .resend-link:hover { color: #f805a7; }
+
+        .resend-link.disabled {
+            color: #666;
+            cursor: not-allowed;
+            text-decoration: none;
+        }
+
+        .auth-success {
+            color: #2ecc71;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+
+        @media (max-width: 768px) {
+            .login-header h1 { font-size: 2rem; }
+            .auth-modal { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+<nav id="navbar">
+    <div class="nav-container">
+        <div class="logo">
+            <a href="/index.html">Kinky-Thots<img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="50px"></a>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/index.html">Home</a></li>
+            <li class="dropdown">
+                <button class="dropdown-toggle">Models</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/sissylonglegs.html">Sissy Long Legs</a></li>
+                    <li><a href="/bustersherry.html">Buster Sherry</a></li>
+                </ul>
+            </li>
+            <li class="dropdown">
+                <button class="dropdown-toggle">Content</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/free-content.php">Free Teasers</a></li>
+                    <li><a href="/plus-content.php">Plus Videos</a></li>
+                    <li><a href="/premium-content.php">Full Access</a></li>
+                    <li><a href="https://owncast.kinky-thots.xxx" target="_blank">Live Cam</a></li>
+                </ul>
+            </li>
+            <li class="dropdown">
+                <button class="dropdown-toggle">Socials</button>
+                <ul class="dropdown-menu">
+                    <li><a href="https://onlyfans.com/kinkythots" target="_blank">OnlyFans</a></li>
+                    <li><a href="https://sharesome.com/KinkyThots" target="_blank">Sharesome</a></li>
+                    <li><a href="https://kinky-thots.bdsmlr.com" target="_blank">BDSMLR</a></li>
+                    <li><a href="https://facebook.com/kinkythots" target="_blank">Facebook</a></li>
+                    <li><a href="https://x.com/kinkythotsmodel" target="_blank">X (Twitter)</a></li>
+                </ul>
+            </li>
+            <li class="dropdown" id="userDropdown">
+                <button class="dropdown-toggle" id="userTrigger">Account</button>
+                <ul class="dropdown-menu">
+                    <li><a href="/profile.html">My Profile</a></li>
+                    <li><a href="/members.html">Members</a></li>
+                    <li><a href="/profile.html#security">Security</a></li>
+                    <li><a href="/subscriptions.html">Subscription</a></li>
+                    <li id="adminLink" style="display:none;"><a href="/admin.html" style="color:#f805a7;">Admin Dashboard</a></li>
+                    <li><a href="#" id="logoutLink">Logout</a></li>
+                </ul>
+            </li>
+            <li id="loginItem"><a href="/login.html" class="login-btn" id="authTrigger">Login</a></li>
+        </ul>
+        <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
+    </div>
+</nav>
+
+<main class="login-main">
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Create Account</h1>
+            <p>Join Kinky-Thots for exclusive content</p>
+        </div>
+
+        <div class="auth-modal">
+            <div class="auth-tabs">
+                <button class="auth-tab" data-tab="login">Login</button>
+                <button class="auth-tab active" data-tab="register">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form class="auth-form" id="loginForm">
+                <div class="auth-field">
+                    <label class="auth-label" for="loginEmail">Email or Username</label>
+                    <input type="text" class="auth-input" id="loginEmail" placeholder="Enter email or username" required>
+                </div>
+                <div class="auth-field">
+                    <label class="auth-label" for="loginPassword">Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" class="auth-input" id="loginPassword" placeholder="Enter password" required>
+                        <button type="button" class="password-toggle" data-target="loginPassword" aria-label="Toggle password visibility">
+                            <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                            <svg class="eye-closed" style="display:none" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>
+                        </button>
+                    </div>
+                    <div class="auth-error" id="loginError"></div>
+                </div>
+                <button type="submit" class="auth-submit">Login</button>
+                <a href="/login.html" class="auth-forgot-link" style="display:block;text-align:center;color:#0bd0f3;text-decoration:none;margin-top:1rem;font-size:.95rem;">Forgot Password?</a>
+            </form>
+
+            <!-- Register Form -->
+            <form class="auth-form active" id="registerForm">
+                <div class="auth-field">
+                    <label class="auth-label" for="registerUsername">Username</label>
+                    <input type="text" class="auth-input" id="registerUsername" placeholder="3-30 characters" required minlength="3" maxlength="30" autofocus>
+                </div>
+                <div class="auth-field">
+                    <label class="auth-label" for="registerEmail">Email</label>
+                    <input type="email" class="auth-input" id="registerEmail" placeholder="Enter your email" required>
+                </div>
+                <div class="auth-field">
+                    <label class="auth-label" for="registerPassword">Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" class="auth-input" id="registerPassword" placeholder="Min 8 chars, upper, lower, number" required minlength="8">
+                        <button type="button" class="password-toggle" data-target="registerPassword" aria-label="Toggle password visibility">
+                            <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                            <svg class="eye-closed" style="display:none" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="auth-field">
+                    <label class="auth-label" for="registerConfirm">Confirm Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" class="auth-input" id="registerConfirm" placeholder="Confirm password" required>
+                        <button type="button" class="password-toggle" data-target="registerConfirm" aria-label="Toggle password visibility">
+                            <svg class="eye-open" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                            <svg class="eye-closed" style="display:none" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>
+                        </button>
+                    </div>
+                    <div class="auth-error" id="registerError"></div>
+                </div>
+                <button type="submit" class="auth-submit">Create Account</button>
+            </form>
+
+            <!-- Verification Pending -->
+            <div class="auth-form" id="verificationPending">
+                <div class="verification-pending">
+                    <h3>Check Your Email</h3>
+                    <p>We've sent a verification link to:</p>
+                    <p class="email-highlight" id="pendingEmail"></p>
+                    <p style="margin-top:1.5rem;">Please click the link in your email to verify your account.</p>
+                    <p style="margin-top:1rem;color:#888;font-size:.9rem;">
+                        Didn't receive it?
+                        <span class="resend-link" id="resendVerification">Resend verification email</span>
+                    </p>
+                    <div class="auth-success" id="resendSuccess" style="text-align:center;"></div>
+                    <div class="auth-error" id="resendError" style="text-align:center;"></div>
+                    <button type="button" class="auth-submit" style="margin-top:1.5rem;" id="backToRegister">Back to Register</button>
+                </div>
+            </div>
+
+            <div class="auth-footer">
+                <p>Already have an account? <a href="/login.html">Login</a></p>
+                <p style="margin-top:0.75rem;">By registering, you agree to our <a href="/terms.html">Terms &amp; Conditions</a></p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-left">
+                <p>&copy; <?php echo date('Y'); ?> <a href="/index.html">Kinky-Thots</a> <img src="https://i.ibb.co/vCYpJSng/icon-kt-250.png" width="25px"> All rights reserved.</p>
+            </div>
+            <div class="footer-right">
+                <a href="/terms.php" class="footer-link">Terms</a>
+                <a href="/privacy.php" class="footer-link">Privacy</a>
+                <a href="/2257.php" class="footer-link">2257</a>
+                <a href="https://status.kinky-thots.xxx/status/services" class="footer-link" target="_blank">Status</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script type="module" src="/assets/dist/js/main.js"></script>
+<script>
+(function() {
+  const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3002' : '';
+  let pendingVerificationEmail = null;
+
+  // Redirect if already logged in
+  const token = localStorage.getItem('kt_auth_token');
+  const user = JSON.parse(localStorage.getItem('kt_auth_user') || 'null');
+  if (token && user) {
+    window.location.replace('/profile.html');
+    return;
+  }
+  document.body.classList.add('logged-out');
+
+  // Password toggles
+  document.querySelectorAll('.password-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target);
+      const eyeOpen = btn.querySelector('.eye-open');
+      const eyeClosed = btn.querySelector('.eye-closed');
+      if (input.type === 'password') {
+        input.type = 'text';
+        eyeOpen.style.display = 'none';
+        eyeClosed.style.display = 'block';
+      } else {
+        input.type = 'password';
+        eyeOpen.style.display = 'block';
+        eyeClosed.style.display = 'none';
+      }
+    });
+  });
+
+  // Tab switching
+  document.querySelectorAll('.auth-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab + 'Form').classList.add('active');
+    });
+  });
+
+  // Login form
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('.auth-submit');
+    const errorDiv = document.getElementById('loginError');
+    const orig = btn.textContent;
+    btn.textContent = 'Logging in...';
+    btn.disabled = true;
+    errorDiv.style.display = 'none';
+    try {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: document.getElementById('loginEmail').value,
+          password: document.getElementById('loginPassword').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        errorDiv.textContent = data.error || 'Login failed';
+        errorDiv.style.display = 'block';
+        btn.textContent = orig;
+        btn.disabled = false;
+        return;
+      }
+      localStorage.setItem('kt_auth_token', data.token);
+      localStorage.setItem('kt_auth_user', JSON.stringify(data.user));
+      window.location.href = new URLSearchParams(window.location.search).get('redirect') || '/profile.html';
+    } catch {
+      errorDiv.textContent = 'Connection error. Please try again.';
+      errorDiv.style.display = 'block';
+      btn.textContent = orig;
+      btn.disabled = false;
+    }
+  });
+
+  // Register form
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('.auth-submit');
+    const errorDiv = document.getElementById('registerError');
+    const password = document.getElementById('registerPassword').value;
+    const confirm = document.getElementById('registerConfirm').value;
+
+    if (password !== confirm) {
+      errorDiv.textContent = 'Passwords do not match';
+      errorDiv.style.display = 'block';
+      return;
+    }
+
+    const orig = btn.textContent;
+    btn.textContent = 'Creating account...';
+    btn.disabled = true;
+    errorDiv.style.display = 'none';
+
+    try {
+      const res = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('registerUsername').value,
+          email: document.getElementById('registerEmail').value,
+          password
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        errorDiv.textContent = data.error || 'Registration failed';
+        errorDiv.style.display = 'block';
+        btn.textContent = orig;
+        btn.disabled = false;
+        return;
+      }
+      if (data.requiresVerification) {
+        pendingVerificationEmail = data.email;
+        document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+        document.getElementById('verificationPending').classList.add('active');
+        document.getElementById('pendingEmail').textContent = data.email;
+        btn.textContent = orig;
+        btn.disabled = false;
+        return;
+      }
+      if (data.token) {
+        localStorage.setItem('kt_auth_token', data.token);
+        localStorage.setItem('kt_auth_user', JSON.stringify(data.user));
+        window.location.href = '/profile.html';
+      }
+    } catch {
+      errorDiv.textContent = 'Connection error. Please try again.';
+      errorDiv.style.display = 'block';
+      btn.textContent = orig;
+      btn.disabled = false;
+    }
+  });
+
+  // Back to register
+  document.getElementById('backToRegister').addEventListener('click', () => {
+    document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+    document.getElementById('registerForm').classList.add('active');
+    document.querySelectorAll('.auth-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.tab === 'register');
+    });
+  });
+
+  // Resend verification
+  let resendCooldown = false;
+  document.getElementById('resendVerification').addEventListener('click', async () => {
+    if (resendCooldown || !pendingVerificationEmail) return;
+    const link = document.getElementById('resendVerification');
+    const successDiv = document.getElementById('resendSuccess');
+    const errorDiv = document.getElementById('resendError');
+    link.classList.add('disabled');
+    link.textContent = 'Sending...';
+    successDiv.style.display = 'none';
+    errorDiv.style.display = 'none';
+    try {
+      const res = await fetch(`${API_URL}/api/auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pendingVerificationEmail })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        successDiv.textContent = 'Verification email sent! Check your inbox.';
+        successDiv.style.display = 'block';
+        resendCooldown = true;
+        let countdown = 300;
+        const timer = setInterval(() => {
+          countdown--;
+          link.textContent = `Resend in ${Math.floor(countdown / 60)}:${String(countdown % 60).padStart(2, '0')}`;
+          if (countdown <= 0) {
+            clearInterval(timer);
+            resendCooldown = false;
+            link.classList.remove('disabled');
+            link.textContent = 'Resend verification email';
+          }
+        }, 1000);
+      } else {
+        errorDiv.textContent = data.error || 'Failed to resend email';
+        errorDiv.style.display = 'block';
+        link.classList.remove('disabled');
+        link.textContent = 'Resend verification email';
+      }
+    } catch {
+      errorDiv.textContent = 'Connection error. Please try again.';
+      errorDiv.style.display = 'block';
+      link.classList.remove('disabled');
+      link.textContent = 'Resend verification email';
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
