@@ -26,15 +26,16 @@ $bodyClass = $bodyClass ?? '';
     <meta name="copyright" content="kinky-thots">
     <title><?php echo htmlspecialchars($pageTitle); ?></title>
     <link rel="icon" type="image/png" href="https://i.ibb.co/gZY9MTG4/icon-kt-favicon.png">
-    <link rel="stylesheet" href="/assets/dist/css/main.css?v=<?php echo date('YmdHi'); ?>">
+    <link rel="stylesheet" href="/assets/dist/css/main.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/assets/dist/css/main.css'); ?>">
 <?php foreach ($pageCss as $css): ?>
 <?php
     // Handle relative CSS names - prepend path if needed
     if (strpos($css, '/') === false) {
         $css = '/assets/dist/css/' . $css;
     }
+    $cssFile = $_SERVER['DOCUMENT_ROOT'] . $css;
 ?>
-    <link rel="stylesheet" href="<?php echo htmlspecialchars($css); ?>?v=<?php echo date('YmdHi'); ?>">
+    <link rel="stylesheet" href="<?php echo htmlspecialchars($css); ?>?v=<?php echo file_exists($cssFile) ? filemtime($cssFile) : '1'; ?>">
 <?php endforeach; ?>
 <?php if ($pageStyles): ?>
     <style>

@@ -79,6 +79,12 @@ RewriteEngine On
 # Block access to node_modules
 RewriteRule ^node_modules/ - [F,L]
 
+# Serve extensionless URLs as .html (e.g. /login -> /login.html)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.html -f
+RewriteRule ^(.+)$ /$1.html [L]
+
 # Redirect .php to .html for pages that only exist as HTML
 # (fixes browser-cached 301s from previous config)
 RewriteCond %{REQUEST_FILENAME} !-f
