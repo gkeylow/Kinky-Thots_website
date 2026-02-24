@@ -34,14 +34,16 @@ function initLightbox() {
     const video = document.createElement('video');
     video.controls = true;
     video.setAttribute('playsinline', '');  // Required for inline playback on iOS
-    // Set src directly — more reliable than <source> child for dynamically created elements
-    video.src = src;
 
     content.appendChild(closeBtn);
     content.appendChild(video);
     overlay.appendChild(content);
     document.body.appendChild(overlay);
     document.body.style.overflow = 'hidden';
+
+    // Set src after element is in the DOM — Safari/iOS rejects src on detached elements
+    video.src = src;
+    video.load();
 
     const close = () => {
       video.pause();
