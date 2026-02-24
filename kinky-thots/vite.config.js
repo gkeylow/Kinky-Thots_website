@@ -17,6 +17,7 @@ export default defineConfig({
         gallery: resolve(__dirname, 'src/js/gallery.js'),
         sissylonglegs: resolve(__dirname, 'src/js/sissylonglegs.js'),
         content: resolve(__dirname, 'src/js/content.js'),
+        porn: resolve(__dirname, 'src/js/porn.js'),
       },
       output: {
         entryFileNames: 'js/[name].js',
