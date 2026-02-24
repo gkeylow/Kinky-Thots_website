@@ -297,7 +297,7 @@ include __DIR__ . '/includes/header.php';
 
 <?php include __DIR__ . '/includes/footer.php'; ?>
 
-<script type="module" src="/assets/dist/js/porn.js"></script>
+<script type="module" src="/assets/dist/js/porn.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/assets/dist/js/porn.js'); ?>"></script>
 <script>
 // Content gating for Plus tier
 (function() {
