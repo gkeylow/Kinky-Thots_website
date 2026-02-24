@@ -34,26 +34,19 @@ function initLightbox() {
     const video = document.createElement('video');
     video.controls = true;
     video.setAttribute('playsinline', '');  // Required for inline playback on iOS
+    // Set src directly — more reliable than <source> child for dynamically created elements
+    video.src = src;
 
-    const source = document.createElement('source');
-    source.src = src;
-    source.type = type;
-
-    video.appendChild(source);
     content.appendChild(closeBtn);
     content.appendChild(video);
     overlay.appendChild(content);
     document.body.appendChild(overlay);
     document.body.style.overflow = 'hidden';
 
-    // Attempt autoplay — works on desktop; on mobile requires user gesture after tap
-    video.play().catch(() => {
-      // Autoplay blocked by browser policy — controls are visible so user can tap play
-    });
-
     const close = () => {
       video.pause();
-      video.src = '';
+      video.removeAttribute('src');
+      video.load();
       overlay.remove();
       document.body.style.overflow = '';
     };
