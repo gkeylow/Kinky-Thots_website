@@ -25,6 +25,12 @@ RUN a2enmod rewrite headers expires proxy proxy_http proxy_wstunnel ssl
 # Set working directory
 WORKDIR /var/www/html
 
+# Harden Apache and PHP: suppress version disclosure
+RUN sed -i 's/^ServerTokens OS$/ServerTokens Prod/' /etc/apache2/conf-available/security.conf \
+    && sed -i 's/^#ServerSignature Off$/ServerSignature Off/' /etc/apache2/conf-available/security.conf \
+    && sed -i '/^ServerSignature On$/d' /etc/apache2/conf-available/security.conf \
+    && echo "expose_php = Off" > /usr/local/etc/php/conf.d/security.ini
+
 # Copy Apache configuration
 COPY apache.conf /etc/apache2/sites-available/000-default.conf
 

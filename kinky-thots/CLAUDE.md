@@ -66,3 +66,54 @@ npm run format
 - 2-space indent: JS/CSS
 - ES6+ modules, Tailwind utility classes preferred
 - Run `npm run lint` and `npm run format` before committing
+
+## SSH Access & Tunnel Infrastructure
+
+### How to SSH into this server
+This server is behind NAT and only reachable via a reverse SSH tunnel through the mail/proxy Linode.
+
+**From any machine with the Termius key:**
+```bash
+ssh -i termius_key \
+  -o "ProxyCommand ssh -i termius_key -W 127.0.0.1:2222 -p 22 root@173.230.140.170" \
+  -p 2222 root@127.0.0.1
+```
+
+**Or add to ~/.ssh/config:**
+```
+Host kinky-thots
+    HostName 127.0.0.1
+    Port 2222
+    User root
+    IdentityFile ~/.ssh/termius_key
+    ProxyCommand ssh -i ~/.ssh/termius_key -W 127.0.0.1:2222 -p 22 root@173.230.140.170
+```
+
+### Reverse SSH Tunnel (ssh-tunnel.service)
+- **Service**: `/etc/systemd/system/ssh-tunnel.service`
+- **Managed by**: autossh (persistent, auto-reconnects)
+- **Tunnels to**: `root@173.230.140.170` (mail/proxy Linode)
+- **Port 2222** on mail proxy (`127.0.0.1:2222`) → this server SSH (port 22)
+- Port 2222 is loopback-only on the mail proxy by design — use ProxyCommand above
+
+**Ports forwarded via tunnel:**
+| Remote (mail proxy localhost) | Local (this server) |
+|-------------------------------|---------------------|
+| :2222 | :22 (SSH) |
+| :8081 | :80 (web) |
+| :3003 | :3002 (backend) |
+| :3001 | :3001 |
+| :2283 | :2283 |
+
+**Owncast tunnel**: `/etc/systemd/system/ssh-tunnel-owncast.service`
+- Tunnels SSH access to Owncast Linode (`root@170.187.144.130`)
+
+### Tunnel Fixes Applied (Feb 28, 2026)
+- Removed `ExitOnForwardFailure=yes` from both tunnel services — a single port bind failure no longer tears down all tunnels
+- Changed `RestartSec=10` → `RestartSec=30` on both services — reduces reconnect rate and prevents fail2ban triggering
+- Added `172.59.114.22` (this server public IP) to `ignoreip` in `/etc/fail2ban/jail.local` on the mail proxy — prevents autossh reconnects from getting this server banned
+
+### Mail Proxy fail2ban (173.230.140.170)
+- Config: `/etc/fail2ban/jail.local`
+- `maxretry=3`, `findtime=600s`, `bantime=604800s` (7 days)
+- Whitelisted IPs: `127.0.0.1/8`, `::1`, `172.59.114.22`

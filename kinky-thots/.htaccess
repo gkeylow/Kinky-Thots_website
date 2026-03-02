@@ -2,8 +2,8 @@
 # SECURITY RULES
 # =============================================
 
-# Block access to sensitive files and directories
-<FilesMatch "^\.">
+# Block access to dotfiles except .well-known (IndieAuth metadata, ACME challenges)
+<FilesMatch "^\.(?!well-known)">
     Require all denied
 </FilesMatch>
 
@@ -76,6 +76,10 @@ ServerSignature Off
 
 RewriteEngine On
 
+# IndieAuth: route /u/{username} to u.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^u/([^/]+)/?$ /u.php [L,QSA]
+
 # Block access to node_modules
 RewriteRule ^node_modules/ - [F,L]
 
@@ -97,6 +101,11 @@ RewriteRule ^(.*)$ /gallery.php [R=302,L]
 # Force HTTPS (uncomment when ready)
 # RewriteCond %{HTTPS} off
 # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Serve .well-known/indieauth-server as JSON (no file extension)
+<Files "indieauth-server">
+    ForceType application/json
+</Files>
 
 # =============================================
 # COMPRESSION
@@ -128,5 +137,7 @@ RewriteRule ^(.*)$ /gallery.php [R=302,L]
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+    Header always unset X-Powered-By
+    Header always unset Server
 </IfModule>
 
