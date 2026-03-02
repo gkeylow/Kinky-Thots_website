@@ -1,0 +1,82 @@
+# Immich - Self-hosted Google Photos alternative
+# https://immich.app
+# Deployed: 2026-02-04
+
+name: immich
+
+services:
+  immich-server:
+    container_name: immich_server
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    volumes:
+      - ${UPLOAD_LOCATION}:/usr/src/app/upload
+      - /etc/localtime:/etc/localtime:ro
+      # Custom branding - Kinky-Thots icons
+      - ./custom-icons/favicon.ico:/build/www/favicon.ico:ro
+      - ./custom-icons/favicon.png:/build/www/favicon.png:ro
+      - ./custom-icons/favicon-16.png:/build/www/favicon-16.png:ro
+      - ./custom-icons/favicon-32.png:/build/www/favicon-32.png:ro
+      - ./custom-icons/favicon-48.png:/build/www/favicon-48.png:ro
+      - ./custom-icons/favicon-96.png:/build/www/favicon-96.png:ro
+      - ./custom-icons/favicon-144.png:/build/www/favicon-144.png:ro
+      - ./custom-icons/apple-icon-180.png:/build/www/apple-icon-180.png:ro
+      - ./custom-icons/manifest-icon-192.maskable.png:/build/www/manifest-icon-192.maskable.png:ro
+      - ./custom-icons/manifest-icon-512.maskable.png:/build/www/manifest-icon-512.maskable.png:ro
+      - ./custom-icons/manifest.json:/build/www/manifest.json:ro
+    env_file:
+      - .env
+    ports:
+      - 127.0.0.1:2283:2283
+    depends_on:
+      - redis
+      - database
+    mem_limit: 4g
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2283/api/server/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  immich-machine-learning:
+    container_name: immich_machine_learning
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    volumes:
+      - model-cache:/cache
+    env_file:
+      - .env
+    mem_limit: 2g
+    restart: unless-stopped
+
+  redis:
+    container_name: immich_redis
+    image: redis:6.2-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  database:
+    container_name: immich_postgres
+    image: tensorchord/pgvecto-rs:pg14-v0.2.0
+    env_file:
+      - .env
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_DB: ${DB_DATABASE_NAME}
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  pgdata:
+  model-cache:
