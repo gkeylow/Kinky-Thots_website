@@ -2447,7 +2447,7 @@ app.get('/api/members', authenticateToken, async (req, res) => {
       countParams.push(tier);
     }
 
-    query += ` ORDER BY last_login_at DESC NULLS LAST, created_at DESC LIMIT ? OFFSET ?`;
+    query += ` ORDER BY last_login_at IS NULL, last_login_at DESC, created_at DESC LIMIT ? OFFSET ?`;
     params.push(limitNum, offset);
 
     const [members, totalResult] = await Promise.all([
@@ -3489,6 +3489,558 @@ wss.on('connection', async (ws, req) => {
     console.error('WebSocket error:', err.message);
     chatClients.delete(ws);
   });
+});
+
+// ============================================
+// INDIEAUTH IDENTITY PROVIDER
+// ============================================
+
+const INDIEAUTH_ISSUER = SITE_URL;
+
+// Metadata discovery endpoint (also served as static file from Apache for /.well-known/indieauth-server)
+app.get('/.well-known/indieauth-server', (req, res) => {
+  res.json({
+    issuer: INDIEAUTH_ISSUER,
+    authorization_endpoint: `${INDIEAUTH_ISSUER}/api/indieauth/authorize`,
+    token_endpoint: `${INDIEAUTH_ISSUER}/api/indieauth/token`,
+    userinfo_endpoint: `${INDIEAUTH_ISSUER}/api/indieauth/userinfo`,
+    code_challenge_methods_supported: ['S256'],
+    scopes_supported: ['profile', 'email']
+  });
+});
+
+// Public profile lookup (no auth) — used by u.php to verify user exists
+app.get('/api/users/profile/:username', async (req, res) => {
+  let conn;
+  try {
+    const { username } = req.params;
+    if (!username || !/^[a-zA-Z0-9_]{1,50}$/.test(username)) {
+      return res.status(400).json({ error: 'Invalid username' });
+    }
+    conn = await pool.getConnection();
+    const rows = await conn.query(
+      'SELECT username, avatar_url, bio, created_at FROM users WHERE username = ? AND email_verified = TRUE',
+      [username]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    const u = rows[0];
+    res.json({
+      username: u.username,
+      avatar_url: u.avatar_url || null,
+      bio: u.bio || null,
+      created_at: u.created_at,
+      url: `${INDIEAUTH_ISSUER}/u/${u.username}`
+    });
+  } catch (err) {
+    console.error('Profile lookup error:', err);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Helper: validate IndieAuth authorization request params
+function validateAuthParams(query) {
+  const { response_type, client_id, redirect_uri, state, code_challenge, code_challenge_method, me } = query;
+  if (response_type !== 'code') return 'response_type must be "code"';
+  if (!client_id) return 'client_id is required';
+  if (!redirect_uri) return 'redirect_uri is required';
+  if (!state) return 'state is required';
+  if (!code_challenge) return 'code_challenge is required (PKCE required)';
+  if (code_challenge_method && code_challenge_method !== 'S256') return 'code_challenge_method must be S256';
+  if (me) {
+    const mePattern = new RegExp(`^${INDIEAUTH_ISSUER.replace(/\./g, '\\.')}/u/[a-zA-Z0-9_]+$`);
+    if (!mePattern.test(me)) return `me must be ${INDIEAUTH_ISSUER}/u/{username}`;
+  }
+  return null;
+}
+
+// Auth form HTML builder
+function buildAuthForm({ client_id, redirect_uri, state, code_challenge, code_challenge_method, me, error }) {
+  const meUsername = me ? me.split('/u/')[1] || '' : '';
+  const errorHtml = error ? `<p style="color:#ff4d6d;margin-bottom:12px;">${escapeHtml(error)}</p>` : '';
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — Kinky-Thots</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0f0f0f;color:#fff;font-family:system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .card{background:#1a1a1a;border:1px solid #333;border-radius:16px;padding:32px;width:100%;max-width:420px}
+  h1{font-size:1.4rem;margin-bottom:4px;background:linear-gradient(135deg,#f805a7,#0bd0f3);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .site-name{color:#0bd0f3;font-weight:600}
+  .client-box{background:#111;border:1px solid #444;border-radius:8px;padding:12px 16px;margin:16px 0;word-break:break-all;font-size:.85rem;color:#aaa}
+  .client-box span{color:#0bd0f3}
+  label{display:block;font-size:.85rem;color:#aaa;margin-bottom:4px;margin-top:14px}
+  input[type=email],input[type=password]{width:100%;background:#111;border:1px solid #444;border-radius:8px;padding:10px 14px;color:#fff;font-size:.95rem;outline:none}
+  input:focus{border-color:#0bd0f3}
+  .hint{font-size:.8rem;color:#666;margin-top:4px}
+  button{width:100%;margin-top:20px;padding:12px;background:linear-gradient(135deg,#f805a7,#0bd0f3);border:none;border-radius:8px;color:#fff;font-size:1rem;font-weight:600;cursor:pointer}
+  button:hover{opacity:.9}
+  .footer{text-align:center;margin-top:16px;font-size:.8rem;color:#555}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Sign in to Kinky-Thots</h1>
+  <p style="color:#aaa;font-size:.9rem;margin-top:8px">An app is requesting access to your account:</p>
+  <div class="client-box">App: <span>${escapeHtml(client_id)}</span></div>
+  ${errorHtml}
+  <form method="POST" action="/api/indieauth/authorize">
+    <input type="hidden" name="client_id" value="${escapeHtml(client_id)}">
+    <input type="hidden" name="redirect_uri" value="${escapeHtml(redirect_uri)}">
+    <input type="hidden" name="state" value="${escapeHtml(state)}">
+    <input type="hidden" name="code_challenge" value="${escapeHtml(code_challenge)}">
+    <input type="hidden" name="code_challenge_method" value="${escapeHtml(code_challenge_method || 'S256')}">
+    <input type="hidden" name="me" value="${escapeHtml(me || '')}">
+    <label for="email">Email or Username</label>
+    <input type="text" id="email" name="email" required autocomplete="username email" value="${escapeHtml(meUsername)}">
+    <p class="hint">Use the email or username for <strong>${escapeHtml(meUsername) || 'your account'}</strong></p>
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" required autocomplete="current-password">
+    <button type="submit">Sign in &amp; Authorize</button>
+  </form>
+  <p class="footer"><a href="${INDIEAUTH_ISSUER}" style="color:#555">kinky-thots.xxx</a></p>
+</div>
+</body>
+</html>`;
+}
+
+function escapeHtml(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// GET /api/indieauth/authorize — serve login/consent form
+app.get('/api/indieauth/authorize', (req, res) => {
+  const validationError = validateAuthParams(req.query);
+  if (validationError) {
+    const { redirect_uri, state } = req.query;
+    if (redirect_uri && state) {
+      const url = new URL(redirect_uri);
+      url.searchParams.set('error', 'invalid_request');
+      url.searchParams.set('error_description', validationError);
+      url.searchParams.set('state', state);
+      return res.redirect(url.toString());
+    }
+    return res.status(400).send(`Bad request: ${validationError}`);
+  }
+  res.send(buildAuthForm(req.query));
+});
+
+// POST /api/indieauth/authorize — handles BOTH form submission AND code exchange
+// (per IndieAuth spec, clients may POST code exchange to authorization_endpoint for profile-only requests)
+app.post('/api/indieauth/authorize', express.urlencoded({ extended: false }), async (req, res) => {
+  // If grant_type=authorization_code, delegate to code exchange logic (same as token endpoint)
+  if (req.body.grant_type === 'authorization_code') {
+    const { code, client_id, redirect_uri, code_verifier } = req.body;
+    if (!code || !client_id || !redirect_uri || !code_verifier) {
+      return res.status(400).json({ error: 'invalid_request', error_description: 'Missing required parameters' });
+    }
+    let conn;
+    try {
+      conn = await pool.getConnection();
+      const rows = await conn.query(
+        `SELECT oc.*, u.username, u.avatar_url
+         FROM oauth_codes oc JOIN users u ON oc.user_id = u.id
+         WHERE oc.code = ? AND oc.used = FALSE AND oc.expires_at > NOW()`,
+        [code]
+      );
+      if (rows.length === 0) {
+        return res.status(400).json({ error: 'invalid_grant', error_description: 'Code not found, expired, or already used' });
+      }
+      const row = rows[0];
+      if (row.client_id !== client_id) {
+        return res.status(400).json({ error: 'invalid_grant', error_description: 'client_id mismatch' });
+      }
+      if (row.redirect_uri !== redirect_uri) {
+        return res.status(400).json({ error: 'invalid_grant', error_description: 'redirect_uri mismatch' });
+      }
+      const digest = crypto.createHash('sha256').update(code_verifier).digest();
+      const computed = digest.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      if (computed !== row.code_challenge) {
+        return res.status(400).json({ error: 'invalid_grant', error_description: 'PKCE verification failed' });
+      }
+      await conn.query('UPDATE oauth_codes SET used = TRUE WHERE id = ?', [Number(row.id)]);
+      const accessToken = jwt.sign(
+        { userId: Number(row.user_id), username: row.username, scope: 'profile', indieauth: true },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      return res.json({
+        me: row.me_url,
+        token_type: 'Bearer',
+        access_token: accessToken,
+        scope: 'profile'
+      });
+    } catch (err) {
+      console.error('IndieAuth authorize code exchange error:', err);
+      return res.status(500).json({ error: 'server_error' });
+    } finally {
+      if (conn) conn.release();
+    }
+  }
+
+  const { email, password, client_id, redirect_uri, state, code_challenge, code_challenge_method, me } = req.body;
+
+  // Re-validate all IndieAuth params from the form
+  const validationError = validateAuthParams({
+    response_type: 'code', client_id, redirect_uri, state, code_challenge, code_challenge_method, me
+  });
+  if (validationError) {
+    return res.send(buildAuthForm({ client_id, redirect_uri, state, code_challenge, code_challenge_method, me, error: validationError }));
+  }
+
+  if (!email || !password) {
+    return res.send(buildAuthForm({ client_id, redirect_uri, state, code_challenge, code_challenge_method, me, error: 'Email and password are required' }));
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const rows = await conn.query(
+      'SELECT id, username, email, password_hash, avatar_url, email_verified FROM users WHERE email = ? OR username = ?',
+      [email.toLowerCase(), email.toLowerCase()]
+    );
+
+    if (rows.length === 0) {
+      return res.send(buildAuthForm({ client_id, redirect_uri, state, code_challenge, code_challenge_method, me, error: 'Invalid email or password' }));
+    }
+
+    const user = rows[0];
+
+    const validPassword = await bcrypt.compare(password, user.password_hash);
+    if (!validPassword) {
+      return res.send(buildAuthForm({ client_id, redirect_uri, state, code_challenge, code_challenge_method, me, error: 'Invalid email or password' }));
+    }
+
+    if (!user.email_verified) {
+      return res.send(buildAuthForm({ client_id, redirect_uri, state, code_challenge, code_challenge_method, me, error: 'Please verify your email before using IndieAuth' }));
+    }
+
+    // If `me` was provided, the username must match
+    if (me) {
+      const requestedUsername = me.split('/u/')[1] || '';
+      if (user.username.toLowerCase() !== requestedUsername.toLowerCase()) {
+        return res.send(buildAuthForm({ client_id, redirect_uri, state, code_challenge, code_challenge_method, me, error: `This account does not match the requested identity (${requestedUsername})` }));
+      }
+    }
+
+    const meUrl = `${INDIEAUTH_ISSUER}/u/${user.username}`;
+    const code = crypto.randomBytes(32).toString('hex');
+
+    await conn.query(
+      `INSERT INTO oauth_codes (code, user_id, client_id, redirect_uri, me_url, code_challenge, code_challenge_method, scope, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'profile', DATE_ADD(NOW(), INTERVAL 10 MINUTE))`,
+      [code, Number(user.id), client_id, redirect_uri, meUrl, code_challenge, code_challenge_method || 'S256']
+    );
+
+    const redirectUrl = new URL(redirect_uri);
+    redirectUrl.searchParams.set('code', code);
+    redirectUrl.searchParams.set('state', state);
+    redirectUrl.searchParams.set('iss', INDIEAUTH_ISSUER);
+    res.redirect(redirectUrl.toString());
+
+  } catch (err) {
+    console.error('IndieAuth authorize error:', err);
+    res.send(buildAuthForm({ client_id, redirect_uri, state, code_challenge, code_challenge_method, me, error: 'Server error, please try again' }));
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// POST /api/indieauth/token — code exchange
+app.post('/api/indieauth/token', express.urlencoded({ extended: false }), async (req, res) => {
+  const { grant_type, code, client_id, redirect_uri, code_verifier } = req.body;
+
+  if (grant_type !== 'authorization_code') {
+    return res.status(400).json({ error: 'unsupported_grant_type' });
+  }
+  if (!code || !client_id || !redirect_uri || !code_verifier) {
+    return res.status(400).json({ error: 'invalid_request', error_description: 'Missing required parameters' });
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const rows = await conn.query(
+      `SELECT oc.*, u.username, u.avatar_url
+       FROM oauth_codes oc JOIN users u ON oc.user_id = u.id
+       WHERE oc.code = ? AND oc.used = FALSE AND oc.expires_at > NOW()`,
+      [code]
+    );
+
+    if (rows.length === 0) {
+      return res.status(400).json({ error: 'invalid_grant', error_description: 'Code not found, expired, or already used' });
+    }
+
+    const row = rows[0];
+
+    if (row.client_id !== client_id) {
+      return res.status(400).json({ error: 'invalid_grant', error_description: 'client_id mismatch' });
+    }
+    if (row.redirect_uri !== redirect_uri) {
+      return res.status(400).json({ error: 'invalid_grant', error_description: 'redirect_uri mismatch' });
+    }
+
+    // PKCE: SHA256(code_verifier) base64url must equal stored code_challenge
+    const digest = crypto.createHash('sha256').update(code_verifier).digest();
+    const computed = digest.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    if (computed !== row.code_challenge) {
+      return res.status(400).json({ error: 'invalid_grant', error_description: 'PKCE verification failed' });
+    }
+
+    // Mark code as used
+    await conn.query('UPDATE oauth_codes SET used = TRUE WHERE id = ?', [Number(row.id)]);
+
+    const accessToken = jwt.sign(
+      { userId: Number(row.user_id), username: row.username, scope: 'profile', indieauth: true },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      me: row.me_url,
+      token_type: 'Bearer',
+      access_token: accessToken,
+      scope: 'profile'
+    });
+
+  } catch (err) {
+    console.error('IndieAuth token error:', err);
+    res.status(500).json({ error: 'server_error' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// GET /api/indieauth/userinfo — profile scope user info
+app.get('/api/indieauth/userinfo', async (req, res) => {
+  const authHeader = req.headers.authorization || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  const token = authHeader.slice(7);
+  let payload;
+  try {
+    payload = jwt.verify(token, JWT_SECRET);
+  } catch {
+    return res.status(401).json({ error: 'invalid_token' });
+  }
+  if (!payload.indieauth) {
+    return res.status(403).json({ error: 'forbidden' });
+  }
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const rows = await conn.query(
+      'SELECT username, avatar_url, bio FROM users WHERE id = ?',
+      [Number(payload.userId)]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'not_found' });
+    const u = rows[0];
+    res.json({
+      name: u.username,
+      url: `${INDIEAUTH_ISSUER}/u/${u.username}`,
+      photo: u.avatar_url || null
+    });
+  } catch (err) {
+    console.error('IndieAuth userinfo error:', err);
+    res.status(500).json({ error: 'server_error' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// ============================================
+// DISCORD OAUTH
+// ============================================
+
+const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+const DISCORD_REDIRECT_URI = `${SITE_URL}/api/auth/discord/callback`;
+const DISCORD_SCOPES = 'identify email';
+
+// In-memory state store (state -> { redirectTo, createdAt })
+const discordStates = new Map();
+setInterval(() => {
+  const cutoff = Date.now() - 10 * 60 * 1000;
+  for (const [k, v] of discordStates) {
+    if (v.createdAt < cutoff) discordStates.delete(k);
+  }
+}, 60 * 1000);
+
+function discordApiRequest(path, accessToken) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'discord.com',
+      path: `/api/v10${path}`,
+      method: 'GET',
+      headers: { Authorization: `Bearer ${accessToken}` }
+    };
+    const req = require('https').request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch { reject(new Error('Invalid JSON from Discord')); }
+      });
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+function discordTokenExchange(code) {
+  return new Promise((resolve, reject) => {
+    const body = new URLSearchParams({
+      client_id: DISCORD_CLIENT_ID,
+      client_secret: DISCORD_CLIENT_SECRET,
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: DISCORD_REDIRECT_URI
+    }).toString();
+    const options = {
+      hostname: 'discord.com',
+      path: '/api/v10/oauth2/token',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    };
+    const req = require('https').request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch { reject(new Error('Invalid JSON from Discord')); }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+// GET /api/auth/discord — redirect to Discord OAuth
+app.get('/api/auth/discord', (req, res) => {
+  if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET) {
+    return res.status(503).send('Discord OAuth not configured');
+  }
+  const state = crypto.randomBytes(16).toString('hex');
+  discordStates.set(state, { redirectTo: req.query.redirect || '/profile.html', createdAt: Date.now() });
+  const url = new URL('https://discord.com/oauth2/authorize');
+  url.searchParams.set('client_id', DISCORD_CLIENT_ID);
+  url.searchParams.set('redirect_uri', DISCORD_REDIRECT_URI);
+  url.searchParams.set('response_type', 'code');
+  url.searchParams.set('scope', DISCORD_SCOPES);
+  url.searchParams.set('state', state);
+  res.redirect(url.toString());
+});
+
+// GET /api/auth/discord/callback — handle Discord redirect
+app.get('/api/auth/discord/callback', async (req, res) => {
+  const { code, state, error } = req.query;
+
+  if (error) {
+    return res.redirect(`/login.html?error=${encodeURIComponent('Discord login cancelled')}`);
+  }
+  if (!code || !state || !discordStates.has(state)) {
+    return res.redirect('/login.html?error=invalid_state');
+  }
+
+  const { redirectTo } = discordStates.get(state);
+  discordStates.delete(state);
+
+  let conn;
+  try {
+    // Exchange code for access token
+    const tokenData = await discordTokenExchange(code);
+    if (!tokenData.access_token) {
+      return res.redirect('/login.html?error=discord_token_failed');
+    }
+
+    // Fetch Discord user profile
+    const discordUser = await discordApiRequest('/users/@me', tokenData.access_token);
+    if (!discordUser.id) {
+      return res.redirect('/login.html?error=discord_user_failed');
+    }
+
+    const discordId = discordUser.id;
+    const discordEmail = discordUser.email || null;
+    const discordUsername = discordUser.username;
+    const discordAvatar = discordUser.avatar
+      ? `https://cdn.discordapp.com/avatars/${discordId}/${discordUser.avatar}.png`
+      : null;
+
+    conn = await pool.getConnection();
+
+    // 1. Existing account linked to this Discord ID
+    let rows = await conn.query('SELECT * FROM users WHERE discord_id = ?', [discordId]);
+
+    // 2. Existing account with matching email — link it
+    if (rows.length === 0 && discordEmail) {
+      rows = await conn.query('SELECT * FROM users WHERE email = ?', [discordEmail]);
+      if (rows.length > 0) {
+        await conn.query(
+          'UPDATE users SET discord_id = ?, discord_username = ?, updated_at = NOW() WHERE id = ?',
+          [discordId, discordUsername, Number(rows[0].id)]
+        );
+      }
+    }
+
+    let user;
+    if (rows.length > 0) {
+      user = rows[0];
+      await conn.query('UPDATE users SET last_login_at = NOW() WHERE id = ?', [Number(user.id)]);
+    } else {
+      // 3. New user — create account
+      let baseUsername = discordUsername.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 28) || 'user';
+      let finalUsername = baseUsername;
+      let suffix = 1;
+      while (true) {
+        const taken = await conn.query('SELECT id FROM users WHERE username = ?', [finalUsername]);
+        if (taken.length === 0) break;
+        finalUsername = `${baseUsername}${suffix++}`;
+      }
+
+      const result = await conn.query(
+        `INSERT INTO users (username, email, password_hash, discord_id, discord_username, avatar_url, email_verified, created_at)
+         VALUES (?, ?, NULL, ?, ?, ?, TRUE, NOW())`,
+        [finalUsername, discordEmail || `${discordId}@discord.invalid`, discordId, discordUsername, discordAvatar]
+      );
+      const newRows = await conn.query('SELECT * FROM users WHERE id = ?', [Number(result.insertId)]);
+      user = newRows[0];
+    }
+
+    const jwtToken = jwt.sign(
+      { userId: Number(user.id), username: user.username, email: user.email },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    const userPayload = {
+      id: Number(user.id),
+      username: user.username,
+      email: user.email,
+      avatar_url: user.avatar_url,
+      subscription_tier: user.subscription_tier,
+      subscription_status: user.subscription_status,
+      is_admin: Boolean(user.is_admin),
+      admin_role: user.admin_role
+    };
+
+    const encoded = Buffer.from(JSON.stringify(userPayload)).toString('base64url');
+    res.redirect(
+      `/login.html?discord_token=${encodeURIComponent(jwtToken)}&discord_user=${encodeURIComponent(encoded)}&redirect=${encodeURIComponent(redirectTo)}`
+    );
+
+  } catch (err) {
+    console.error('Discord OAuth callback error:', err);
+    res.redirect('/login.html?error=discord_error');
+  } finally {
+    if (conn) conn.release();
+  }
 });
 
 // Start server

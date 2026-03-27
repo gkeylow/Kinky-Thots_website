@@ -175,6 +175,41 @@
             text-decoration: underline;
         }
 
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 1.25rem 0 1rem;
+            color: #555;
+            font-size: 0.85rem;
+        }
+        .auth-divider::before, .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #333;
+        }
+
+        .discord-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 11px;
+            background: #5865F2;
+            color: #fff;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .discord-btn:hover {
+            background: #4752c4;
+            transform: scale(1.02);
+        }
+
         .auth-error {
             color: #e74c3c;
             font-size: 0.9rem;
@@ -405,6 +440,12 @@
                 </div>
                 <button type="submit" class="auth-submit">Login</button>
                 <a href="#" class="auth-forgot-link" id="forgotPasswordLink">Forgot Password?</a>
+
+                <div class="auth-divider"><span>or</span></div>
+                <a href="/api/auth/discord" class="discord-btn">
+                    <svg width="20" height="20" viewBox="0 0 71 55" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0)"><path d="M60.1045 4.8978C55.5792 2.8214 50.7265 1.2916 45.6527 0.41542C45.5603 0.39851 45.468 0.44077 45.4204 0.52529C44.7963 1.6353 44.105 3.0834 43.6209 4.2216C38.1637 3.4046 32.7345 3.4046 27.3892 4.2216C26.905 3.0581 26.1886 1.6353 25.5617 0.52529C25.5141 0.44359 25.4218 0.40133 25.3294 0.41542C20.2584 1.2888 15.4057 2.8186 10.8776 4.8978C10.8384 4.9147 10.8048 4.9429 10.7825 4.9795C1.57795 18.7309 -0.943561 32.1443 0.293408 45.3914C0.299005 45.4562 0.335386 45.5182 0.385761 45.5576C7.41372 50.7185 14.2196 53.9852 20.8956 56.1488C20.9879 56.1769 21.0858 56.1432 21.1446 56.0699C22.7552 53.8752 24.1925 51.5641 25.4218 49.1317C25.4834 49.0132 25.4246 48.8720 25.2996 48.8240C23.0521 47.9625 20.9124 46.9128 18.8491 45.7206C18.7119 45.6413 18.7007 45.4449 18.8267 45.3517C19.2526 45.0357 19.6785 44.7057 20.0828 44.3730C20.1472 44.3198 20.2368 44.3086 20.3124 44.3422C31.8568 49.5031 44.2405 49.5031 55.6493 44.3422C55.7249 44.3058 55.8145 44.3170 55.8817 44.3702C56.2860 44.7029 56.7119 45.0357 57.1406 45.3517C57.2666 45.4449 57.2582 45.6413 57.1210 45.7206C55.0577 46.9353 52.918 47.9625 50.6677 48.8212C50.5427 48.8692 50.4867 49.0132 50.5483 49.1317C51.8004 51.5585 53.2377 53.8696 54.8175 56.0671C54.8735 56.1432 54.9742 56.1769 55.0665 56.1488C61.7761 53.9852 68.5820 50.7185 75.6099 45.5576C75.6631 45.5182 75.6967 45.4590 75.7023 45.3942C77.2136 30.0791 73.1077 16.7757 64.9929 4.9823C64.9733 4.9429 64.9397 4.9147 64.9005 4.8978H60.1045ZM25.2464 37.3316C21.8780 37.3316 19.1006 34.2467 19.1006 30.4262C19.1006 26.6057 21.8220 23.5208 25.2464 23.5208C28.6988 23.5208 31.4481 26.6338 31.3921 30.4262C31.3921 34.2467 28.6708 37.3316 25.2464 37.3316ZM49.7919 37.3316C46.4235 37.3316 43.6461 34.2467 43.6461 30.4262C43.6461 26.6057 46.3675 23.5208 49.7919 23.5208C53.2443 23.5208 55.9936 26.6338 55.9376 30.4262C55.9376 34.2467 53.2443 37.3316 49.7919 37.3316Z" fill="currentColor"/></g><defs><clipPath id="clip0"><rect width="71" height="55" fill="white"/></clipPath></defs></svg>
+                    Continue with Discord
+                </a>
             </form>
 
             <!-- Email Verification Pending (hidden by default) -->
@@ -544,6 +585,27 @@ function onTurnstileSuccess(token) {
 
     // Initialize Turnstile on page load
     initTurnstile();
+
+    // Handle Discord OAuth callback (token injected via query params)
+    const params = new URLSearchParams(window.location.search);
+    const discordToken = params.get('discord_token');
+    const discordUser = params.get('discord_user');
+    const discordError = params.get('error');
+    if (discordError) {
+        const errEl = document.getElementById('loginError');
+        if (errEl) errEl.textContent = 'Discord login failed. Please try again.';
+    }
+    if (discordToken && discordUser) {
+        try {
+            const userData = JSON.parse(atob(discordUser));
+            localStorage.setItem('kt_auth_token', discordToken);
+            localStorage.setItem('kt_auth_user', JSON.stringify(userData));
+            const redirectUrl = params.get('redirect') || '/profile.html';
+            window.location.replace(redirectUrl);
+        } catch (e) {
+            console.error('[Discord] Failed to parse user data:', e);
+        }
+    }
 
     // Check if already logged in
     const token = localStorage.getItem('kt_auth_token');

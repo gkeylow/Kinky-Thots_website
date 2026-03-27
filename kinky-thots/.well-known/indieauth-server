@@ -1,0 +1,8 @@
+{
+  "issuer": "https://kinky-thots.xxx",
+  "authorization_endpoint": "https://kinky-thots.xxx/api/indieauth/authorize",
+  "token_endpoint": "https://kinky-thots.xxx/api/indieauth/token",
+  "userinfo_endpoint": "https://kinky-thots.xxx/api/indieauth/userinfo",
+  "code_challenge_methods_supported": ["S256"],
+  "scopes_supported": ["profile", "email"]
+}
