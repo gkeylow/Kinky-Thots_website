@@ -195,6 +195,36 @@
     color: #666;
 }
 
+.page-tag {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    background: rgba(248, 5, 167, 0.2);
+    color: #f805a7;
+    border: 1px solid rgba(248, 5, 167, 0.4);
+}
+
+.move-controls {
+    margin-top: 6px;
+}
+
+.move-select {
+    width: 100%;
+    padding: 4px 8px;
+    background: #1a1a1a;
+    color: #ccc;
+    border: 1px solid #444;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.move-select:hover {
+    border-color: #f805a7;
+}
+
 .delete-btn {
     position: absolute;
     top: 10px;

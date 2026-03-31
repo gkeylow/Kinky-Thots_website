@@ -63,7 +63,9 @@
         <button class="nav-toggle" aria-label="Toggle navigation menu">&#9776;</button>
     </div>
 </nav>
+<link rel="stylesheet" href="/assets/dist/css/media-gallery.css">
 <script type="module" src="/assets/dist/js/main.js"></script>
+<script src="/assets/indexgallery.js"></script>
 <script>
 (function() {
     const token = localStorage.getItem('kt_auth_token');
@@ -212,6 +214,28 @@
                     </div>
                 </div>
             </section>
+<section class="recent-work" id="recent-work" style="padding:60px 0; background:#111;">
+    <div class="container">
+        <div class="section-header" style="text-align:center; margin-bottom:32px;">
+            <h2 style="color:#f5f5f5;">Recent Work</h2>
+            <p style="color:#aaa;">Samples of our most recently uploaded content</p>
+        </div>
+        <div id="gallery-grid-index" class="gallery-grid mosaic-grid"></div>
+    </div>
+</section>
+
+<div id="lightbox-overlay-index" class="lightbox-overlay" style="display:none;">
+    <span class="lightbox-close" id="lightbox-close-index">&times;</span>
+    <div id="lightbox-content-index">
+        <img id="lightbox-img-index" src="" alt="Full Image" style="display:none;" />
+        <video id="lightbox-video-index" controls style="display:none; max-width:90vw; max-height:80vh;"></video>
+    </div>
+    <div class="lightbox-nav">
+        <button class="lightbox-nav-btn" id="lightbox-prev-index">&#8592;</button>
+        <button class="lightbox-nav-btn" id="lightbox-next-index">&#8594;</button>
+    </div>
+</div>
+
 <section class="contact" id="contact">
                 <div class="container">
                     <div class="section-header">

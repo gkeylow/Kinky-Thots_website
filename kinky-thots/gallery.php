@@ -139,7 +139,7 @@ if (!$isAuthenticated):
 <body>
     <div class="login-container">
         <h1>Admin Access</h1>
-        <p>Enter password to access the gallery</p>
+        <p>Sign in to your account above, or use the backup password below</p>
         <?php if (isset($loginError)): ?>
             <p class="error"><?php echo htmlspecialchars($loginError); ?></p>
         <?php endif; ?>
@@ -199,6 +199,11 @@ include __DIR__ . '/includes/header.php';
                 <input type="file" id="image-input" name="image" accept="image/*,video/*" style="display:none;">
                 <img id="image-preview" style="display:none; max-width:120px; max-height:120px; margin-top:10px; border-radius:8px;" />
             </div>
+            <select id="page-target" name="page_target" style="width:100%; padding:10px 14px; margin:10px 0; background:#222; color:#f5f5f5; border:2px solid #333; border-radius:8px; font-size:15px; cursor:pointer;">
+                <option value="sissy">Sissy Longlegs</option>
+                <option value="buster">Buster &amp; Sherry</option>
+                <option value="index">Index — Recent Work Samples</option>
+            </select>
             <button type="submit" class="upload-btn">Upload Image</button>
             <div class="progress-bar" style="display:none;">
                 <div class="progress-fill"></div>

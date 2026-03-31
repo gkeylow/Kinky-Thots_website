@@ -1,4 +1,4 @@
-// Sissy Gallery JavaScript
+// Index Gallery JavaScript
 (function() {
   'use strict';
 
@@ -15,19 +15,19 @@
   let currentLightboxIndex = 0;
 
   document.addEventListener('DOMContentLoaded', function() {
-    console.log('Sissy Gallery initialized');
+    console.log('Index Gallery initialized');
     loadGallery();
     setupLightbox();
   });
 
   async function loadGallery() {
-    const grid = document.getElementById('gallery-grid-sissy');
+    const grid = document.getElementById('gallery-grid-index');
     if (!grid) return;
 
     grid.innerHTML = '<div class="loading">Loading gallery...</div>';
 
     try {
-      const response = await fetch(CONFIG.apiBase + CONFIG.endpoints.gallery + '?page=sissy');
+      const response = await fetch(CONFIG.apiBase + CONFIG.endpoints.gallery + '?page=index');
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       
       const images = await response.json();
@@ -55,7 +55,7 @@
           <div class="gallery-item video-item" data-idx="${idx}">
             <video
               src="${fileUrl}"
-              onclick="window.openSissyLightbox(${idx})"
+              onclick="window.openIndexLightbox(${idx})"
               style="width: 100%; height: auto; cursor: pointer; background: #000;"
               preload="auto"
               muted
@@ -70,7 +70,7 @@
               src="${fileUrl}"
               alt="Gallery Image"
               loading="eager"
-              onclick="window.openSissyLightbox(${idx})"
+              onclick="window.openIndexLightbox(${idx})"
               style="cursor: pointer; width: 100%; height: auto;"
             />
           </div>
@@ -90,16 +90,16 @@
   }
 
   function setupLightbox() {
-    const overlay = document.getElementById('lightbox-overlay-sissy');
-    const overlayImg = document.getElementById('lightbox-img-sissy');
-    const overlayVideo = document.getElementById('lightbox-video-sissy');
-    const closeBtn = document.getElementById('lightbox-close-sissy');
-    const prevBtn = document.getElementById('lightbox-prev-sissy');
-    const nextBtn = document.getElementById('lightbox-next-sissy');
+    const overlay = document.getElementById('lightbox-overlay-index');
+    const overlayImg = document.getElementById('lightbox-img-index');
+    const overlayVideo = document.getElementById('lightbox-video-index');
+    const closeBtn = document.getElementById('lightbox-close-index');
+    const prevBtn = document.getElementById('lightbox-prev-index');
+    const nextBtn = document.getElementById('lightbox-next-index');
 
     if (!overlay) return;
 
-    window.openSissyLightbox = function(idx) {
+    window.openIndexLightbox = function(idx) {
       if (!galleryData[idx]) return;
 
       const fileUrl = CONFIG.apiBase + CONFIG.uploadsPath + encodeURIComponent(galleryData[idx].filename);
@@ -140,13 +140,13 @@
 
     function showPrev() {
       if (currentLightboxIndex > 0) {
-        window.openSissyLightbox(currentLightboxIndex - 1);
+        window.openIndexLightbox(currentLightboxIndex - 1);
       }
     }
 
     function showNext() {
       if (currentLightboxIndex < galleryData.length - 1) {
-        window.openSissyLightbox(currentLightboxIndex + 1);
+        window.openIndexLightbox(currentLightboxIndex + 1);
       }
     }
 

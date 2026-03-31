@@ -13,10 +13,44 @@ const CONFIG = {
 let galleryData = [];
 let currentLightboxIndex = 0;
 
+const PAGE_LABELS = { index: 'Index', sissy: 'Sissy Longlegs', buster: 'Buster & Sherry' };
+let activePageFilter = null;
+
 function init() {
+  setupFilterTabs();
   loadGallery();
   setupUploadForm();
   setupLightbox();
+}
+
+function setupFilterTabs() {
+  const header = document.querySelector('.header');
+  if (!header) return;
+
+  const tabs = document.createElement('div');
+  tabs.id = 'gallery-filter-tabs';
+  tabs.style.cssText = 'display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; justify-content:center;';
+
+  const allTab = createTab('All', null);
+  tabs.appendChild(allTab);
+  Object.entries(PAGE_LABELS).forEach(([val, label]) => tabs.appendChild(createTab(label, val)));
+  header.appendChild(tabs);
+}
+
+function createTab(label, value) {
+  const btn = document.createElement('button');
+  btn.textContent = label;
+  btn.dataset.page = value ?? '';
+  btn.style.cssText = 'padding:6px 16px; border-radius:20px; border:2px solid #f805a7; background:transparent; color:#f5f5f5; cursor:pointer; font-size:13px; transition:all 0.2s;';
+  if (value === activePageFilter) btn.style.background = '#f805a7';
+  btn.addEventListener('click', () => {
+    activePageFilter = value;
+    document.querySelectorAll('#gallery-filter-tabs button').forEach(b => {
+      b.style.background = b.dataset.page === (value ?? '') ? '#f805a7' : 'transparent';
+    });
+    loadGallery();
+  });
+  return btn;
 }
 
 async function loadGallery() {
@@ -26,7 +60,7 @@ async function loadGallery() {
   grid.innerHTML = '<div class="loading">Loading gallery...</div>';
 
   try {
-    const url = CONFIG.apiBase + CONFIG.endpoints.gallery;
+    const url = CONFIG.apiBase + CONFIG.endpoints.gallery + (activePageFilter ? `?page=${activePageFilter}` : '');
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -95,12 +129,24 @@ function renderGallery(images, grid) {
       `;
       }
 
+      const pageLabel = PAGE_LABELS[img.page_target] || img.page_target || '';
+      const moveOptions = Object.entries(PAGE_LABELS)
+        .filter(([val]) => val !== img.page_target)
+        .map(([val, label]) => `<option value="${val}">${label}</option>`)
+        .join('');
       return `
       <div class="gallery-item ${isVideo ? 'video-item' : ''}" data-id="${img.id}" data-idx="${idx}">
         ${mediaElement}
         <div class="gallery-meta">
           <div class="upload-date">${uploadDate.toLocaleDateString()}</div>
           <div class="upload-time">${uploadDate.toLocaleTimeString()}</div>
+          ${pageLabel ? `<div class="page-tag">${pageLabel}</div>` : ''}
+        </div>
+        <div class="move-controls">
+          <select class="move-select" title="Move to page">
+            <option value="">Move to...</option>
+            ${moveOptions}
+          </select>
         </div>
         <button class="delete-btn" onclick="window.deleteImage(${img.id})" title="Delete">×</button>
       </div>
@@ -111,6 +157,35 @@ function renderGallery(images, grid) {
   grid.querySelectorAll('video').forEach((video) => {
     video.addEventListener('mouseenter', () => video.play());
     video.addEventListener('mouseleave', () => video.pause());
+  });
+
+  grid.querySelectorAll('.move-select').forEach((select) => {
+    select.addEventListener('change', async () => {
+      const pageTarget = select.value;
+      if (!pageTarget) return;
+      const id = parseInt(select.closest('.gallery-item').dataset.id);
+      select.disabled = true;
+      try {
+        const res = await fetch(`/api/gallery/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page_target: pageTarget }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showStatus(`Moved to ${PAGE_LABELS[pageTarget]}`, 'success');
+          loadGallery();
+        } else {
+          showStatus('Move failed: ' + (data.error || 'Unknown'), 'error');
+          select.disabled = false;
+          select.value = '';
+        }
+      } catch (err) {
+        showStatus('Move failed: ' + err.message, 'error');
+        select.disabled = false;
+        select.value = '';
+      }
+    });
   });
 }
 
@@ -204,6 +279,8 @@ async function handleUpload(e) {
 
   const formData = new FormData();
   formData.append('image', file);
+  const pageTarget = document.getElementById('page-target')?.value || 'index';
+  formData.append('page_target', pageTarget);
 
   if (uploadBtn) {
     uploadBtn.disabled = true;

@@ -2314,19 +2314,25 @@ app.get('/api/gallery', async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Content-Type', 'application/json');
   
+  const VALID_PAGES = ['index', 'sissy', 'buster'];
+  const pageFilter = VALID_PAGES.includes(req.query.page) ? req.query.page : null;
+
   let conn;
   try {
     conn = await pool.getConnection();
     const rows = await conn.query(
-      'SELECT id, filename, file_type, file_path, upload_time FROM images ORDER BY upload_time DESC'
+      pageFilter
+        ? 'SELECT id, filename, file_type, file_path, page_target, upload_time FROM images WHERE page_target = ? ORDER BY upload_time DESC'
+        : 'SELECT id, filename, file_type, file_path, page_target, upload_time FROM images ORDER BY upload_time DESC',
+      pageFilter ? [pageFilter] : []
     );
-    
+
     // Convert MariaDB result to plain JSON objects
     const items = [];
     for (const row of rows) {
       const fileType = row.file_type || getFileType(row.filename);
       const webPath = row.file_path || getWebPath(fileType);
-      
+
       // Use CDN URL for images if available
       let fullUrl;
       if (fileType === 'image' && PUSHR_CONFIG.cdnUrls.images) {
@@ -2336,11 +2342,12 @@ app.get('/api/gallery', async (req, res) => {
         // Fallback to origin
         fullUrl = `${webPath}/${encodeURIComponent(row.filename)}`;
       }
-      
+
       items.push({
         id: Number(row.id),
         filename: String(row.filename),
         file_type: fileType,
+        page_target: row.page_target || 'index',
         web_path: webPath,
         full_url: fullUrl,
         cdn_url: fileType === 'image' ? `${PUSHR_CONFIG.cdnUrls.images}/${encodeURIComponent(row.filename)}` : null,
@@ -2758,8 +2765,8 @@ const requireAdmin = async (req, res, next) => {
   let conn;
   try {
     conn = await pool.getConnection();
-    const users = await conn.query('SELECT is_admin FROM users WHERE id = ?', [req.user.userId]);
-    if (!users[0] || !users[0].is_admin) {
+    const users = await conn.query('SELECT is_admin, admin_role FROM users WHERE id = ?', [req.user.userId]);
+    if (!users[0] || !users[0].is_admin || users[0].admin_role !== 'root') {
       return res.status(403).json({ error: 'Admin access required' });
     }
     next();
@@ -2775,8 +2782,8 @@ app.get('/api/admin/check', authenticateToken, async (req, res) => {
   let conn;
   try {
     conn = await pool.getConnection();
-    const users = await conn.query('SELECT is_admin FROM users WHERE id = ?', [req.user.userId]);
-    res.json({ isAdmin: users[0]?.is_admin === 1 });
+    const users = await conn.query('SELECT is_admin, admin_role FROM users WHERE id = ?', [req.user.userId]);
+    res.json({ isAdmin: users[0]?.is_admin === 1 && users[0]?.admin_role === 'root' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to check admin status' });
   } finally {
@@ -3121,11 +3128,14 @@ app.post('/api/upload', async (req, res) => {
       console.error(`[CDN] Error uploading to CDN: ${cdnErr.message}`);
     }
 
-    // Insert into database with file type and path
+    // Insert into database with file type, path, and page target
+    const VALID_PAGES = ['index', 'sissy', 'buster'];
+    const pageTarget = VALID_PAGES.includes(req.body?.page_target) ? req.body.page_target : 'index';
+
     conn = await pool.getConnection();
     const result = await conn.query(
-      'INSERT INTO images (filename, file_type, file_path, upload_time) VALUES (?, ?, ?, NOW())',
-      [filename, fileType, webPath]
+      'INSERT INTO images (filename, file_type, file_path, page_target, upload_time) VALUES (?, ?, ?, ?, NOW())',
+      [filename, fileType, webPath, pageTarget]
     );
 
     // Trigger CDN prefetch in background (for pull zone caching)
@@ -3150,6 +3160,35 @@ app.post('/api/upload', async (req, res) => {
 });
 
 // Delete file
+// Move gallery item to a different page
+app.patch('/api/gallery/:id', async (req, res) => {
+  const VALID_PAGES = ['index', 'sissy', 'buster'];
+  const id = parseInt(req.params.id);
+  const { page_target } = req.body;
+
+  if (!VALID_PAGES.includes(page_target)) {
+    return res.status(400).json({ error: `Invalid page_target. Must be one of: ${VALID_PAGES.join(', ')}` });
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const result = await conn.query(
+      'UPDATE images SET page_target = ? WHERE id = ?',
+      [page_target, id]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+    res.json({ success: true, id, page_target });
+  } catch (err) {
+    console.error('Move error:', err);
+    res.status(500).json({ error: 'Failed to move image', details: err.message });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
 app.delete('/api/gallery/:id', async (req, res) => {
   let conn;
   try {

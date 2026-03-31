@@ -101,25 +101,25 @@ include __DIR__ . '/includes/header.php';
             <p><b>Recent Work</b></p>
             <p>Please subscribe to see full photo/video sets created</p>
         </div>
-        <div id="gallery-grid-sissy" class="gallery-grid mosaic-grid"></div>
+        <div id="gallery-grid-buster" class="gallery-grid mosaic-grid"></div>
     </div>
 </section>
 
 <!-- Built JS (Vite) -->
 <script type="module" src="/assets/dist/js/sissylonglegs.js"></script>
-<!-- Legacy gallery script (pending full migration) -->
-<script src="/assets/sissygallery.js"></script>
+<!-- Gallery script -->
+<script src="/assets/bustergallery.js"></script>
 
 <!-- Lightbox overlay for gallery -->
-<div id="lightbox-overlay-sissy" class="lightbox-overlay" style="display:none;">
-    <span class="lightbox-close" id="lightbox-close-sissy">&times;</span>
-    <div id="lightbox-content-sissy">
-        <img id="lightbox-img-sissy" src="" alt="Full Image" style="display:none;" />
-        <video id="lightbox-video-sissy" controls style="display:none; max-width:90vw; max-height:80vh;"></video>
+<div id="lightbox-overlay-buster" class="lightbox-overlay" style="display:none;">
+    <span class="lightbox-close" id="lightbox-close-buster">&times;</span>
+    <div id="lightbox-content-buster">
+        <img id="lightbox-img-buster" src="" alt="Full Image" style="display:none;" />
+        <video id="lightbox-video-buster" controls style="display:none; max-width:90vw; max-height:80vh;"></video>
     </div>
     <div class="lightbox-nav">
-        <button class="lightbox-nav-btn" id="lightbox-prev-sissy">&#8592;</button>
-        <button class="lightbox-nav-btn" id="lightbox-next-sissy">&#8594;</button>
+        <button class="lightbox-nav-btn" id="lightbox-prev-buster">&#8592;</button>
+        <button class="lightbox-nav-btn" id="lightbox-next-buster">&#8594;</button>
     </div>
 </div>
 
